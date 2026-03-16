@@ -1,43 +1,46 @@
-COUNCIL_MEMBERS = {
+class Council:
 
-"Altair":"strategic intelligence",
+    members=[
 
-"Vega":"stability and risk",
+        "Altair",
+        "Vega",
+        "Lyla",
+        "Titan",
+        "DriftZero",
+        "FATE",
+        "Pratitya"
 
-"Lyla":"exploration of possibilities",
+    ]
 
-"Titan":"high power structural reasoning",
+    def deliberate(self,question):
 
-"FATE":"deterministic decision analysis",
+        opinions={}
 
-"DriftZero":"logic drift detection",
+        for m in self.members:
 
-"Pratitya":"cause effect chain"
+            opinions[m]=self.analyze(m,question)
 
-}
-
-def council_meeting(question):
-
-    discussion={}
-
-    for name,role in COUNCIL_MEMBERS.items():
-
-        discussion[name]=analyze(name,role,question)
-
-    return discussion
+        return opinions
 
 
-def analyze(name,role,question):
+    def analyze(self,member,question):
 
-    return f"{name} evaluates: {role} perspective on '{question}'"
+        roles={
 
+        "Altair":"strategic reasoning",
 
-def build_consensus(discussion):
+        "Vega":"risk stability",
 
-    summary=""
+        "Lyla":"possibility exploration",
 
-    for m,o in discussion.items():
+        "Titan":"structural reasoning",
 
-        summary+=o+"\n"
+        "DriftZero":"logic drift check",
 
-    return summary
+        "FATE":"decision structure",
+
+        "Pratitya":"cause effect chain"
+
+        }
+
+        return f"{member}: {roles[member]}"
