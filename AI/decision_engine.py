@@ -3,14 +3,18 @@ import random
 from AI.simulation_engine import Simulation
 from AI.decision_memory import store_decision
 from AI.planetary_reality import planetary_status
+from AI.consensus_engine import build_consensus
+from AI.node_consensus import node_vote
+
+from NETWORK.node_registry import get_nodes
 
 
-sim=Simulation()
+sim = Simulation()
 
 
 def generate_options(question):
 
-    base=[
+    base = [
 
         "gather more information",
 
@@ -20,66 +24,98 @@ def generate_options(question):
 
         "consult trusted people",
 
-        "test small experiment"
+        "run a small experiment"
 
     ]
 
-    extra=[
+    strategic = [
 
         "pivot strategy",
 
-        "reduce risk exposure",
+        "reduce exposure",
 
         "increase resilience",
 
-        "protect survival resources",
+        "secure survival resources",
 
-        "create new opportunity"
+        "explore new opportunity"
 
     ]
 
-    options=random.sample(base,3)
+    options = random.sample(base, 3)
 
-    if random.random()>0.5:
+    if random.random() > 0.5:
 
-        options.append(random.choice(extra))
+        options.append(random.choice(strategic))
 
     return options
 
 
 
-def planetary_adjustment(options):
+def council_reasoning(question, options):
 
-    planet=planetary_status()
+    council_results = {
 
-    stability=planet["planetary_stability"]
+        "Altair": random.choice(options),
 
-    if stability<40:
+        "Vega": random.choice(options),
 
-        options.append("prioritize stability and safety")
+        "Lyla": random.choice(options),
 
-    if stability<25:
+        "Titan": random.choice(options),
 
-        options.append("avoid large irreversible decisions")
+        "FATE": random.choice(options),
 
-    return options,planet
+        "DriftZero": random.choice(options)
+
+    }
+
+    summary = build_consensus(council_results)
+
+    return council_results, summary
+
+
+
+def node_reasoning(options):
+
+    nodes = get_nodes()
+
+    vote = node_vote(options, nodes)
+
+    return vote
 
 
 
 def process_decision(question):
 
-    options=generate_options(question)
+    options = generate_options(question)
 
-    options=sim.simulate(question)+options
+    sim_results = sim.simulate(question)
 
-    options,planet=planetary_adjustment(options)
+    options = options + sim_results
 
-    store_decision(question,options)
+    planet = planetary_status()
+
+    council_results, council_summary = council_reasoning(question, options)
+
+    node_result = node_reasoning(options)
+
+    final_choice = node_result["winner"]
+
+    store_decision(question, options)
 
     return {
 
-        "options":options,
+        "options": options,
 
-        "planetary_context":planet
+        "consensus": final_choice,
+
+        "planetary_context": planet,
+
+        "council": council_results,
+
+        "council_summary": council_summary,
+
+        "node_votes": node_result["votes"]
 
     }
