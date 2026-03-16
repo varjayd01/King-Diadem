@@ -5,14 +5,17 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-# AI SYSTEM
+
+# AI
 from AI.decision_engine import process_decision
 from AI.freedom_signal import freedom_index
 from AI.decision_memory import get_recent
 from AI.civilization_engine import get_nodes as civilization_nodes
+from AI.civilization_learning import get_learning
 from AI.choice_points import add_points, get_points
 from AI.reality_feedback import record_feedback, feedback_stats
 from AI.planetary_reality import planetary_status
+
 
 # NETWORK
 from NETWORK.global_chat import add_chat, get_chat
@@ -26,9 +29,9 @@ app = FastAPI(title="KING DIADEM")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-# -------------------------
+# -------------------
 # HOME
-# -------------------------
+# -------------------
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
@@ -38,9 +41,9 @@ async def root():
         return f.read()
 
 
-# -------------------------
+# -------------------
 # ASK AI
-# -------------------------
+# -------------------
 
 @app.post("/ask")
 async def ask(request: Request):
@@ -54,23 +57,18 @@ async def ask(request: Request):
     return JSONResponse({
 
         "question": question,
-
         "options": result["options"],
-
         "consensus": result["consensus"],
-
         "planetary": result["planetary_context"],
-
         "council": result["council"],
-
         "node_votes": result["node_votes"]
 
     })
 
 
-# -------------------------
+# -------------------
 # PLANET STATUS
-# -------------------------
+# -------------------
 
 @app.get("/planet")
 def planet():
@@ -78,9 +76,9 @@ def planet():
     return planetary_status()
 
 
-# -------------------------
+# -------------------
 # FREEDOM SIGNAL
-# -------------------------
+# -------------------
 
 @app.get("/freedom")
 def freedom():
@@ -103,9 +101,9 @@ def freedom():
     }
 
 
-# -------------------------
+# -------------------
 # DECISION MEMORY
-# -------------------------
+# -------------------
 
 @app.get("/memory")
 def memory():
@@ -117,9 +115,9 @@ def memory():
     }
 
 
-# -------------------------
+# -------------------
 # CIVILIZATION ENGINE
-# -------------------------
+# -------------------
 
 @app.get("/civilization")
 def civilization():
@@ -131,9 +129,23 @@ def civilization():
     }
 
 
-# -------------------------
+# -------------------
+# CIVILIZATION LEARNING
+# -------------------
+
+@app.get("/civilization/learning")
+def learning():
+
+    return {
+
+        "learning_memory": get_learning()
+
+    }
+
+
+# -------------------
 # REALITY FEEDBACK
-# -------------------------
+# -------------------
 
 @app.post("/feedback")
 async def feedback(request: Request):
@@ -157,9 +169,9 @@ def feedback_statistics():
     return feedback_stats()
 
 
-# -------------------------
+# -------------------
 # CHOICE POINTS
-# -------------------------
+# -------------------
 
 @app.post("/points/add")
 async def add_user_points(request: Request):
@@ -186,9 +198,9 @@ def user_points(user: str):
     }
 
 
-# -------------------------
+# -------------------
 # GLOBAL CHAT
-# -------------------------
+# -------------------
 
 @app.post("/world/chat")
 async def world_chat(request: Request):
@@ -214,9 +226,9 @@ def messages():
     }
 
 
-# -------------------------
+# -------------------
 # PLANETARY NODE NETWORK
-# -------------------------
+# -------------------
 
 @app.get("/network/start")
 def start_network_node():
@@ -248,9 +260,9 @@ def network():
     return network_status()
 
 
-# -------------------------
+# -------------------
 # SYSTEM HEALTH
-# -------------------------
+# -------------------
 
 @app.get("/system/health")
 def health():
@@ -263,9 +275,9 @@ def health():
     }
 
 
-# -------------------------
+# -------------------
 # RUN SERVER
-# -------------------------
+# -------------------
 
 if __name__ == "__main__":
 
