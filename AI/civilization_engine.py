@@ -1,22 +1,16 @@
-civilizations=[]
+civilization_nodes=[]
 
-def create_node(user,problem,options):
+def add_node(problem,options):
 
     node={
 
-        "user":user,
-
         "problem":problem,
-
         "options":options
 
     }
 
-    civilizations.append(node)
+    civilization_nodes.append(node)
 
-    return node
+def get_nodes():
 
-
-def get_civilization():
-
-    return civilizations[-50:]
+    return civilization_nodes[-50:]
