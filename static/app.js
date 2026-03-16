@@ -1,34 +1,94 @@
-let deferredPrompt;
+async function askAI() {
 
-window.addEventListener("beforeinstallprompt", (e) => {
+    const input = document.getElementById("question")
 
-e.preventDefault();
+    const question = input.value
 
-deferredPrompt = e;
+    if (!question) return
 
-const installBtn = document.createElement("button");
+    const response = await fetch("/ask", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            question: question
+        })
+    })
 
-installBtn.innerText = "Install KING DIADEM";
+    const data = await response.json()
 
-installBtn.style.position = "fixed";
-installBtn.style.bottom = "20px";
-installBtn.style.left = "50%";
-installBtn.style.transform = "translateX(-50%)";
-installBtn.style.padding = "12px 20px";
-installBtn.style.background = "#111";
-installBtn.style.color = "#fff";
-installBtn.style.border = "1px solid #444";
-installBtn.style.borderRadius = "8px";
-installBtn.style.zIndex = "9999";
+    renderOptions(data.options)
 
-installBtn.onclick = async () => {
+}
 
-installBtn.remove();
 
-deferredPrompt.prompt();
+function renderOptions(options){
 
-};
+    const container = document.getElementById("result")
 
-document.body.appendChild(installBtn);
+    container.innerHTML = ""
 
-});
+    options.forEach((opt,i)=>{
+
+        const div = document.createElement("div")
+
+        div.className="option"
+
+        div.innerHTML = (i+1)+". "+opt
+
+        container.appendChild(div)
+
+    })
+
+}
+
+
+async function loadFreedom(){
+
+    const res = await fetch("/freedom")
+
+    const data = await res.json()
+
+    const el = document.getElementById("freedom")
+
+    if(!el) return
+
+    el.innerHTML =
+        "Freedom Index: "+data.freedom_index+
+        " ("+data.status+")"
+
+}
+
+
+async function loadGalaxy(){
+
+    const res = await fetch("/galaxy")
+
+    const data = await res.json()
+
+    console.log("Galaxy Nodes:",data)
+
+}
+
+
+async function loadDecisionMap(){
+
+    const res = await fetch("/decision/map")
+
+    const data = await res.json()
+
+    console.log("Decision Map:",data)
+
+}
+
+
+window.onload=function(){
+
+    loadFreedom()
+
+    loadGalaxy()
+
+    loadDecisionMap()
+
+}
