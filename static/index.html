@@ -1,64 +1,85 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
 
 <meta charset="UTF-8">
 
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>KING DIADEM</title>
 
-<link rel="manifest" href="/static/manifest.json">
+<style>
 
-<link rel="stylesheet" href="/static/style.css">
+body{
+
+background:#050510;
+color:white;
+font-family:Arial;
+text-align:center;
+
+}
+
+canvas{
+
+border:1px solid #222;
+
+}
+
+input{
+
+width:60%;
+padding:12px;
+margin-top:20px;
+
+}
+
+button{
+
+padding:12px 25px;
+margin-left:10px;
+
+}
+
+#thinking{
+
+margin-top:20px;
+
+}
+
+</style>
 
 </head>
 
 <body>
 
-<canvas id="galaxy"></canvas>
+<h1>KING DIADEM</h1>
 
-<div class="panel">
-
-<h1>👑 KING DIADEM</h1>
-
-<div class="philosophy">
-
+<p>
 ระบบใดที่ทำให้ทางเลือกของมนุษย์ = 0  
-ระบบนั้นล้มเหลว  
+ระบบนั้นล้มเหลว
+</p>
 
-<br><br>
-
+<p>
 Any system that reduces human choice to zero  
-is a failed system.
+is a failed system
+</p>
 
-</div>
-
-<div class="buttons">
+<input id="question" placeholder="Ask a strategic question">
 
 <button onclick="ask()">ASK</button>
 
-<button onclick="brain()">BRAIN</button>
+<div id="thinking"></div>
 
-<button onclick="galaxy()">GALAXY</button>
+<canvas id="galaxyDecision" width="900" height="500"></canvas>
 
-<button onclick="guide()">GUIDE</button>
-
-</div>
-
-</div>
-
-
-<script src="/static/galaxy.js"></script>
-<script src="/static/ai_thinking.js"></script>
-<script src="/static/decision.js"></script>
+<script src="/static/galaxy_decision.js"></script>
 
 <script>
 
 function ask(){
 
-let q = prompt("Your problem")
+let q=document.getElementById("question").value
+
+document.getElementById("thinking").innerText="AI Council thinking..."
 
 fetch("/decision",{
 
@@ -69,46 +90,32 @@ headers:{
 },
 
 body:JSON.stringify({
-
-problem:q
-
+question:q
 })
 
 })
 
 .then(r=>r.json())
 
-.then(d=>{
+.then(data=>{
 
-alert(d.answer)
+drawGalaxy(
+data.problem,
+data.options.map(o=>({
+strategy:o,
+risk:Math.random(),
+confidence:Math.random()
+}))
+)
+
+document.getElementById("thinking").innerText=""
 
 })
 
 }
 
-
-function brain(){
-
-window.location="/ai/brain"
-
-}
-
-
-function galaxy(){
-
-window.location="/ai/galaxy"
-
-}
-
-
-function guide(){
-
-window.location="/static/guide.html"
-
-}
-
 </script>
 
-
 </body>
+
 </html>
