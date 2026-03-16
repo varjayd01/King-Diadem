@@ -5,27 +5,29 @@ from fastapi import FastAPI,Request
 from fastapi.responses import JSONResponse,HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-# AI ENGINE
+# AI
 from AI.decision_engine import process_decision
 from AI.freedom_signal import freedom_index
 from AI.decision_memory import get_recent
 from AI.civilization_engine import get_nodes
 from AI.choice_points import add_points,get_points
 from AI.reality_feedback import record_feedback,feedback_stats
+from AI.planetary_reality import planetary_status
 
 # NETWORK
 from NETWORK.global_chat import add_chat,get_chat
 
-app = FastAPI(title="KING DIADEM")
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app=FastAPI(title="KING DIADEM")
+
+app.mount("/static",StaticFiles(directory="static"),name="static")
 
 
-# -------------------
+# --------------------
 # HOME
-# -------------------
+# --------------------
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/",response_class=HTMLResponse)
 async def root():
 
     with open("static/index.html","r",encoding="utf-8") as f:
@@ -33,31 +35,47 @@ async def root():
         return f.read()
 
 
-# -------------------
+
+# --------------------
 # ASK AI
-# -------------------
+# --------------------
 
 @app.post("/ask")
-async def ask(request: Request):
+async def ask(request:Request):
 
     data=await request.json()
 
     question=data.get("question","")
 
-    options=process_decision(question)
+    result=process_decision(question)
 
     return JSONResponse({
 
         "question":question,
 
-        "options":options
+        "options":result["options"],
+
+        "planetary":result["planetary_context"]
 
     })
 
 
-# -------------------
+
+# --------------------
+# PLANET STATUS
+# --------------------
+
+@app.get("/planet")
+
+def planet():
+
+    return planetary_status()
+
+
+
+# --------------------
 # FREEDOM SIGNAL
-# -------------------
+# --------------------
 
 @app.get("/freedom")
 
@@ -67,23 +85,25 @@ def freedom():
 
     status="stable"
 
-    if score < 30:
+    if score<30:
         status="compression"
 
-    if score > 60:
+    if score>60:
         status="expansion"
 
     return {
 
         "freedom_index":score,
+
         "status":status
 
     }
 
 
-# -------------------
+
+# --------------------
 # DECISION MEMORY
-# -------------------
+# --------------------
 
 @app.get("/memory")
 
@@ -96,9 +116,10 @@ def memory():
     }
 
 
-# -------------------
+
+# --------------------
 # CIVILIZATION ENGINE
-# -------------------
+# --------------------
 
 @app.get("/civilization")
 
@@ -111,23 +132,26 @@ def civilization():
     }
 
 
-# -------------------
+
+# --------------------
 # REALITY FEEDBACK
-# -------------------
+# --------------------
 
 @app.post("/feedback")
-
 async def feedback(request:Request):
 
     data=await request.json()
 
     problem=data.get("problem")
+
     option=data.get("option")
+
     success=data.get("success",False)
 
     record_feedback(problem,option,success)
 
     return {"status":"recorded"}
+
 
 
 @app.get("/feedback/stats")
@@ -137,22 +161,24 @@ def feedback_statistics():
     return feedback_stats()
 
 
-# -------------------
+
+# --------------------
 # CHOICE POINTS
-# -------------------
+# --------------------
 
 @app.post("/points/add")
-
 async def add_user_points(request:Request):
 
     data=await request.json()
 
     user=data.get("user","anonymous")
+
     amount=data.get("points",1)
 
     score=add_points(user,amount)
 
     return {"points":score}
+
 
 
 @app.get("/points/{user}")
@@ -162,17 +188,18 @@ def user_points(user:str):
     return {
 
         "user":user,
+
         "points":get_points(user)
 
     }
 
 
-# -------------------
+
+# --------------------
 # GLOBAL CHAT
-# -------------------
+# --------------------
 
 @app.post("/world/chat")
-
 async def world_chat(request:Request):
 
     data=await request.json()
@@ -186,6 +213,7 @@ async def world_chat(request:Request):
     return {"status":"ok"}
 
 
+
 @app.get("/world/messages")
 
 def messages():
@@ -197,9 +225,10 @@ def messages():
     }
 
 
-# -------------------
-# HEALTH CHECK
-# -------------------
+
+# --------------------
+# SYSTEM HEALTH
+# --------------------
 
 @app.get("/system/health")
 
@@ -207,20 +236,19 @@ def health():
 
     return {
 
-        "status":"online",
-
         "system":"KING DIADEM",
 
-        "version":"1.0"
+        "status":"online"
 
     }
 
 
-# -------------------
-# RUN SERVER
-# -------------------
 
-if __name__ == "__main__":
+# --------------------
+# RUN SERVER
+# --------------------
+
+if __name__=="__main__":
 
     port=int(os.environ.get("PORT",10000))
 
