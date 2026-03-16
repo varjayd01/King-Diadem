@@ -1,58 +1,85 @@
-from AI.persona_engine import PersonaEngine
-from AI.simulation_engine import Simulation
-from AI.decision_memory import save_decision
-from AI.civilization_engine import add_node
-from AI.freedom_signal import record_question,record_choice
-from WORLD_MODEL.earth_guardian import detect_animal_context,detect_environment_harm,earth_response
-from WORLD_MODEL.survival_threshold import check_choice
+import random
 
-persona=PersonaEngine()
+from AI.simulation_engine import Simulation
+from AI.decision_memory import store_decision
+from AI.planetary_reality import planetary_status
+
+
 sim=Simulation()
 
 
 def generate_options(question):
 
-    outcomes=sim.simulate(question)
+    base=[
 
-    options=[]
+        "gather more information",
 
-    for i,o in enumerate(outcomes[:3]):
+        "act cautiously",
 
-        options.append({
+        "delay decision",
 
-            "option":chr(65+i),
+        "consult trusted people",
 
-            "strategy":o,
+        "test small experiment"
 
-            "risk":round(0.3+i*0.2,2),
+    ]
 
-            "confidence":round(0.6-i*0.1,2)
+    extra=[
 
-        })
+        "pivot strategy",
+
+        "reduce risk exposure",
+
+        "increase resilience",
+
+        "protect survival resources",
+
+        "create new opportunity"
+
+    ]
+
+    options=random.sample(base,3)
+
+    if random.random()>0.5:
+
+        options.append(random.choice(extra))
 
     return options
+
+
+
+def planetary_adjustment(options):
+
+    planet=planetary_status()
+
+    stability=planet["planetary_stability"]
+
+    if stability<40:
+
+        options.append("prioritize stability and safety")
+
+    if stability<25:
+
+        options.append("avoid large irreversible decisions")
+
+    return options,planet
+
 
 
 def process_decision(question):
 
-    record_question()
-
-    if detect_animal_context(question):
-
-        return earth_response()
-
-    harm=detect_environment_harm(question)
-
-    if harm:
-
-        return earth_response()
-
     options=generate_options(question)
 
-    record_choice()
+    options=sim.simulate(question)+options
 
-    save_decision(question,options)
+    options,planet=planetary_adjustment(options)
 
-    add_node(question,options)
+    store_decision(question,options)
 
-    return options
+    return {
+
+        "options":options,
+
+        "planetary_context":planet
+
+    }
