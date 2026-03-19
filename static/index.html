@@ -8,44 +8,37 @@
 
 <body>
 
-<div class="container">
+<div class="box">
 
-  <img src="/static/logo.png" class="logo">
+<img src="/static/logo.png" class="logo">
+<h2>KING DIADEM</h2>
 
-  <h1>KING DIADEM</h1>
+<input id="q" placeholder="พิมพ์ตอนนี้เลย..." />
+<button onclick="ask()">ASK</button>
+<p id="ans"></p>
 
-  <!-- 🚨 EMERGENCY -->
-  <div class="card emergency">
-    <input id="q" placeholder="พิมพ์ตอนนี้เลย..." />
-    <button onclick="ask()">ASK</button>
-    <p id="ans"></p>
-  </div>
+<hr>
 
-  <!-- 💬 GROUP CHAT -->
-  <div class="card">
-    <h3>🌍 Group Chat</h3>
-    <input id="gmsg" placeholder="ระบายได้เลย..." />
-    <button onclick="sendGroup()">Send</button>
-    <div id="groupBox"></div>
-  </div>
+<h3>🌍 Group</h3>
+<input id="g" placeholder="ระบาย..." />
+<button onclick="send()">Send</button>
 
-  <!-- ⚙️ Persona -->
-  <div class="card">
-    <h3>⚙️ Persona</h3>
-    <input id="name" placeholder="ชื่อ">
-    <input id="tone" placeholder="โทน เช่น สนุก / ลึก">
-    <button onclick="save()">Save</button>
-  </div>
+<div id="chat"></div>
 
-  <!-- 📊 Dashboard -->
-  <div class="card">
-    <button onclick="loadDash()">📊 Dashboard</button>
-    <pre id="dash"></pre>
-  </div>
+<hr>
+
+<h3>⚙️ Persona</h3>
+<input id="name" placeholder="ชื่อ">
+<input id="tone" placeholder="โทน">
+<button onclick="save()">Save</button>
+
+<hr>
+
+<button onclick="dash()">📊 Dashboard</button>
+<pre id="dash"></pre>
 
 </div>
 
 <script src="/static/app.js"></script>
-
 </body>
 </html>
