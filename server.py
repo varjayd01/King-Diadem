@@ -1,122 +1,87 @@
-import random
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from app import decision_engine, analyze_system
+
+import json
+import os
+
 app = FastAPI()
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-user_profiles = {}
+user_profile = {}
+group_chat = []
 
-CRISIS_WORDS = ["ตาย","ไม่ไหว","หมดทาง","ป่วย","หิว","ไม่มีเงิน"]
-
-def is_crisis(text):
-    return any(w in text for w in CRISIS_WORDS)
-
-def detect_mode(text):
-    t=text.lower()
-    if "ไลล่า" in t or "altair" in t:
-        return "COUNCIL"
-    if "expert" in t or "ลึก" in t:
-        return "EXPERT"
-    if is_crisis(text):
-        return "LYLA"
-    return "NORMAL"
-
-def compass():
-    d=random.choice(["เหนือ","ใต้","ตะวันออก","ตะวันตก"])
-    m=random.randint(50,300)
-    return f"🧭 ไปทาง{d} {m} เมตร"
-
-def navigation(q):
-    if "หิว" in q:
-        return "🍜 เปิด Google Maps แล้วค้นหา: ร้านอาหารใกล้ฉัน"
-    if "ป่วย" in q:
-        return "🏥 ไปคลินิกหรือร้านยาใกล้คุณ"
-    return ""
-
-def persona_tone():
-    profile=user_profiles.get("me",{})
-    style=profile.get("style","ปกติ")
-
-    if "สนุก" in style:
-        return "วันนี้ต้องปังนะคะ 🔥"
-    elif "ลึก" in style:
-        return "ลองมองลึกลงไปนะคะ 🧠"
-    return "ค่อยๆคิดนะคะ 🌿"
-
-def normal(q):
-    return f"""
-{persona_tone()}
-
-- อย่าปิดทางเลือก
-- คิดก่อนทำ
-
-{compass()}
-{navigation(q)}
-"""
-
-def lyla(q):
-    return f"""
-หนูอยู่ตรงนี้นะคะ 🤍
-
-เอาแค่ก้าวต่อไปก่อน
-
-ลองไปในที่มีคน เช่น ร้านสะดวกซื้อ
-
-{compass()}
-{navigation(q)}
-"""
-
-def council(q):
-    return f"""
-⚔️ COUNCIL MODE
-
-👑 King
-🌿 Lyla
-✨ Altair
-
-เลือกทางที่ยัง “มีชีวิตต่อ”
-
-{compass()}
-"""
-
-def expert(q):
-    return f"""
-🧠 EXPERT MODE
-
-- วิเคราะห์ต้นเหตุ
-- ดูความเสี่ยง
-- มองผลระยะยาว
-
-{compass()}
-"""
-
+# 🧠 AI Chat
 @app.post("/ask")
-async def ask(req:Request):
-    data=await req.json()
-    q=data.get("question","")
+async def ask(req: Request):
+    data = await req.json()
+    q = data.get("question", "")
 
-    mode=detect_mode(q)
+    ans = decision_engine(q, user_profile)
 
-    if mode=="LYLA":
-        ans=lyla(q)
-    elif mode=="COUNCIL":
-        ans=council(q)
-    elif mode=="EXPERT":
-        ans=expert(q)
-    else:
-        ans=normal(q)
+    # log
+    if not os.path.exists("data"):
+        os.makedirs("data")
 
-    return JSONResponse({"answer":ans})
+    log_path = "data/decision_log.json"
 
+    if not os.path.exists(log_path):
+        with open(log_path, "w") as f:
+            json.dump([], f)
+
+    with open(log_path, "r") as f:
+        logs = json.load(f)
+
+    logs.append({"q": q, "a": ans})
+
+    with open(log_path, "w") as f:
+        json.dump(logs, f)
+
+    return JSONResponse({"answer": ans})
+
+# 💾 Save Persona
 @app.post("/save_profile")
-async def save_profile(req:Request):
-    data=await req.json()
-    user_profiles["me"]=data
-    return {"status":"saved"}
+async def save(req: Request):
+    data = await req.json()
+    user_profile.update(data)
+    return {"status": "saved"}
 
+# 📊 Dashboard
+@app.get("/dashboard")
+async def dashboard():
+    try:
+        with open("data/decision_log.json") as f:
+            logs = json.load(f)
+    except:
+        logs = []
+
+    insight = analyze_system(logs)
+
+    return {
+        "total": len(logs),
+        "logs": logs[-10:],
+        "insight": insight
+    }
+
+# 🌍 Group Chat
+@app.post("/group_send")
+async def group_send(req: Request):
+    data = await req.json()
+    msg = data.get("msg")
+
+    group_chat.append(msg)
+
+    return {"status": "ok"}
+
+@app.get("/group_get")
+async def group_get():
+    return {"messages": group_chat[-20:]}
+
+# 🏠 Home
 @app.get("/")
 async def root():
-    with open("static/index.html","r",encoding="utf-8") as f:
+    with open("static/index.html", encoding="utf-8") as f:
         return HTMLResponse(f.read())
