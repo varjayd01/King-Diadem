@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -7,13 +7,9 @@ import uuid, json, os
 
 app = FastAPI()
 
-# static
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# template
 templates = Jinja2Templates(directory="templates")
 
-# ---------------- utils ----------------
 def path(chat_id):
     return f"data/{chat_id}.json"
 
@@ -28,15 +24,22 @@ def save(chat_id, data):
     with open(path(chat_id), "w") as f:
         json.dump(data, f)
 
-# ---------------- UI ----------------
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# ---------------- CHAT ----------------
 @app.post("/new_chat")
 async def new_chat():
     return {"chat_id": str(uuid.uuid4())}
+
+@app.get("/chats")
+async def chats():
+    os.makedirs("data", exist_ok=True)
+    return {"chats": [f.replace(".json","") for f in os.listdir("data")]}
+
+@app.get("/chat/{chat_id}")
+async def chat(chat_id: str):
+    return {"messages": load(chat_id)}
 
 @app.post("/ask")
 async def ask(req: Request):
@@ -44,7 +47,6 @@ async def ask(req: Request):
     chat_id = data["chat_id"]
     q = data["question"]
 
-    # ตอบ test ก่อน (กันพัง)
     ans = f"AI: {q}"
 
     logs = load(chat_id)
@@ -52,7 +54,3 @@ async def ask(req: Request):
     save(chat_id, logs)
 
     return {"answer": ans}
-
-@app.get("/chat/{chat_id}")
-async def chat(chat_id: str):
-    return {"messages": load(chat_id)}
