@@ -1,19 +1,25 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
-<meta charset="UTF-8">
-<title>KING DIadem</title>
-<link rel="stylesheet" href="/static/style.css">
+  <meta charset="UTF-8">
+  <title>{{ title or "KING DIADEM" }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
+
 <body>
+  <h1>🌌 {{ system_name }}</h1>
 
-<div id="chat"></div>
+  <p>Status: {{ status }}</p>
 
-<div class="input">
-  <input id="input" placeholder="พิมพ์..." />
-  <button onclick="send()">Send</button>
-</div>
+  <h3>Decision Output:</h3>
+  <pre>{{ decision_output }}</pre>
 
-<script src="/static/app.js"></script>
+  <h3>Paths:</h3>
+  <ul>
+    {% for path in paths %}
+      <li>{{ path }}</li>
+    {% endfor %}
+  </ul>
+
 </body>
 </html>
