@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>KING DIADEM</title>
+  <style>
+    body {
+      margin: 0;
+      background: radial-gradient(circle at center, #05070d, #000);
+      color: white;
+      font-family: Arial;
+      text-align: center;
+      overflow: hidden;
+    }
+
+    .container {
+      position: relative;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    h1 {
+      font-size: 48px;
+      background: linear-gradient(90deg, #00d4ff, #ff9900);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    p {
+      opacity: 0.7;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px 25px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      background: linear-gradient(90deg, #00d4ff, #ff9900);
+      color: black;
+      font-weight: bold;
+    }
+
+    .glow {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(0,212,255,0.2), transparent);
+      top: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      filter: blur(50px);
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="glow"></div>
+
+<div class="container">
+  <h1>👑 KING DIADEM</h1>
+  <p>Rewrite the Stars</p>
+
+  <button onclick="enterSystem()">Enter System</button>
+</div>
+
+<script>
+function enterSystem() {
+  window.location.href = "/";
+}
+</script>
+
+</body>
+</html>
