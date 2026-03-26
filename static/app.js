@@ -1,26 +1,15 @@
 async function send() {
-    const input = document.getElementById("input");
-    const chat = document.getElementById("chat");
-    const mode = document.getElementById("mode").value;
-
-    const text = input.value;
-
-    chat.innerHTML += `<div class="bubble user">${text}</div>`;
+    const input = document.getElementById("input").value;
 
     const res = await fetch("/decision", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-            input: text,
-            mode: mode
-        })
+        body: JSON.stringify({ input })
     });
 
     const data = await res.json();
 
-    chat.innerHTML += `<div class="bubble ai">${data.result}</div>`;
-
-    input.value = "";
+    document.getElementById("output").innerText = data.result;
 }
