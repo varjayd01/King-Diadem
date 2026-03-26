@@ -1,90 +1,53 @@
-from flask import Flask, request, jsonify, send_from_directory
-import os
+import streamlit as st
 
-app = Flask(__name__, static_folder='static')
+# ------------------------
+# CORE LOGIC (ของพี่)
+# ------------------------
+def evaluate_choice(choice):
+    risk_keywords = ["หนี้", "เสี่ยง", "หมดตัว", "อันตราย", "ติด", "เสีย"]
+    score = 0
+    for word in risk_keywords:
+        if word in choice:
+            score += 1
+    return score
 
+def decision_engine(problem, choices):
+    results = []
+    
+    for c in choices:
+        risk = evaluate_choice(c)
+        results.append((c, risk))
+    
+    best = sorted(results, key=lambda x: x[1])[0]
 
-# ======================
-# ROUTE: HOME
-# ======================
-@app.route('/')
-def index():
-    return send_from_directory(app.static_folder, 'index.html')
-
-
-# ======================
-# CORE: DECISION ENGINE
-# ======================
-def decision_engine(user_input):
-    text = user_input.lower()
-
-    # ===== Survival Mode =====
-    if "หิว" in text or "ไม่ได้กิน" in text:
-        return {
-            "mode": "survival",
-            "result": "ไปกินอะไรก่อนทันที อย่าฝืน ระบบไม่ให้คิดต่อถ้ายังหิว"
-        }
-
-    if "ไม่มีเงิน" in text or "จน" in text:
-        return {
-            "mode": "survival",
-            "result": "ลดรายจ่ายทันที + หาเงินระยะสั้นก่อน เช่น งานรายวัน / ขายของ / รับจ้าง"
-        }
-
-    if "เครียด" in text or "ท้อ" in text:
-        return {
-            "mode": "stabilize",
-            "result": "หยุดก่อน หายใจลึก 5 ครั้ง แล้วค่อยตัดสินใจ อย่าฝืนตอนสติไม่เต็ม"
-        }
-
-    # ===== Risk Detection =====
-    if "เมา" in text or "ไม่ปลอดภัย" in text:
-        return {
-            "mode": "danger",
-            "result": "เรียกรถกลับทันที อย่าอยู่ต่อ ความปลอดภัยมาก่อน"
-        }
-
-    # ===== Default Thinking =====
     return {
-        "mode": "normal",
-        "result": f"วิเคราะห์แล้ว: {user_input}"
+        "problem": problem,
+        "best_choice": best[0],
+        "reason": "เสี่ยงต่ำสุด และยังเหลือทางเลือกต่อ"
     }
 
+# ------------------------
+# UI (หน้าจอ)
+# ------------------------
+st.set_page_config(page_title="KING DIADEM", page_icon="👑")
 
-# ======================
-# ROUTE: DECISION
-# ======================
-@app.route('/decision', methods=['POST'])
-def decision():
-    data = request.get_json()
+st.title("👑 KING DIADEM - Decision Engine")
+st.write("ระบบช่วยตัดสินใจแบบลดความเสี่ยง")
 
-    if not data or "input" not in data:
-        return jsonify({
-            "status": "error",
-            "message": "No input provided"
-        }), 400
+problem = st.text_input("ปัญหาของคุณคืออะไร?")
 
-    user_input = data.get("input", "")
+st.write("ใส่ตัวเลือกของคุณ:")
+c1 = st.text_input("ตัวเลือก 1")
+c2 = st.text_input("ตัวเลือก 2")
+c3 = st.text_input("ตัวเลือก 3")
 
-    result = decision_engine(user_input)
+if st.button("วิเคราะห์"):
+    choices = [c1, c2, c3]
+    choices = [c for c in choices if c.strip() != ""]
 
-    return jsonify({
-        "status": "success",
-        "mode": result["mode"],
-        "result": result["result"]
-    })
-
-
-# ======================
-# HEALTH CHECK
-# ======================
-@app.route('/health')
-def health():
-    return "OK", 200
-
-
-# ======================
-# RUN LOCAL ONLY
-# ======================
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    if len(choices) < 2:
+        st.warning("กรุณาใส่อย่างน้อย 2 ตัวเลือก")
+    else:
+        result = decision_engine(problem, choices)
+        st.success(f"✅ ทางที่แนะนำ: {result['best_choice']}")
+        st.info(result["reason"])
