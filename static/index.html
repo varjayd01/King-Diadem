@@ -1,18 +1,5 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>KING DIADEM</title>
-</head>
-<body>
+from flask import send_from_directory
 
-<h1>👑 KING DIADEM</h1>
-
-<input id="input" placeholder="พิมพ์คำถาม..." />
-<button onclick="send()">Send</button>
-
-<p id="output"></p>
-
-<script src="app.js"></script>
-
-</body>
-</html>
+@app.route("/")
+def serve_static():
+    return send_from_directory("static", "index.html")
