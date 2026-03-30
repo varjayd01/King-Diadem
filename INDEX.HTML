@@ -1,8 +1,37 @@
-<h1>👑 KING DIADEM</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>KING DIADEM</title>
+</head>
+<body>
+    <h1>KING DIADEM</h1>
 
-<input id="input" placeholder="พิมพ์คำถาม..." />
-<button onclick="sendInput()">Send</button>
+    <input id="drift" placeholder="drift"><br>
+    <input id="exposure" placeholder="exposure"><br>
+    <input id="choice" placeholder="choice"><br>
 
-<p id="output"></p>
+    <button onclick="run()">Analyze</button>
 
-<script src="app.js"></script>
+    <pre id="result"></pre>
+
+<script>
+async function run(){
+    const data = {
+        drift: document.getElementById("drift").value,
+        exposure: document.getElementById("exposure").value,
+        choice: document.getElementById("choice").value
+    }
+
+    const res = await fetch('/analyze', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+    })
+
+    const json = await res.json()
+    document.getElementById("result").innerText = JSON.stringify(json, null, 2)
+}
+</script>
+
+</body>
+</html>
