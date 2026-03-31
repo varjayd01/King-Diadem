@@ -1,11 +1,41 @@
 # core/brain.py
 
-from AI.decision_engine import decide
-from AI.intent_engine import analyze_intent
+def run_brain(message: str):
+    if not message or message.strip() == "":
+        return {
+            "text": "ไม่มีข้อมูลให้วิเคราะห์",
+            "risk": 0,
+            "choices": []
+        }
 
-def run_brain(message):
+    if "เสี่ยง" in message:
+        return {
+            "text": "ตรวจพบความเสี่ยง",
+            "risk": 0.8,
+            "choices": [
+                "หยุดก่อน",
+                "ลดความเสี่ยง",
+                "หาทางเลือกใหม่"
+            ]
+        }
 
-    intent = analyze_intent(message)
-    decision = decide(intent)
+    if "เงิน" in message:
+        return {
+            "text": "เกี่ยวข้องกับทรัพยากร",
+            "risk": 0.5,
+            "choices": [
+                "เก็บเงิน",
+                "ลงทุนแบบระวัง",
+                "ลดรายจ่าย"
+            ]
+        }
 
-    return decision
+    return {
+        "text": f"วิเคราะห์: {message}",
+        "risk": 0.2,
+        "choices": [
+            "ทางเลือก A",
+            "ทางเลือก B",
+            "ทางเลือก C"
+        ]
+    }
