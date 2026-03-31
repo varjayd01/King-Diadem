@@ -1,38 +1,29 @@
 const API_KEY = "ใส่ api_key";
+const MODE = "chat"; // เปลี่ยนเป็น decision ได้
 
 async function send(){
 
-const input=document.getElementById("msg")
+const msg=document.getElementById("msg").value
 const chat=document.getElementById("chat")
 
-const msg=input.value.trim()
-if(!msg)return
-
-chat.innerHTML+=`<div class="user">🧑 ${msg}</div>`
-input.value=""
+chat.innerHTML+=`<div>🧑 ${msg}</div>`
 
 const res=await fetch("/decision",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({
 api_key:API_KEY,
-question:msg
+question:msg,
+mode:MODE
 })
 })
 
 const data=await res.json()
-const r=data.reply
 
-chat.innerHTML+=`
-<div class="bot">
-👑 ${r.text}<br>
-⚖️ risk: ${r.risk}<br>
-🧭 ${r.choices.join(", ")}
-</div>
-`
-
-// 🔥 connect visualization
-updateBrain(r.risk)
-
-chat.scrollTop=chat.scrollHeight
+if(data.type==="chat"){
+chat.innerHTML+=`<div>🤖 ${data.reply}</div>`
+}
+else{
+chat.innerHTML+=`<div>👑 ${data.reply.text}</div>`
+}
 }
