@@ -1,36 +1,63 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <title>KING DIADEM™ | Sovereign Interface</title>
-    <style>
-        :root { --neon: #00ffcc; --dark: #050505; }
-        body { background: var(--dark); color: white; font-family: monospace; margin: 0; display: flex; height: 100vh; }
-        .sidebar { width: 300px; background: #111; padding: 20px; border-right: 1px solid var(--neon); }
-        .main { flex-grow: 1; padding: 40px; display: flex; flex-direction: column; }
-        .terminal { flex-grow: 1; background: black; border: 1px solid #333; padding: 20px; overflow-y: auto; color: var(--neon); margin-bottom: 20px; }
-        .btn { background: var(--neon); color: black; border: none; padding: 10px; cursor: pointer; font-weight: bold; width: 100%; border-radius: 4px; }
-        input { width: 100%; background: #222; border: 1px solid #444; color: white; padding: 10px; margin-bottom: 10px; }
-    </style>
+<meta charset="UTF-8">
+<title>KING DIADEM</title>
+
+<style>
+body{background:#020617;color:#fff;font-family:sans-serif}
+#chat{height:70vh;overflow:auto;padding:10px}
+.msg{margin:10px;padding:10px;border-radius:10px}
+.user{background:#4f46e5;text-align:right}
+.bot{background:#111}
+</style>
 </head>
+
 <body>
-    <div class="sidebar">
-        <h2>LYLA KERNEL</h2>
-        <p>Status: <span style="color:var(--neon)">ONLINE</span></p>
-        <hr>
-        <h3>TOP UP (STRIPE)</h3>
-        <form action="/create-checkout-session" method="POST">
-            <input type="number" name="amount" value="500" min="20" placeholder="จำนวนเงิน (THB)">
-            <button type="submit" class="btn">เติมเงินผ่าน Stripe</button>
-        </form>
-    </div>
-    <div class="main">
-        <div class="terminal" id="term">> [READY] WAITING FOR COMMAND...</div>
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="cmd" placeholder="รันสัจธรรมของพี่ชาย..." onkeypress="if(event.key=='Enter') run()">
-            <button class="btn" style="width:150px;" onclick="run()">EXECUTE</button>
-        </div>
-    </div>
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
+
+<h2>👑 KING DIADEM</h2>
+
+<div id="chat"></div>
+
+<input id="msg" placeholder="พิมพ์..." onkeypress="if(event.key==='Enter')send()">
+<button onclick="send()">ส่ง</button>
+
+<script>
+async function send(){
+    const input = document.getElementById("msg");
+    const chat = document.getElementById("chat");
+
+    const text = input.value.trim();
+    if(!text) return;
+
+    chat.innerHTML += `<div class="msg user">${text}</div>`;
+    input.value="";
+
+    try{
+        const res = await fetch("/decision",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({
+                input:{
+                    food:1,
+                    money:1,
+                    risk:1,
+                    text:text
+                }
+            })
+        });
+
+        const data = await res.json();
+
+        chat.innerHTML += `<div class="msg bot">${data.response}</div>`;
+
+    }catch(e){
+        chat.innerHTML += `<div class="msg bot">ERROR</div>`;
+    }
+
+    chat.scrollTop = chat.scrollHeight;
+}
+</script>
+
 </body>
 </html>
