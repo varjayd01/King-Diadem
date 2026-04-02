@@ -2,26 +2,24 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>KING DIADEM APP</title>
-<link rel="stylesheet" href="style.css">
+<title>KING DIADEM</title>
+<link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
 
-<h2>KING DIADEM APP</h2>
+<canvas id="bg"></canvas>
 
-<textarea id="input"></textarea>
+<div class="panel">
+    <h1>👑 KING DIADEM</h1>
 
-<br>
+    <textarea id="msg" placeholder="พิมพ์คำสั่ง..."></textarea>
 
-<button onclick="run()">RUN</button>
-<button onclick="stop()">STOP</button>
+    <button onclick="run()">⚡ RUN</button>
 
-<div id="tier"></div>
-<div id="risk"></div>
-<div id="log"></div>
+    <pre id="out"></pre>
+</div>
 
-<script src="app.js"></script>
-
+<script src="/static/app.js"></script>
 </body>
 </html>
