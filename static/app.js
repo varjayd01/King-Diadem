@@ -3,16 +3,19 @@ async function run() {
 
   const res = await fetch("/decision", {
     method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({input: text})
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ input: text })
   });
 
   const data = await res.json();
 
-  document.getElementById("tier").innerText = "Tier: " + data.tier;
-  document.getElementById("risk").innerText = "Risk: " + data.risk;
+  // 🔥 FIX ตัวที่พี่พัง
+  document.getElementById("tier").innerText = "Tier: " + (data.tier || "N/A");
+  document.getElementById("risk").innerText = "Risk: " + (data.risk ?? 0);
 
-  log(data.response);
+  log(data.response || "NO RESPONSE");
 }
 
 function stop() {
