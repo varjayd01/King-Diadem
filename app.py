@@ -1,17 +1,31 @@
-from flask import Flask, request, jsonify, render_template
-from ENGINE.decision_engine import KingDiademEngine
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+import os
 
-app = Flask(__name__)
-engine = KingDiademEngine()
+app = FastAPI()
 
+# ✅ CORS (สำคัญมาก)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ✅ route test
 @app.get("/")
 def home():
-    return render_template("index.html")
+    return {"status": "alive"}
 
-@app.post("/run")
-def run():
-    data = request.get_json(silent=True) or {}
-    text = data.get("text", "")
-    mode = data.get("mode", "chat")
-    result = engine.run(text, mode)
-    return jsonify(result)
+# ✅ CHAT API (ตัวเชื่อมจริง)
+@app.post("/chat")
+async def chat(req: Request):
+    data = await req.json()
+    user_input = data.get("message", "")
+
+    # 👇 ตรงนี้ค่อยเอา decision_mode มายัดทีหลัง
+    return JSONResponse({
+        "reply": f"ระบบรับแล้ว: {user_input}"
+    })
