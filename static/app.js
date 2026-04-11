@@ -1,65 +1,16 @@
-let currentUser = ""
+document.getElementById('runDecision').addEventListener('click', async () => {
+    const outputDiv = document.getElementById('output');
+    outputDiv.innerText = "PROCESSING VIA ENGINE...";
 
-function show(msg){
-    document.getElementById("out").innerText = msg
-}
-
-// REGISTER
-async function reg(){
-    const f = new FormData()
-    f.append("username", r_user.value)
-    f.append("password", r_pass.value)
-
-    const res = await fetch('/register',{
-        method:'POST',
-        body:f
-    })
-
-    show(JSON.stringify(await res.json(),null,2))
-}
-
-// LOGIN
-async function login(){
-    const f = new FormData()
-    f.append("username", l_user.value)
-    f.append("password", l_pass.value)
-
-    const res = await fetch('/login',{
-        method:'POST',
-        body:f
-    })
-
-    const data = await res.json()
-
-    if(data.status === "ok"){
-        currentUser = l_user.value
-        show("✅ LOGIN SUCCESS")
-    }else{
-        show(JSON.stringify(data,null,2))
+    try {
+        const response = await fetch('/api/decision', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ drift: 0.1, exposure: 0.5, remaining_choices: 10 })
+        });
+        const result = await response.json();
+        outputDiv.innerHTML = `<strong>RESULT:</strong> ${result.decision} <br> <strong>RISK:</strong> ${result.risk_score}`;
+    } catch (error) {
+        outputDiv.innerText = "CONNECTION ERROR: CHECK ENGINE";
     }
-}
-
-// ENGINE
-async function run(){
-
-    if(!currentUser){
-        show("❌ LOGIN ก่อน")
-        return
-    }
-
-    const res = await fetch('/ENGINE',{
-        method:'POST',
-        headers:{
-            'Content-Type':'application/json'
-        },
-        body:JSON.stringify({
-            location: location.value,
-            food: food.value,
-            money: parseInt(money.value || 0),
-            risk: parseInt(risk.value || 0),
-            username: currentUser
-        })
-    })
-
-    show(JSON.stringify(await res.json(),null,2))
-}
+});
