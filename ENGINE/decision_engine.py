@@ -1,9 +1,17 @@
 def ENGINE_DECISION(text: str):
 
-    if "น้อย" in text or "0" in text:
-        return {"mode": "SURVIVAL", "action": "save"}
+    text = text.lower()
 
-    if "เสี่ยง" in text or "9" in text:
-        return {"mode": "DEFENSE", "action": "avoid"}
+    if "เงิน" in text or "money" in text:
+        if "0" in text or "น้อย" in text:
+            return "❌ ประหยัดทันที หยุดความเสี่ยง"
+        else:
+            return "💰 ใช้เงินแบบควบคุมความเสี่ยง"
 
-    return {"mode": "NORMAL", "action": "proceed"}
+    if "เสี่ยง" in text or "risk" in text:
+        return "⚠️ ลด risk ก่อนตัดสินใจ"
+
+    if "อาหาร" in text or "food" in text:
+        return "🍜 หาอาหารก่อน ทุกอย่างค่อยคิดทีหลัง"
+
+    return "🧠 วิเคราะห์เพิ่ม ยังไม่ชัด"
