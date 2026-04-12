@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KING DIADEM ENGINE</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: black;
+    color: #00ffcc;
+}
+
+.container {
+    max-width: 420px;
+    margin: auto;
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    color: #00ffcc;
+}
+
+.section {
+    margin-bottom: 30px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    background: #111;
+    border: 1px solid #00ffcc;
+    color: white;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    background: #00ffcc;
+    border: none;
+    color: black;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #00ccaa;
+}
+
+#output {
+    margin-top: 20px;
+    padding: 10px;
+    background: #111;
+    border: 1px solid #00ffcc;
+    white-space: pre-wrap;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>⚔️ KING DIADEM ENGINE</h1>
+
+<!-- REGISTER -->
+<div class="section">
+<h3>สมัคร</h3>
+<input id="reg_user" placeholder="username">
+<input id="reg_pass" placeholder="password" type="password">
+<button onclick="register()">Register</button>
+</div>
+
+<!-- LOGIN -->
+<div class="section">
+<h3>ล็อกอิน</h3>
+<input id="login_user" placeholder="username">
+<input id="login_pass" placeholder="password" type="password">
+<button onclick="login()">Login</button>
+</div>
+
+<!-- ENGINE -->
+<div class="section">
+<h3>ENGINE</h3>
+
+<input id="location" placeholder="location">
+<input id="food" placeholder="food">
+<input id="money" placeholder="money">
+<input id="risk" placeholder="risk">
+
+<button onclick="runEngine()">RUN ENGINE</button>
+</div>
+
+<!-- OUTPUT -->
+<div id="output">ผลลัพธ์จะแสดงที่นี่...</div>
+
+</div>
+
+<script>
+
+// ==========================
+// GLOBAL STATE
+// ==========================
+let currentUser = null
+
+// ==========================
+// REGISTER
+// ==========================
+async function register() {
+    const username = document.getElementById("reg_user").value
+    const password = document.getElementById("reg_pass").value
+
+    const res = await fetch("/register", {
+        method: "POST",
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: `username=${username}&password=${password}`
+    })
+
+    const data = await res.json()
+    show(data)
+}
+
+// ==========================
+// LOGIN
+// ==========================
+async function login() {
+    const username = document.getElementById("login_user").value
+    const password = document.getElementById("login_pass").value
+
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        body: `username=${username}&password=${password}`
+    })
+
+    const data = await res.json()
+
+    if (data.status === "ok") {
+        currentUser = username
+    }
+
+    show(data)
+}
+
+// ==========================
+// ENGINE
+// ==========================
+async function runEngine() {
+
+    if (!currentUser) {
+        show({error: "login first"})
+        return
+    }
+
+    const payload = {
+        username: currentUser,
+        location: document.getElementById("location").value,
+        food: document.getElementById("food").value,
+        money: document.getElementById("money").value,
+        risk: document.getElementById("risk").value
+    }
+
+    const res = await fetch("/ENGINE", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+    })
+
+    const data = await res.json()
+    show(data)
+}
+
+// ==========================
+// OUTPUT DISPLAY
+// ==========================
+function show(data) {
+    document.getElementById("output").innerText =
+        JSON.stringify(data, null, 2)
+}
+
+</script>
+
+</body>
+  </html>
