@@ -1,38 +1,20 @@
+import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
 # ===== IMPORT APP =====
-try:
-    from app import app
-except:
-    # fallback กันพัง
-    app = FastAPI()
+from app import app
 
-    @app.get("/")
-    def fallback():
-        return {"status": "main fallback working"}
+# ===== STATIC =====
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-
-# ===== STATIC (กันพัง) =====
-try:
-    app.mount("/static", StaticFiles(directory="static"), name="static")
-except:
-    pass
-
-
-# ===== ROOT FALLBACK =====
+# ===== HEALTH CHECK =====
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-
-# ===== RUN =====
+# ===== RENDER ENTRY =====
 if __name__ == "__main__":
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
