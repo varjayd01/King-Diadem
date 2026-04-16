@@ -1,27 +1,16 @@
-from DATABASE.user_db import create_user, get_user
+from AUTH.api_key_manager import use_credit
 
 
-def register(email, password):
+def authorize(username: str):
 
-    success = create_user(email, password)
+    ok = use_credit(username, 1)
 
-    if success:
-        return {"status": "registered"}
-
-    return {"status": "user_exists"}
-
-
-def login(email, password):
-
-    user = get_user(email)
-
-    if not user:
-        return {"status": "no_user"}
-
-    if user[2] != password:
-        return {"status": "wrong_password"}
+    if not ok:
+        return {
+            "status": "blocked",
+            "reason": "no credits"
+        }
 
     return {
-        "status": "login_success",
-        "credits": user[3]
+        "status": "allowed"
     }
