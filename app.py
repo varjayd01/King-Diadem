@@ -1,83 +1,54 @@
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, RedirectResponse
-from pydantic import BaseModel
-
 import os
-import requests
-import stripe
+from fastapi import FastAPI
+from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
-from core.fate_core import run_fate
-from KING_DIAdem_core import king_diadem
+from ENGINE.pattern_engine import analyze_pattern
+from ENGINE.risk_engine import analyze_risk
+from ENGINE.decision_engine import decision_intelligence
+from ENGINE.council_engine import council_engine
+from ENGINE.consensus_engine import consensus_engine
+
+from core.core_loop import run_core
+from core.emptiness_guard import emptiness_guard
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
+
 
 @app.get("/")
 def root():
-    return FileResponse("static/index.html")
+    return FileResponse(os.path.join(BASE_DIR, "static/index.html"))
 
 
-# ===== ENV =====
-OPENAI_API_KEY = os.getenv("CHATGPT_API_KEY")
-stripe.api_key = os.getenv("STRIPE_SECRET")
+class InputData(BaseModel):
+    entropy: float
+    resource: float
+    stability: float
 
 
-# ===== INPUT =====
-class ChatInput(BaseModel):
-    message: str
-
-class EngineInput(BaseModel):
-    username: str
-    location: str
-    food: str
-    money: str
-    risk: str
-
-
-# ===== CHAT =====
-@app.post("/chat")
-def chat(data: ChatInput):
-    fate = run_fate(data.dict())
-
-    if fate["status"] == "reject":
-        return {"reply": "invalid"}
-
-    clean = fate["data"]
-
-    return {"reply": clean["message"]}
-
-
-# ===== ENGINE =====
 @app.post("/ENGINE")
-def run_engine(data: EngineInput):
+def run_engine(data: InputData):
 
-    question = f"""
-    user: {data.username}
-    location: {data.location}
-    food: {data.food}
-    money: {data.money}
-    risk: {data.risk}
-    """
+    state = analyze_pattern(data.model_dump())
+    state = emptiness_guard(state)
 
-    result = king_diadem(question)
-    return result
+    core = run_core(state)
 
+    if core["status"] == "HALT":
+        return core
 
-# ===== STRIPE =====
-@app.get("/pay")
-def pay():
+    risk = analyze_risk(core["state"])
+    decision = decision_intelligence(core["state"], risk)
+    council = council_engine(decision)
+    final = consensus_engine(council)
 
-    session = stripe.checkout.Session.create(
-        payment_method_types=["card"],
-        line_items=[{
-            "price": os.getenv("STRIPE_PRICE_ID"),
-            "quantity": 1,
-        }],
-        mode="payment",
-        success_url="https://king-diadem.onrender.com/?success=1",
-        cancel_url="https://king-diadem.onrender.com/?cancel=1",
-    )
-
-    return RedirectResponse(session.url)
+    return {
+        "core": core,
+        "risk": risk,
+        "decision": final
+    }
