@@ -1,35 +1,63 @@
-async function run(){
+// static/app.js
+async function run() {
+  const payload = window.KD.readInputs();
 
-    const data = {
-        entropy: Number(document.getElementById("entropy").value) || 40,
-        resource: Number(document.getElementById("resource").value) || 50,
-        stability: Number(document.getElementById("stability").value) || 60
-    }
+  window.KD.setText("thinking", "Processing...");
+  window.KD.setText("summary", "Running core...");
+  window.KD.writeJSON("output", payload);
 
-    const out = document.getElementById("out")
-    out.innerText = "Processing..."
+  try {
+    const response = await fetch(window.KD.apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
 
-    try{
-        const r = await fetch("/ENGINE",{
-            method:"POST",
-            headers:{ "Content-Type":"application/json"},
-            body: JSON.stringify(data)
-        })
+    const data = await response.json();
 
-        if(!r.ok){
-            throw new Error("Server error " + r.status)
-        }
+    window.KD.setState(data);
+    window.KD.writeJSON("output", data);
+    window.KD.writeJSON("decision", data.decision || {});
+    window.KD.writeJSON("council", data.council || {});
 
-        const d = await r.json()
+    const status = data.status || "ok";
+    const action = data.output?.action || data.consensus?.final_action || "none";
+    const reason = data.output?.reason || data.reason || "clear";
 
-        if(d.status === "HALT"){
-            out.innerText = "⚠️ SYSTEM HALTED\n" + JSON.stringify(d,null,2)
-            return
-        }
+    window.KD.setText("summary", `status=${status} | action=${action} | reason=${reason}`);
+    window.KD.setText("thinking", "Done.");
 
-        out.innerText = JSON.stringify(d,null,2)
-
-    }catch(e){
-        out.innerText = "ERROR: " + e.message
-    }
+  } catch (error) {
+    const msg = `ERROR: ${error?.message || error}`;
+    window.KD.setText("thinking", "Failed.");
+    window.KD.setText("summary", msg);
+    window.KD.setText("output", msg);
+  }
 }
+
+function resetSystem() {
+  ["input", "entropy", "resource", "stability", "choices", "confidence"].forEach((id) => {
+    const el = window.KD.byId(id);
+    if (!el) return;
+    if (id === "input") el.value = "";
+    if (id === "entropy") el.value = 40;
+    if (id === "resource") el.value = 50;
+    if (id === "stability") el.value = 60;
+    if (id === "choices") el.value = 1;
+    if (id === "confidence") el.value = 0.5;
+  });
+
+  window.KD.setText("thinking", "Ready.");
+  window.KD.setText("summary", "Waiting...");
+  window.KD.setText("decision", "Waiting...");
+  window.KD.setText("council", "Waiting...");
+  window.KD.setText("output", "Waiting...");
+}
+
+window.run = run;
+window.resetSystem = resetSystem;
+
+document.addEventListener("DOMContentLoaded", () => {
+  window.KD.bind("runBtn", "click", run);
+  window.KD.bind("resetBtn", "click", resetSystem);
+});
