@@ -5,32 +5,52 @@
     const el = document.getElementById("decision");
     if (!el) return;
 
-    // รองรับทุกโครงสร้างที่มึงโยนมา
+    if (!payload) {
+      el.textContent = "no data";
+      return;
+    }
+
     const d =
-      payload?.decision ||
-      payload?.output ||
-      payload?.consensus ||
+      payload.decision ||
+      payload.output ||
+      payload.consensus ||
       payload ||
       {};
 
-    const lines = [
-      "status: " + (payload?.status || "ok"),
-      "action: " + (d.action || d.final_action || "none"),
-      "message: " + (d.message || "n/a"),
-      "confidence: " + (d.confidence ?? "n/a"),
-      "risk: " + (d.risk ?? payload?.risk_score ?? "n/a"),
-      "blocked: " + (d.blocked ?? payload?.blocked ?? false)
-    ];
+    const text =
+      "action: " + (d.action || d.final_action || "none") + "\n" +
+      "message: " + (d.message || "n/a") + "\n" +
+      "confidence: " + (d.confidence ?? "n/a") + "\n" +
+      "risk: " + (d.risk ?? payload.risk_score ?? "n/a") + "\n" +
+      "blocked: " + (d.blocked ?? payload.blocked ?? false);
 
-    el.textContent = lines.join("\n");
+    el.textContent = text;
   }
 
-  // expose global
-  window.renderDicision = renderDicision;
+  // 👇 ใช้ตรง ๆ ได้เลย ไม่ต้อง event
+  function runDicision() {
+    const input = document.getElementById("input").value;
 
-  // auto hook event (ถ้ามีระบบ dispatch)
-  window.addEventListener("KD:response", function (e) {
-    renderDicision(e.detail);
-  });
+    // 🔥 fake engine (กันหน้าขาว)
+    let payload;
+
+    if (input.includes("หิว")) {
+      payload = {
+        decision: { action: "eat", message: "ไปกินก่อน", confidence: 0.6 }
+      };
+    } else if (input.includes("เหนื่อย")) {
+      payload = {
+        decision: { action: "rest", message: "พักก่อน", confidence: 0.6 }
+      };
+    } else {
+      payload = {
+        decision: { action: "process", message: input, confidence: 0.5 }
+      };
+    }
+
+    renderDicision(payload);
+  }
+
+  window.runDicision = runDicision;
 
 })();
