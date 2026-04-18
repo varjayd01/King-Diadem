@@ -1,20 +1,27 @@
-async function send() {
-    const input = document.getElementById("input").value;
+async function run(){
 
-    const res = await fetch("/ask", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            input: input,
-            entropy: 40,
-            stability: 60
-        })
-    });
+  const text = document.getElementById("input").value
 
-    const data = await res.json();
+  const output = document.getElementById("output")
+  output.textContent = "processing..."
 
-    document.getElementById("output").innerText =
-        JSON.stringify(data, null, 2);
+  try{
+    const res = await fetch("/ENGINE", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json"},
+      body: JSON.stringify({
+        input: text,
+        entropy: 40,
+        resource: 50,
+        stability: 60
+      })
+    })
+
+    const data = await res.json()
+
+    output.textContent = JSON.stringify(data, null, 2)
+
+  }catch(e){
+    output.textContent = "ERROR: " + e
+  }
 }
