@@ -1,133 +1,76 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KING DIADEM</title>
-
-<style>
-body {
-    margin: 0;
-    overflow: hidden;
-    background: black;
-    font-family: monospace;
-    color: #0ff;
-}
-
-/* CANVAS background */
-#bg {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: -1;
-}
-
-/* UI PANEL */
-.panel {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    
-    background: rgba(0,0,0,0.4);
-    backdrop-filter: blur(10px);
-    
-    border: 1px solid rgba(0,255,255,0.3);
-    padding: 20px;
-    width: 320px;
-    border-radius: 10px;
-}
-
-input {
-    width: 100%;
-    padding: 8px;
-    margin-top: 10px;
-    background: black;
-    color: #0ff;
-    border: 1px solid #0ff;
-}
-
-button {
-    margin-top: 15px;
-    width: 100%;
-    padding: 10px;
-    background: #001f1f;
-    color: #0ff;
-    border: 1px solid #0ff;
-    cursor: pointer;
-}
-
-pre {
-    margin-top: 15px;
-    white-space: pre-wrap;
-    font-size: 12px;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KING DIADEM - วงแห่งทางเลือก</title>
+    <style>
+        body { background: #04060b; color: #d0e8ff; font-family: 'Courier New', monospace; padding: 20px; line-height: 1.7; }
+        .wrapper { max-width: 900px; margin: auto; }
+        .panel { background: rgba(10,20,40,0.8); border: 1px solid #1e3a5f; padding: 25px; border-radius: 15px; margin-bottom: 25px; }
+        textarea { width: 100%; background: #000; color: #63f6ff; border: 1px solid #1e3a5f; padding: 15px; border-radius: 10px; resize: none; font-size: 16px; }
+        button { background: linear-gradient(135deg, #63f6ff 0%, #4af3a4 100%); color: #000; border: none; padding: 15px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; font-size: 18px; margin-top: 10px; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .truth-content { border-left: 2px solid #63f6ff; padding-left: 20px; margin: 20px 0; font-size: 15px; color: #b0cce0; }
+        .action-summary { background: rgba(74, 243, 164, 0.15); border: 1px solid #4af3a4; color: #4af3a4; padding: 15px; border-radius: 10px; font-weight: bold; }
+        h2 { text-align: center; letter-spacing: 5px; color: #63f6ff; }
+    </style>
 </head>
-
 <body>
+    <div class="wrapper">
+        <h2>KING DIADEM</h2>
+        <div class="panel">
+            <textarea id="input" rows="5" placeholder="ระบุสิ่งที่กำลังเผชิญ เพื่อมองผ่านวงแห่งทางเลือก..."></textarea>
+            <button onclick="askKing()" id="runBtn">เปิดมิติมุมมอง</button>
+        </div>
+        <div id="result"></div>
+    </div>
 
-<canvas id="bg"></canvas>
+    <script>
+        async function askKing() {
+            const btn = document.getElementById("runBtn");
+            const text = document.getElementById("input").value;
+            if(!text) return;
 
-<div class="panel">
-    <h3>KING DIADEM</h3>
-    <input id="input" placeholder="สถานการณ์ของคุณ...">
-    <button onclick="run()">RUN</button>
-    <pre id="output">Waiting...</pre>
-</div>
+            btn.innerText = "กำลังเชื่อมต่อวงแห่งทางเลือก...";
+            btn.disabled = true;
 
-<script src="/static/app.js"></script>
+            try {
+                const res = await fetch("/ENGINE", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({input_text: text})
+                });
+                const data = await res.json();
+                render(data);
+            } catch (e) {
+                alert("การเชื่อมต่อขัดข้อง");
+            } finally {
+                btn.innerText = "เปิดมิติมุมมอง";
+                btn.disabled = false;
+            }
+        }
 
-<script>
-// 🌌 CANVAS GALAXY
-const canvas = document.getElementById("bg");
-const ctx = canvas.getContext("2d");
+        function render(data) {
+            const container = document.getElementById("result");
+            const views = [
+                { title: "มุมมองเชิงโครงสร้าง", text: data.view_structural },
+                { title: "มุมมองความเป็นไปได้", text: data.view_possibility },
+                { title: "มุมมองความมั่นคง", text: data.view_stability }
+            ];
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
-let stars = [];
-
-for(let i=0;i<200;i++){
-    stars.push({
-        x: Math.random()*canvas.width,
-        y: Math.random()*canvas.height,
-        size: Math.random()*2,
-        speed: Math.random()*0.5
-    });
-}
-
-// 🕳 BLACK HOLE
-let angle = 0;
-
-function draw(){
-    ctx.fillStyle = "rgba(0,0,0,0.2)";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-
-    // stars
-    ctx.fillStyle = "#0ff";
-    stars.forEach(s=>{
-        s.y += s.speed;
-        if(s.y > canvas.height) s.y = 0;
-        ctx.fillRect(s.x,s.y,s.size,s.size);
-    });
-
-    // black hole
-    let cx = canvas.width/2;
-    let cy = canvas.height/2;
-
-    angle += 0.01;
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, 50 + Math.sin(angle)*5, 0, Math.PI*2);
-    ctx.fillStyle = "rgba(0,0,0,0.8)";
-    ctx.fill();
-
-    requestAnimationFrame(draw);
-}
-
-draw();
-</script>
-
+            let html = "";
+            views.forEach(v => {
+                const parts = v.text.split("[สรุปความจริงเพื่อการใช้งาน]:");
+                html += `
+                <div class="panel">
+                    <small style="color:#63f6ff">${v.title}</small>
+                    <div class="truth-content">${parts[0].trim()}</div>
+                    ${parts[1] ? `<div class="action-summary">🚩 สรุปการนำไปใช้: ${parts[1].trim()}</div>` : ""}
+                </div>`;
+            });
+            container.innerHTML = html;
+        }
+    </script>
 </body>
 </html>
