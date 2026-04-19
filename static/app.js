@@ -1,92 +1,56 @@
-// static/app.js
-
 async function run() {
-    const inputEl = document.getElementById("input");
-    const outputEl = document.getElementById("output");
+    const input = document.getElementById("input").value;
+    const output = document.getElementById("output");
 
-    const text = inputEl.value.trim();
-
-    if (!text) {
-        outputEl.textContent = "กรุณาพิมพ์สถานการณ์ก่อน";
+    if (!input.trim()) {
+        output.textContent = "กรุณาพิมพ์ก่อน";
         return;
     }
 
-    // แสดงสถานะ
-    outputEl.textContent = "KING is thinking...";
+    output.textContent = "thinking...";
 
     try {
-        const response = await fetch("/ENGINE", {
+        const res = await fetch("/ENGINE", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                input: text,
+                input: input,
                 entropy: 40,
                 resource: 50,
                 stability: 60
             })
         });
 
-        // เช็ค response
-        if (!response.ok) {
-            throw new Error("HTTP " + response.status);
+        const data = await res.json();
+
+        // 🚫 โดนบล็อก
+        if (data.status === "blocked") {
+            output.textContent =
+                "❌ NO CREDIT\n" +
+                "Plan: " + data.plan + "\n" +
+                "Credits: " + data.credits;
+            return;
         }
 
-        const data = await response.json();
-
-        // 👉 แสดงผลแบบอ่านได้ ไม่ใช่กอง JSON ขยะ
-        renderOutput(data);
-
-    } catch (err) {
-        outputEl.textContent = "ERROR: " + err.message;
-    }
-}
-
-
-// 🧠 render ให้มันมีค่า ไม่ใช่ dump เฉย ๆ
-function renderOutput(data) {
-    const outputEl = document.getElementById("output");
-
-    if (data.status === "error") {
-        outputEl.textContent = "ERROR: " + data.message;
-        return;
-    }
-
-    let text = "";
-
-    // 🧠 decision
-    if (data.decision) {
-        text += "=== DECISION ===\n";
-
-        text += "Action: " + (data.decision.action || "-") + "\n";
-        text += "Message: " + (data.decision.message || "-") + "\n\n";
-
-        if (data.decision.alternatives) {
-            text += "Alternatives:\n";
-            data.decision.alternatives.forEach((alt, i) => {
-                text += "- " + (alt.text || alt.action || "option") + "\n";
-            });
-            text += "\n";
+        // ❗ error
+        if (data.status === "error") {
+            output.textContent = "ERROR: " + data.message;
+            return;
         }
-    }
 
-    // ⚠️ risk
-    if (data.risk) {
-        text += "=== RISK ===\n";
-        text += JSON.stringify(data.risk, null, 2) + "\n\n";
-    }
+        // ✅ ปกติ
+        let text = "";
 
-    // 🏛 council
-    if (data.council) {
-        text += "=== COUNCIL ===\n";
-        text += "Members: " + (data.council.council_size || "-") + "\n\n";
-    }
+        text += "PLAN: " + data.plan + "\n";
+        text += "CREDITS LEFT: " + data.credits + "\n\n";
 
-    // fallback
-    if (text === "") {
-        text = JSON.stringify(data, null, 2);
-    }
+        text += JSON.stringify(data.data, null, 2);
 
-    outputEl.textContent = text;
+        output.textContent = text;
+
+    } catch (e) {
+        output.textContent = "ERROR: " + e.message;
+    }
 }
