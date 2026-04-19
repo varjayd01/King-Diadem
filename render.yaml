@@ -2,16 +2,21 @@ services:
   - type: web
     name: king-diadem
     runtime: python
-    plan: starter
+    plan: starter # หรือ free ตามที่พี่เลือกในระบบ
+    region: singapore # เลือก region ที่ใกล้ไทยที่สุดเพื่อความเร็วของแสง
 
+    # คำสั่งติดตั้งเครื่องมือ
     buildCommand: pip install -r requirements.txt
 
-    startCommand: python main.py
+    # คำสั่งรันระบบ (สำคัญมาก: ต้องใช้ uvicorn ชี้ไปที่ไฟล์ app.py และตัวแปร app)
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
 
     envVars:
       - key: CHATGPT_API_KEY
         sync: false
-      - key: GEMINI_API_KEY
+      - key: GEMINI_API_KEY1
+        sync: false
+      - key: GEMINI_API_KEY2
         sync: false
       - key: STRIPE_PRICE_ID
         sync: false
@@ -19,3 +24,5 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
+      - key: PYTHON_VERSION
+        value: 3.10.0 # ระบุเวอร์ชั่นเพื่อให้นิ่งตลอดกาล
