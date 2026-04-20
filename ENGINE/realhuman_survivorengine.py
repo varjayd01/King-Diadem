@@ -1,30 +1,15 @@
-"""
-REAL HUMAN SURVIVOR ENGINE
-— COSMIC LATTE / KING DIADEM MODULE —
-
-Purpose:
-Handle extreme real-life human conditions and return to survivable state.
-
-Core Principle:
-"Restore survival first, then restore choice."
-"""
-
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional
+from typing import List, Dict, Any
 
-
-# =========================
-# DATA STRUCTURE
-# =========================
 
 @dataclass
 class HumanState:
-    energy: float          # 0 - 100
-    money: float           # available cash
+    energy: float
+    money: float
     food_access: bool
     safe_place: bool
-    mental_state: str      # "stable", "stressed", "overwhelmed"
-    time_available: float  # hours
+    mental_state: str
+    time_available: float
 
 
 @dataclass
@@ -35,147 +20,64 @@ class SurvivalOutput:
     next_step: str
 
 
-# =========================
-# CORE ENGINE
-# =========================
+def from_dict(data: dict) -> HumanState:
+    return HumanState(
+        energy=data.get("energy", 50),
+        money=data.get("money", 0),
+        food_access=data.get("food_access") or data.get("food", False),
+        safe_place=data.get("safe_place") or data.get("safe", False),
+        mental_state=data.get("mental_state", "stable"),
+        time_available=data.get("time_available", 1)
+    )
+
 
 class RealHumanSurvivorEngine:
 
     def __init__(self):
         self.MIN_ENERGY = 20
-        self.CRITICAL_ENERGY = 10
 
-    # =========================
-    # ENTRY POINT
-    # =========================
     def run(self, state: HumanState) -> SurvivalOutput:
-        """Main execution flow"""
 
-        # STEP 1: RESET MENTAL STATE
         if state.mental_state == "overwhelmed":
-            return self._reset_protocol(state)
-
-        # STEP 2: CHECK SURVIVAL BASE
-        survival_check = self._check_survival(state)
-        if survival_check:
-            return survival_check
-
-        # STEP 3: ENERGY MANAGEMENT
-        if state.energy < self.MIN_ENERGY:
-            return self._recover_energy(state)
-
-        # STEP 4: NORMAL FUNCTION
-        return self._stabilize_and_continue(state)
-
-    # =========================
-    # RESET PROTOCOL
-    # =========================
-    def _reset_protocol(self, state: HumanState) -> SurvivalOutput:
-        return SurvivalOutput(
-            status="RESET_REQUIRED",
-            actions=[
-                "Stop all decisions",
-                "Drink water",
-                "Breathing 4-4-6 x 5 cycles",
-                "Sit down or lie down"
-            ],
-            warnings=[
-                "Decision quality is compromised",
-                "Do not make financial or emotional decisions"
-            ],
-            next_step="Re-run engine after stabilization"
-        )
-
-    # =========================
-    # SURVIVAL CHECK
-    # =========================
-    def _check_survival(self, state: HumanState) -> Optional[SurvivalOutput]:
+            return SurvivalOutput(
+                status="RESET_REQUIRED",
+                actions=[
+                    "Stop all decisions",
+                    "Drink water",
+                    "Breathing 4-4-6",
+                    "Lie down"
+                ],
+                warnings=["Do not decide anything now"],
+                next_step="Reset first"
+            )
 
         if not state.food_access:
             return SurvivalOutput(
-                status="CRITICAL_NO_FOOD",
-                actions=[
-                    "Find cheapest available food immediately",
-                    "Ask for help if necessary"
-                ],
-                warnings=["Hunger will degrade decision making"],
-                next_step="Secure food first"
+                status="NO_FOOD",
+                actions=["Find cheap food now"],
+                warnings=["Energy will crash"],
+                next_step="Eat first"
             )
 
         if not state.safe_place:
             return SurvivalOutput(
-                status="CRITICAL_NO_SHELTER",
-                actions=[
-                    "Find safe place (friend, public area, transport hub)"
-                ],
-                warnings=["Safety is priority over all tasks"],
-                next_step="Secure safety first"
+                status="NO_SHELTER",
+                actions=["Find safe place"],
+                warnings=["Safety > everything"],
+                next_step="Move immediately"
             )
 
-        return None
+        if state.energy < self.MIN_ENERGY:
+            return SurvivalOutput(
+                status="LOW_ENERGY",
+                actions=["Eat", "Sleep 30 min"],
+                warnings=["Low brain power"],
+                next_step="Recover energy"
+            )
 
-    # =========================
-    # ENERGY RECOVERY
-    # =========================
-    def _recover_energy(self, state: HumanState) -> SurvivalOutput:
-        return SurvivalOutput(
-            status="LOW_ENERGY",
-            actions=[
-                "Eat simple food",
-                "Sleep 20-90 minutes",
-                "Reduce workload immediately"
-            ],
-            warnings=[
-                "Low energy increases error rate",
-                "Avoid complex decisions"
-            ],
-            next_step="Return to task after energy recovery"
-        )
-
-    # =========================
-    # STABLE MODE
-    # =========================
-    def _stabilize_and_continue(self, state: HumanState) -> SurvivalOutput:
         return SurvivalOutput(
             status="STABLE",
-            actions=[
-                "Focus on one task only",
-                "Avoid multitasking",
-                "Preserve energy"
-            ],
-            warnings=[
-                "Do not overload system",
-                "Maintain resource awareness"
-            ],
-            next_step="Proceed with controlled execution"
+            actions=["Focus 1 task"],
+            warnings=["Don't overload"],
+            next_step="Continue"
         )
-
-
-# =========================
-# MONDAY RESET EXTENSION
-# =========================
-
-def monday_reset(pleasure_level: float, energy: float) -> Dict[str, Any]:
-    """Models emotional reset after temporary pleasure"""
-
-    return {
-        "effect": "EMOTIONAL_RESET",
-        "insight": "Short-term pleasure does not persist into obligation cycle",
-        "result": {
-            "energy_drop": max(0, pleasure_level - energy),
-            "mood": "neutral_or_low",
-            "state": "back_to_baseline"
-        },
-        "recommendation": [
-            "Do not rely on pleasure for long-term stability",
-            "Build sustainable energy systems"
-        ]
-    }
-
-
-# =========================
-# FINAL LOCK
-# =========================
-"""
-Stay alive. Restore energy. Continue.
-"""
