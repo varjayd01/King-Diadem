@@ -1,56 +1,47 @@
-import os
-import stripe
-from fastapi import FastAPI, Request, Header
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from pydantic import BaseModel
+from openai import OpenAI
+import os
 
-# 🔒 SAFE IMPORT
-try:
-    from core.truth_system import run_truth_infrastructure
-except Exception as e:
-    run_truth_infrastructure = None
-    print("IMPORT ERROR:", e)
+from ENGINE.realhuman_survivorengine import RealHumanSurvivorEngine, from_dict
 
-app = FastAPI(title="KING DIADEM™ DriftZero OS")
+app = FastAPI()
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+engine = RealHumanSurvivorEngine()
 
-# 🔒 STATIC SAFE
-static_path = os.path.join(BASE_DIR, "static")
-if os.path.exists(static_path):
-    app.mount("/static", StaticFiles(directory=static_path), name="static")
+# serve frontend
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
-# 🔒 STRIPE SAFE
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
-# 🧪 HEALTH CHECK
-@app.get("/alive")
-def alive():
-    return {"status": "king is alive"}
+class InputData(BaseModel):
+    text: str
+    energy: float
+    food_access: bool
+    safe_place: bool
+    mental_state: str
 
-# 🏠 HOME
-@app.get("/")
-def home():
-    index_path = os.path.join(static_path, "index.html")
-    if os.path.exists(index_path):
-        return FileResponse(index_path)
-    return {"message": "index.html not found"}
 
-# ⚙️ ENGINE
 @app.post("/ENGINE")
-async def engine_endpoint(req: Request):
-    data = await req.json()
+def run_engine(data: InputData):
 
-    if run_truth_infrastructure is None:
-        return {"error": "engine not ready"}
+    state = from_dict(data.dict())
+    survival = engine.run(state)
 
-    result = await run_truth_infrastructure(
-        data.get("input"),
-        data.get("state")
-    )
-    return result
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4.1-mini",
+            messages=[
+                {"role": "system", "content": "You are survival AI"},
+                {"role": "user", "content": data.text}
+            ]
+        )
+        ai = response.choices[0].message.content
+    except Exception as e:
+        ai = f"[GPT FAIL] {str(e)}"
 
-# 💳 STRIPE WEBHOOK
-@app.post("/api/webhook")
-async def stripe_webhook(request: Request, stripe_signature: str = Header(None)):
-    return {"status": "success"}
+    return {
+        "survival": survival.__dict__,
+        "ai": ai
+    }
