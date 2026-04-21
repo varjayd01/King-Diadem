@@ -6,3 +6,4 @@ stripe
 python-multipart
 requests
 jinja2
+flask
