@@ -1,47 +1,33 @@
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-from openai import OpenAI
-import os
+from flask import Flask, request, jsonify, send_from_directory
 
-from ENGINE.realhuman_survivorengine import RealHumanSurvivorEngine, from_dict
+app = Flask(__name__, static_folder="static")
 
-app = FastAPI()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+@app.route("/")
+def index():
+    return send_from_directory("static", "index.html")
 
-engine = RealHumanSurvivorEngine()
+@app.route("/decision", methods=["POST"])
+def decision():
+    data = request.json
 
-# serve frontend
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+    text = data.get("input", "")
+    energy = data.get("energy")
+    mode = data.get("mode")
+
+    # MOCK ENGINE (พี่เอาไปเสียบของจริงทีหลังได้เลย)
+    result = f"""
+[King Diadem Decision]
+
+Input: {text}
+Energy: {energy}
+Mode: {mode}
+
+→ Recommended Action:
+Move forward carefully. Preserve choice. Avoid collapse.
+"""
+
+    return jsonify({"result": result})
 
 
-class InputData(BaseModel):
-    text: str
-    energy: float
-    food_access: bool
-    safe_place: bool
-    mental_state: str
-
-
-@app.post("/ENGINE")
-def run_engine(data: InputData):
-
-    state = from_dict(data.dict())
-    survival = engine.run(state)
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {"role": "system", "content": "You are survival AI"},
-                {"role": "user", "content": data.text}
-            ]
-        )
-        ai = response.choices[0].message.content
-    except Exception as e:
-        ai = f"[GPT FAIL] {str(e)}"
-
-    return {
-        "survival": survival.__dict__,
-        "ai": ai
-    }
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
