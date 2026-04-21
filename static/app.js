@@ -1,25 +1,15 @@
-async function runDecision() {
-    const input = document.getElementById("inputBox").value;
-    const energy = document.getElementById("energy").value;
-    const food = document.getElementById("food").checked;
-    const safe = document.getElementById("safe").checked;
-    const mode = document.getElementById("mode").value;
+async function run() {
+    let input = document.getElementById("input").value;
 
-    const res = await fetch("/decision", {
+    let res = await fetch("/ask", {
         method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            input: input,
-            energy: energy,
-            food: food,
-            safe: safe,
-            mode: mode
-        })
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({input})
     });
 
-    const data = await res.json();
+    let data = await res.json();
 
-    document.getElementById("output").innerText = data.result;
+    document.getElementById("decision").innerText = data.decision;
+    document.getElementById("survival").innerText = data.survival;
+    document.getElementById("risk").innerText = data.risk;
 }
