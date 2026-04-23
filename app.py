@@ -1,34 +1,14 @@
-import os
-from flask import Flask, request, jsonify, send_from_directory
-from openai import OpenAI
+from flask import Flask, render_template, request, jsonify
+from ENGINE.decision_engine import run_decision
 
-app = Flask(__name__, static_folder="static")
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return send_from_directory("static", "index.html")
+    return render_template("index.html")
 
-@app.route("/ask", methods=["POST"])
-def ask():
+@app.route("/run", methods=["POST"])
+def run():
     data = request.json
-    prompt = data.get("message", "")
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4.1-mini",
-            messages=[
-                {"role": "system", "content": "You are a survival decision AI."},
-                {"role": "user", "content": prompt}
-            ]
-        )
-
-        answer = response.choices[0].message.content
-        return jsonify({"reply": answer})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    result = run_decision(data)
+    return jsonify(result)
