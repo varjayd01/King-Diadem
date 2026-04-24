@@ -1,12 +1,13 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 import os
+import stripe
 
 app = FastAPI()
 
 # =========================
-# 🔥 FIX ROOT (กันหน้าขาว)
+# 🔥 STATIC
 # =========================
 @app.get("/")
 def root():
@@ -15,70 +16,117 @@ def root():
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # =========================
-# 🧠 ENGINE (Observer)
+# 🧾 FAKE DB
+# =========================
+USERS = {}
+
+# =========================
+# 🔐 REGISTER
+# =========================
+@app.post("/register")
+async def register(data: dict):
+    email = data.get("email")
+    password = data.get("password")
+
+    if email in USERS:
+        return {"error": "user exists"}
+
+    USERS[email] = {
+        "password": password,
+        "credit": 0
+    }
+
+    return {"status": "registered"}
+
+# =========================
+# 🔐 LOGIN
+# =========================
+@app.post("/login")
+async def login(data: dict):
+    email = data.get("email")
+    password = data.get("password")
+
+    user = USERS.get(email)
+
+    if not user or user["password"] != password:
+        return {"error": "invalid"}
+
+    return {
+        "status": "ok",
+        "credit": user["credit"]
+    }
+
+# =========================
+# 💰 WALLET TOPUP (DEMO)
+# =========================
+@app.post("/wallet/topup")
+async def topup(data: dict):
+
+    email = data.get("email")
+    amount = int(data.get("amount", 0))
+
+    if email not in USERS:
+        return {"error": "user not found"}
+
+    credit = amount * 10
+    USERS[email]["credit"] += credit
+
+    return {
+        "status": "topup success",
+        "credit_added": credit,
+        "total_credit": USERS[email]["credit"]
+    }
+
+# =========================
+# ⚡ USE CREDIT
+# =========================
+def use_credit(email, cost=1):
+    if email not in USERS:
+        return False
+    if USERS[email]["credit"] < cost:
+        return False
+
+    USERS[email]["credit"] -= cost
+    return True
+
+# =========================
+# 🧠 ENGINE
 # =========================
 try:
     from ENGINE.decision_engine import DecisionEngine
     engine = DecisionEngine()
-except Exception as e:
-    print("ENGINE LOAD ERROR:", e)
+except:
     engine = None
 
-# =========================
-# ⚡ ENERGY GOVERNOR
-# =========================
-try:
-    from ENGINE.energy_governor import allow_request
-except:
-    def allow_request(x):
-        return True, {"energy": "unknown"}
-
-# =========================
-# 🧠 RUN ENGINE
-# =========================
 @app.post("/run")
 async def run_engine(data: dict):
-
-    if not engine:
-        return {"error": "ENGINE NOT FOUND"}
-
-    try:
+    if engine:
         return engine.run(data)
-    except Exception as e:
-        return {"error": str(e)}
+    return {"error": "ENGINE NOT FOUND"}
 
 # =========================
-# 🤖 AI (CONNECTED VERSION)
+# 🤖 AI (ใช้เครดิต)
 # =========================
 @app.post("/ai")
 async def ai_call(data: dict):
 
-    api_key = "public"  # อนาคตเปลี่ยนเป็น user id
+    email = data.get("email", "guest")
 
-    ok, info = allow_request(api_key)
-
-    if not ok:
-        return {"ai": f"BLOCKED: {info}"}
+    if not use_credit(email, 1):
+        return {"ai": "❌ เครดิตหมด"}
 
     try:
         from openai import OpenAI
-
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-        # 👁️ ใช้ Decision ก่อน
-        decision_result = None
-        if engine:
-            try:
-                decision_result = engine.run(data)
-            except Exception as e:
-                decision_result = {"error": str(e)}
+        decision = engine.run(data) if engine else {}
 
         prompt = f"""
-SYSTEM (Decision Observer):
-{decision_result}
+SYSTEM:
+{decision}
 
 USER:
-{data.get("input", "")}
+{data.get("input")}
 """
 
         res = client.chat.completions.create(
@@ -88,8 +136,7 @@ USER:
 
         return {
             "ai": res.choices[0].message.content,
-            "decision": decision_result,
-            "energy": info
+            "credit_left": USERS[email]["credit"]
         }
 
     except Exception as e:
@@ -98,7 +145,6 @@ USER:
 # =========================
 # 💳 STRIPE
 # =========================
-import stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 @app.post("/create-checkout-session")
@@ -114,7 +160,6 @@ def create_checkout():
             success_url="https://king-diadem.onrender.com/",
             cancel_url="https://king-diadem.onrender.com/",
         )
-
         return {"url": session.url}
 
     except Exception as e:
