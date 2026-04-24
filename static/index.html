@@ -1,38 +1,19 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
+    <meta charset="UTF-8">
     <title>King Diadem</title>
-
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<h1>KING DIADEM</h1>
+    <h1>🧠 King Diadem AI</h1>
 
-<textarea id="input" placeholder="พิมพ์สถานการณ์..."></textarea>
+    <textarea id="input" placeholder="พิมพ์สิ่งที่ต้องการตัดสินใจ..."></textarea>
+    <button onclick="sendDecision()">Run Decision</button>
 
-<br>
+    <pre id="output"></pre>
 
-<label>Energy</label>
-<input type="range" id="energy" min="0" max="100" value="50">
-
-<label><input type="checkbox" id="food" checked> Food</label>
-<label><input type="checkbox" id="safe" checked> Safe</label>
-
-<select id="mode">
-    <option>Stable</option>
-    <option>Risk</option>
-</select>
-
-<br><br>
-
-<button onclick="run()">RUN DECISION ENGINE</button>
-
-<h3>AI:</h3>
-<pre id="output">...</pre>
-
-<script src="{{ url_for('static', filename='main.js') }}"></script>
-
+    <script src="app.js"></script>
 </body>
 </html>
