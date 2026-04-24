@@ -1,3 +1,7 @@
+# =========================
+# ⚠️ RISK ENGINE (Adapter Ready)
+# =========================
+
 def analyze_risk(state):
     entropy = float(state.get("entropy", 0))
     resource = float(state.get("resource", 100))
@@ -15,7 +19,7 @@ def analyze_risk(state):
 
     risk_score = round(max(0, min(100, risk_score)), 2)
 
-    # 🔥 SURVIVAL OVERRIDE (สำคัญมาก)
+    # 🔥 LEVEL
     if resource <= 5 or stability <= 5:
         level = "CRITICAL"
     elif risk_score >= 85:
@@ -27,7 +31,6 @@ def analyze_risk(state):
     else:
         level = "LOW"
 
-    # 🔥 MAP สำหรับ decision_engine
     decision_level = _map_to_decision(level)
 
     return {
@@ -42,11 +45,21 @@ def analyze_risk(state):
     }
 
 
-# ---------------------
-
 def _map_to_decision(level):
     if level in ["CRITICAL", "HIGH"]:
         return "HIGH"
     if level == "MEDIUM":
         return "MEDIUM"
     return "LOW"
+
+
+# =========================
+# 🔥 ADAPTER (สำคัญ)
+# =========================
+# ให้ DecisionEngine เรียกได้
+
+def assess(pattern: dict):
+    try:
+        return analyze_risk(pattern)
+    except Exception as e:
+        return {"error": f"risk_engine fail: {str(e)}"}
