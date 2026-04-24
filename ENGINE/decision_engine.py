@@ -1,77 +1,139 @@
 from typing import Dict, Any
 
-# 🔗 เชื่อม ENGINE อื่น
-from ENGINE.risk_engine import assess_risk as risk_engine_assess
-from ENGINE.pattern_engine import detect_pattern
-from ENGINE.council_engine import council_review
+# 🔗 SAFE IMPORT (กันพังทุกตัว)
+try:
+    from ENGINE.risk_engine import analyze_risk
+except:
+    analyze_risk = None
 
-# 🔗 เชื่อม CORE
-from core.trust_system import evaluate as trust_evaluate
+try:
+    from ENGINE.pattern_engine import detect_pattern
+except:
+    detect_pattern = None
+
+try:
+    from ENGINE.council_engine import council_review
+except:
+    council_review = None
+
+try:
+    from core.trust_system import evaluate as trust_evaluate
+except:
+    trust_evaluate = None
 
 
 class DecisionEngine:
-    """
-    CORE DECISION ENGINE (CONNECTED VERSION)
-    - รวมทุก engine
-    - คืนทางเลือกที่ยังรอดจริง
-    """
 
     def run(self, data: Dict[str, Any]) -> Dict[str, Any]:
 
         user_input = data.get("input", "")
         state = data.get("state", {})
 
+        # ------------------------
+        # 🧠 PHASE 1: RISK (แกนหลัก)
+        # ------------------------
+        risk_data = self._get_risk(state)
+        risk_level = risk_data.get("level", "UNKNOWN")
+
+        # ------------------------
+        # 🧠 PHASE 2: ORCHESTRATION
+        # ------------------------
+        result = {
+            "status": self._status(risk_level),
+            "risk": risk_data,
+            "choices": [],
+            "activated_cores": ["RiskEngine"],
+            "pattern": None,
+            "trust": None,
+            "council": None,
+            "meta": {}
+        }
+
+        energy = int(state.get("energy", 50))
+
+        # 🔴 HIGH
+        if risk_level in ["HIGH", "CRITICAL"] or energy < 15:
+            result["activated_cores"] += ["PatternEngine", "TrustCore", "CouncilCore"]
+
+            result["pattern"] = self._safe_pattern(user_input)
+            result["trust"] = self._safe_trust()
+            result["choices"] = self._generate_choices("HIGH", energy)
+            result["council"] = self._safe_council(result)
+
+            result["meta"]["mode"] = "SURVIVAL_MAX"
+
+        # ⚖️ MEDIUM
+        elif risk_level in ["MEDIUM", "NORMAL"]:
+            result["activated_cores"].append("PatternEngine")
+
+            result["pattern"] = self._safe_pattern(user_input)
+            result["choices"] = self._generate_choices("MEDIUM", energy)
+            result["trust"] = "STANDBY"
+            result["council"] = "STANDBY"
+
+            result["meta"]["mode"] = "BALANCED"
+
+        # ✅ LOW
+        else:
+            result["choices"] = [
+                "ดำเนินการตามปกติ",
+                "สังเกตการณ์",
+                "เก็บข้อมูลเพิ่ม"
+            ]
+            result["trust"] = "SAFE"
+            result["pattern"] = "NORMAL"
+            result["meta"]["mode"] = "STABLE"
+
+        return result
+
+    # ------------------------
+    # 🔧 SAFE LAYERS
+    # ------------------------
+
+    def _get_risk(self, state):
+        try:
+            if analyze_risk:
+                return analyze_risk(state)
+        except:
+            pass
+
+        return {
+            "level": self._assess_risk_local(state),
+            "fallback": True
+        }
+
+    def _safe_pattern(self, text):
+        try:
+            if detect_pattern:
+                return detect_pattern(text)
+        except:
+            pass
+        return "UNKNOWN"
+
+    def _safe_trust(self):
+        try:
+            if trust_evaluate:
+                return trust_evaluate()
+        except:
+            pass
+        return "UNVERIFIED"
+
+    def _safe_council(self, data):
+        try:
+            if council_review:
+                return council_review(data)
+        except:
+            pass
+        return "NO_COUNCIL"
+
+    # ------------------------
+    # 🔧 LOCAL LOGIC
+    # ------------------------
+
+    def _assess_risk_local(self, state):
         energy = int(state.get("energy", 50))
         food = state.get("food", True)
         safe = state.get("safe_place", True)
-
-        # 🧠 1. Risk Scan (ใช้ engine ภายนอกก่อน)
-        try:
-            risk_level = risk_engine_assess(energy, food, safe)
-        except:
-            risk_level = self._assess_risk_local(energy, food, safe)
-
-        # 🧠 2. Pattern วิเคราะห์พฤติกรรม
-        try:
-            pattern = detect_pattern(user_input)
-        except:
-            pattern = "UNKNOWN"
-
-        # 🧠 3. Core Trust Check
-        try:
-            trust = trust_evaluate()
-        except:
-            trust = "UNVERIFIED"
-
-        # 🧠 4. สร้างทางเลือก
-        choices = self._generate_choices(risk_level, energy)
-
-        # 🧠 5. Council Review (รวมมุมมอง)
-        try:
-            council = council_review({
-                "risk": risk_level,
-                "pattern": pattern,
-                "choices": choices
-            })
-        except:
-            council = "NO COUNCIL"
-
-        # 🧠 6. สถานะ
-        status = self._status(risk_level)
-
-        return {
-            "status": status,
-            "risk": risk_level,
-            "pattern": pattern,
-            "trust": trust,
-            "council": council,
-            "choices": choices,
-            "input_echo": user_input
-        }
-
-    # ---------------------
-
-    def _assess_risk_local(self, energy, food, safe):
 
         if energy < 20 or not food or not safe:
             return "HIGH"
@@ -81,38 +143,31 @@ class DecisionEngine:
 
         return "LOW"
 
-    # ---------------------
-
     def _generate_choices(self, risk, energy):
 
         if risk == "HIGH":
             return [
-                "หยุดทุกการตัดสินใจที่ไม่จำเป็น",
+                "หยุดการตัดสินใจที่ไม่จำเป็น",
                 "ฟื้นฟูพลังงานทันที",
                 "ออกจากสภาพแวดล้อมเสี่ยง"
             ]
 
         if risk == "MEDIUM":
             return [
-                "ลดความเสี่ยงก่อนขยาย",
+                "ลดความเสี่ยง",
                 "ประเมินทรัพยากรใหม่",
-                "เลี่ยงการตัดสินใจใหญ่"
+                "ชะลอการตัดสินใจใหญ่"
             ]
 
         return [
-            "ดำเนินการต่อได้",
-            "สังเกตการเปลี่ยนแปลง",
-            "ขยายได้แบบควบคุม"
+            "ดำเนินการต่อ",
+            "สังเกตการณ์",
+            "ขยายแบบควบคุม"
         ]
 
-    # ---------------------
-
     def _status(self, risk):
-
-        if risk == "HIGH":
+        if risk in ["HIGH", "CRITICAL"]:
             return "⚠️ SURVIVAL MODE"
-
-        if risk == "MEDIUM":
-            return "⚖️ STABLE (LIMITED)"
-
+        if risk in ["MEDIUM", "NORMAL"]:
+            return "⚖️ LIMITED"
         return "✅ STABLE"
