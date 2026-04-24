@@ -16,26 +16,26 @@ body {
     background-size: cover;
 }
 
-/* 🔥 ทำให้จักรวาล soft ลง */
+/* 🌌 soft universe */
 body::before {
     content: "";
     position: fixed;
     inset: 0;
 
-    background: radial-gradient(circle at center, rgba(0,0,0,0.3), rgba(0,0,0,0.85));
+    background: radial-gradient(circle at center, rgba(10,15,30,0.4), rgba(0,0,0,0.9));
     backdrop-filter: blur(4px);
 
     z-index: -1;
 }
 
-/* 🧊 กล่องหลัก */
+/* 🧊 container */
 .container {
-    max-width: 800px;
+    max-width: 780px;
     margin: 60px auto;
     padding: 30px;
 
-    background: rgba(10, 20, 30, 0.75);
-    backdrop-filter: blur(20px);
+    background: rgba(10, 20, 30, 0.8);
+    backdrop-filter: blur(18px);
 
     border-radius: 20px;
     border: 1px solid rgba(0,255,255,0.2);
@@ -43,10 +43,10 @@ body::before {
     box-shadow: 0 0 40px rgba(0,255,255,0.15);
 }
 
-/* 🧠 Title */
+/* 🧠 title */
 h1 {
     margin: 0;
-    font-size: 40px;
+    font-size: 36px;
     color: #00eaff;
 }
 
@@ -55,18 +55,18 @@ h1 {
     margin-bottom: 20px;
 }
 
-/* ✍️ input */
+/* ✍️ textarea */
 textarea {
     width: 100%;
     height: 120px;
     padding: 12px;
 
-    background: rgba(0,20,30,0.6);
+    background: rgba(0,20,30,0.7);
     border: 1px solid rgba(0,255,255,0.4);
     border-radius: 10px;
 
     color: #ccfaff;
-    font-size: 16px;
+    font-size: 15px;
 }
 
 /* 🎛 slider */
@@ -83,14 +83,20 @@ textarea {
 
 button {
     flex: 1;
-    padding: 15px;
+    padding: 14px;
     border: none;
     border-radius: 10px;
     font-weight: bold;
     cursor: pointer;
+    transition: 0.2s;
 }
 
-/* 🎨 ปุ่ม */
+button:hover {
+    transform: scale(1.03);
+    opacity: 0.9;
+}
+
+/* 🎨 buttons */
 .run {
     background: linear-gradient(135deg, #00cfff, #0077ff);
     color: white;
@@ -111,11 +117,12 @@ pre {
     margin-top: 20px;
     padding: 15px;
 
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.8);
     border: 1px solid rgba(0,255,255,0.3);
     border-radius: 10px;
 
-    overflow-x: auto;
+    max-height: 260px;
+    overflow: auto;
 }
 
 </style>
@@ -125,23 +132,23 @@ pre {
 
 <div class="container">
 
-    <h1>King Diadem</h1>
-    <div class="sub">AI Decision Civilization System</div>
+<h1>King Diadem</h1>
+<div class="sub">AI Decision Civilization System</div>
 
-    <textarea id="input" placeholder="พิมพ์สถานการณ์ เช่น ไม่มีเงิน / งานพัง / เครียด"></textarea>
+<textarea id="input" placeholder="พิมพ์สถานการณ์ เช่น ไม่มีเงิน / งานพัง / เครียด"></textarea>
 
-    <div class="slider">
-        Energy:
-        <input type="range" id="energy" min="0" max="100" value="50">
-    </div>
+<div class="slider">
+Energy:
+<input type="range" id="energy" min="0" max="100" value="50">
+</div>
 
-    <div class="buttons">
-        <button class="run" onclick="runEngine()">Run Engine</button>
-        <button class="ai" onclick="askAI()">Ask AI</button>
-        <button class="pay" onclick="pay()">Support</button>
-    </div>
+<div class="buttons">
+<button class="run" onclick="runEngine()">Run Engine</button>
+<button class="ai" onclick="askAI()">Ask AI</button>
+<button class="pay" onclick="pay()">Support</button>
+</div>
 
-    <pre id="output">SYSTEM READY...</pre>
+<pre id="output">SYSTEM READY...</pre>
 
 </div>
 
@@ -150,58 +157,75 @@ pre {
 /* 🧠 ENGINE */
 async function runEngine() {
 
-    const input = document.getElementById("input").value;
-    const energy = document.getElementById("energy").value;
+    const output = document.getElementById("output");
+    output.textContent = "Running engine...";
 
-    const res = await fetch("/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            input,
-            state: {
-                energy: parseInt(energy),
-                food: true,
-                safe_place: true
-            }
-        })
-    });
+    try {
+        const input = document.getElementById("input").value;
+        const energy = document.getElementById("energy").value;
 
-    const data = await res.json();
+        const res = await fetch("/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                input,
+                state: {
+                    energy: parseInt(energy),
+                    food: true,
+                    safe_place: true
+                }
+            })
+        });
 
-    document.getElementById("output").textContent =
-        JSON.stringify(data, null, 2);
+        const data = await res.json();
+        output.textContent = JSON.stringify(data, null, 2);
+
+    } catch (e) {
+        output.textContent = "ENGINE ERROR: " + e;
+    }
 }
 
 /* 🤖 AI */
 async function askAI() {
 
-    const input = document.getElementById("input").value;
+    const output = document.getElementById("output");
+    output.textContent = "Thinking...";
 
-    const res = await fetch("/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ input })
-    });
+    try {
+        const input = document.getElementById("input").value;
 
-    const data = await res.json();
+        const res = await fetch("/ai", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ input })
+        });
 
-    document.getElementById("output").textContent =
-        "AI RESPONSE:\n\n" + data.ai;
+        const data = await res.json();
+        output.textContent = data.ai;
+
+    } catch (e) {
+        output.textContent = "AI ERROR: " + e;
+    }
 }
 
 /* 💳 Stripe */
 async function pay() {
 
-    const res = await fetch("/create-checkout-session", {
-        method: "POST"
-    });
+    try {
+        const res = await fetch("/create-checkout-session", {
+            method: "POST"
+        });
 
-    const data = await res.json();
+        const data = await res.json();
 
-    if (data.url) {
-        window.location.href = data.url;
-    } else {
-        alert("Payment error");
+        if (data.url) {
+            window.location.href = data.url;
+        } else {
+            alert("Payment error");
+        }
+
+    } catch (e) {
+        alert("Stripe error");
     }
 }
 
