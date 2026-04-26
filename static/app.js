@@ -1,8 +1,18 @@
 async function run() {
 
-    const text = document.getElementById("input").value;
+    const inputEl = document.getElementById("input");
+    const outputEl = document.getElementById("output");
 
-    document.getElementById("output").innerText = "Running...";
+    const text = inputEl.value.trim();
+
+    // ❗ กัน input ว่าง
+    if (!text) {
+        outputEl.innerText = "⚠️ กรุณาพิมพ์สถานการณ์ก่อน";
+        return;
+    }
+
+    // ⏳ Loading state
+    outputEl.innerText = "⚡ Running Decision Engine...";
 
     try {
 
@@ -16,15 +26,30 @@ async function run() {
             })
         });
 
+        // ❗ กัน API พัง
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+
         const data = await res.json();
 
-        document.getElementById("output").innerText =
-            JSON.stringify(data, null, 2);
+        // ❗ ถ้า backend ไม่มี engine
+        if (data.error) {
+            outputEl.innerText = "❌ " + data.error;
+            return;
+        }
+
+        // ✅ แสดงผลสวยขึ้น
+        outputEl.innerText = JSON.stringify(data, null, 2);
 
     } catch (err) {
 
-        document.getElementById("output").innerText =
-            "ERROR: " + err;
+        console.error(err);
+
+        outputEl.innerText =
+            "🚫 SYSTEM ERROR\n" +
+            "----------------------\n" +
+            err;
 
     }
 }
