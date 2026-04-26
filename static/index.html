@@ -3,145 +3,170 @@
 <head>
 <meta charset="UTF-8">
 <title>King Diadem</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
 body {
     margin: 0;
     font-family: monospace;
-    background: radial-gradient(circle at center, #0b1220, #000);
     color: #00ffff;
     text-align: center;
     overflow: hidden;
 }
 
-/* 🌌 background stars */
-.stars {
+/* 🌌 CANVAS */
+#stars {
     position: fixed;
     width: 100%;
     height: 100%;
-    background: url('https://www.transparenttextures.com/patterns/stardust.png');
-    opacity: 0.2;
+    z-index: -1;
+    background: radial-gradient(circle at center, #0b1220, #000);
 }
 
-/* 🌠 main card */
+/* 🧠 CARD */
 .container {
-    position: relative;
-    top: 10%;
-    width: 400px;
+    margin-top: 80px;
+}
+
+.card {
+    width: 360px;
     margin: auto;
-    padding: 30px;
+    padding: 20px;
     border-radius: 20px;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0,0,0,0.85);
     box-shadow: 0 0 40px #00ffff;
 }
 
-/* 🧠 logo */
-.logo {
-    width: 100px;
-    border-radius: 50%;
-    box-shadow: 0 0 20px #00ffff;
-}
-
-/* 🌟 title */
+/* 👑 TITLE */
 h1 {
-    margin: 10px;
     font-size: 32px;
-}
-
-/* 🔴 credit warning */
-.warning {
-    color: #ff4d6d;
     margin: 10px 0;
 }
 
-/* 💬 input */
+.sub {
+    opacity: 0.6;
+    margin-bottom: 20px;
+}
+
+/* ❌ STATUS */
+.status {
+    color: red;
+    margin-bottom: 15px;
+}
+
+/* 📝 INPUT */
 input {
     width: 80%;
     padding: 10px;
     background: black;
-    border: 1px solid #00ffff;
+    border: 2px solid #00ffff;
     color: #00ffff;
 }
 
-/* 🚀 button */
+/* 🚀 BUTTON */
 button {
-    padding: 10px;
+    margin-top: 10px;
+    padding: 10px 20px;
     background: gold;
     border: none;
     cursor: pointer;
 }
 
-/* 🧠 output */
+/* 📦 OUTPUT */
 pre {
-    margin-top: 20px;
+    margin-top: 15px;
     text-align: left;
     background: black;
     padding: 10px;
+    border: 1px solid #00ffff;
     height: 150px;
     overflow: auto;
-}
-
-/* 🌌 causal loop */
-.loop {
-    margin-top: 20px;
-    font-size: 12px;
-    opacity: 0.6;
 }
 </style>
 </head>
 
 <body>
 
-<div class="stars"></div>
+<!-- 🌌 CANVAS -->
+<canvas id="stars"></canvas>
 
 <div class="container">
+    <div class="card">
 
-<img class="logo" src="https://i.imgur.com/yourlogo.png">
+        <h1>King Diadem</h1>
+        <div class="sub">AI Decision Civilization Platform</div>
 
-<h1>King Diadem</h1>
-<div>AI Decision Civilization Platform</div>
+        <div class="status">❌ เครดิตหมด (AI ถูกจำกัด)</div>
 
-<div class="warning">❌ เครดิตหมด (AI ถูกจำกัด)</div>
+        <input id="input" placeholder="พิมพ์สถานการณ์ของคุณ...">
 
-<input id="input" placeholder="พิมพ์สถานการณ์ของคุณ...">
-<br><br>
+        <br>
+        <button onclick="run()">→</button>
 
-<button onclick="run()">→</button>
+        <pre id="output">
+{
+  "observer": "KING DIADEM",
+  "status": "AI DISABLED",
+  "note": "ระบบยังทำงาน แต่ AI ปิดชั่วคราว"
+}
+        </pre>
 
-<pre id="output">SYSTEM READY...</pre>
-
-<div class="loop">
-เหตุ → ความคิด → การตัดสินใจ → ผลลัพธ์ → วนซ้ำ
-</div>
-
+    </div>
 </div>
 
 <script>
+/* 🌌 STAR ENGINE */
+const canvas = document.getElementById("stars");
+const ctx = canvas.getContext("2d");
 
-async function run() {
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-    const input = document.getElementById("input").value;
+let stars = [];
 
-    // 🧠 เรียก core จริง (ของพี่)
-    const res = await fetch("/run", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            input: input,
-            state: { energy: 50, food: true, safe_place: true }
-        })
+for (let i = 0; i < 200; i++) {
+    stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2,
+        speed: Math.random() * 0.3
     });
-
-    const data = await res.json();
-
-    // ❌ AI intentionally blocked
-    const ai = "⚠️ AI ถูกจำกัด (เครดิตหมด)";
-
-    document.getElementById("output").textContent =
-        JSON.stringify(data, null, 2) +
-        "\n\n" + ai;
 }
 
+function drawStars() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "#00ffff";
+
+    stars.forEach(star => {
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        star.y += star.speed;
+
+        if (star.y > canvas.height) {
+            star.y = 0;
+        }
+    });
+
+    requestAnimationFrame(drawStars);
+}
+
+drawStars();
+
+/* 🧠 SYSTEM MOCK */
+function run() {
+    const input = document.getElementById("input").value;
+
+    document.getElementById("output").textContent =
+`{
+  "input": "${input}",
+  "logic": "เหตุ → ความคิด → การตัดสินใจ → ผลลัพธ์",
+  "status": "AI DISABLED",
+  "message": "ระบบยังไม่เชื่อม AI"
+}`;
+}
 </script>
 
 </body>
