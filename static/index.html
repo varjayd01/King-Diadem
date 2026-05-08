@@ -2,6 +2,8 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="/static/manifest.json">
 <title>KING DIADEM</title>
 <style>
 html, body { margin:0; padding:0; background:#000; font-family:monospace; color:#cdefff; }
@@ -60,6 +62,10 @@ pre.sim { border-color:rgba(123,47,255,.35); }
 .stripe-label { font-size:11px; color:#ffd27f; margin-bottom:6px; }
 .btn-stripe { width:100%; padding:10px; background:linear-gradient(90deg,#635bff,#a259ff); border:none; color:#fff; font-weight:bold; font-family:monospace; cursor:pointer; border-radius:6px; font-size:13px; box-shadow:0 0 18px rgba(99,91,255,.35); transition:opacity .2s; }
 .btn-stripe:hover { opacity:.85; }
+.btn-install { width:auto; padding:10px 16px; background:linear-gradient(90deg,#00ccff,#7b2fff); color:#fff; border:none; box-shadow:0 0 18px rgba(0,204,255,.35); border-radius:6px; cursor:pointer; }
+.btn-install:hover { opacity:.9; }
+.install-row { display:flex; justify-content:center; margin-bottom:10px; }
+.info-box { font-size:12px; color:rgba(205,239,255,.8); background:rgba(0,255,255,.04); border:1px solid rgba(0,255,255,.12); border-radius:12px; padding:10px 14px; margin-bottom:12px; line-height:1.4; }
 </style>
 </head>
 <body>
@@ -75,7 +81,10 @@ pre.sim { border-color:rgba(123,47,255,.35); }
 
 <h1>King Diadem</h1>
 <div class="sub">DriftZero · Decision Engine · LYLA Kernel</div>
-
+<div class="info-box">พิมพ์สถานการณ์ของคุณ แล้วเลือก route ที่ต้องการ แล้วกด RUN เพื่อให้ระบบแนะนำและประเมินความเสี่ยง</div>
+<div class="install-row">
+  <button class="btn btn-install" id="btn-install" style="display:none" onclick="promptInstall()">Install App</button>
+</div>
 <div class="badges">
   <span class="badge warn" id="b-ai">⟳ AI...</span>
   <span class="badge warn" id="b-eng">⟳ Engine...</span>
@@ -98,6 +107,7 @@ pre.sim { border-color:rgba(123,47,255,.35); }
   <div class="box" id="bx-risk" onclick="runRoute('risk')">⚖️ Risk Engine<span class="rt">route: risk</span></div>
   <div class="box" id="bx-survival" onclick="runRoute('survival')">🛡 Survival Engine<span class="rt">route: survival</span></div>
   <div class="box" id="bx-collapse" onclick="runRoute('collapse')">💥 Collapse Detector<span class="rt">route: collapse</span></div>
+  <div class="box" id="bx-civil" onclick="runRoute('civil')">🏛 Civil Engine<span class="rt">route: civil</span></div>
 </div>
 
 <div class="sim-section">
@@ -186,7 +196,7 @@ function showOut(d){
 }
 async function post(u,b){try{const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});return await r.json();}catch(e){return{error:String(e)};}}
 function setL(id,on){document.getElementById(id).disabled=on;}
-function hlBox(r){const m={general:"bx-general",risk:"bx-risk",survival:"bx-survival",collapse:"bx-collapse"};const el=document.getElementById(m[r]);if(el)el.classList.add("active");}
+function hlBox(r){const m={general:"bx-general",risk:"bx-risk",survival:"bx-survival",collapse:"bx-collapse",civil:"bx-civil"};const el=document.getElementById(m[r]);if(el)el.classList.add("active");}
 function clearB(){document.querySelectorAll(".box").forEach(b=>b.classList.remove("active"));document.getElementById("route-tag").textContent="";}
 
 /* STRIPE */
@@ -194,6 +204,29 @@ async function stripeCheckout(){
   const d=await post("/payment/create-checkout",{});
   if(d.url)window.location.href=d.url;
   else document.getElementById("output").innerText="❌ Stripe: "+(d.error||"checkout ไม่สำเร็จ");
+}
+
+let deferredInstall = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstall = e;
+  const installButton = document.getElementById('btn-install');
+  if (installButton) installButton.style.display = 'inline-flex';
+});
+
+function promptInstall() {
+  if (!deferredInstall) return;
+  deferredInstall.prompt();
+  deferredInstall.userChoice.then((choiceResult) => {
+    deferredInstall = null;
+    document.getElementById('btn-install').style.display = 'none';
+  });
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/service-worker.js')
+    .then(() => console.log('Service Worker registered'))
+    .catch(err => console.warn('Service Worker failed', err));
 }
 </script>
 </body>
