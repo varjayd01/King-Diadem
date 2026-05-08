@@ -10,7 +10,6 @@ import os
 import json
 
 # ── CORE & ENGINE INTEGRATION ────────────────────────────────────
-# ดึงเอาโมดูลที่พี่สร้างไว้มาใช้งานจริง
 try:
     from ENGINE.decision_engine import DecisionEngine
     from ENGINE.council_engine import council_engine
@@ -24,11 +23,10 @@ except Exception as e:
 
 # ── LLM & KERNEL ────────────────────────────────────────────────
 try:
-    # สมมติฐานว่า GeminiLLM ของพี่พร้อมใช้งาน
     from core.llm_gemini import GeminiLLM
     from core.lyla_kernel import LylaKernel
     lyla = LylaKernel()
-    llm = GeminiLLM(model="gemini-2.0-flash") # อัปเกรดเป็นตัวล่าสุดที่เสถียร
+    llm = GeminiLLM(model="gemini-2.0-flash")
     print("✅ LYLA & Gemini Loaded")
 except Exception:
     llm = None
@@ -45,18 +43,21 @@ def root():
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# ── HEALTH CHECK (ตรวจสอบสถานะระบบทั้งหมด) ────────────────────────
+# ── HEALTH CHECK ────────────────────────────────────────────────
 @app.get("/health")
 def health():
     return {
         "status": "alive 👑",
         "human_protocol": "ENFORCED",
         "freedom_score": freedom_index() if 'freedom_index' in globals() else "N/A",
-        "lyla_status": "active" if lyla else "offline",
-        "stripe_status": "configured" if os.getenv("STRIPE_SECRET") else "missing_keys"
+        # FIX: field names ตรงกับ frontend
+        "llm_loaded": llm is not None,
+        "engine_loaded": engine is not None,
+        "lyla_loaded": lyla is not None,
+        "stripe_loaded": bool(os.getenv("STRIPE_SECRET_KEY")),
     }
 
-# ── MAIN DECISION ENGINE (The "Think" Endpoint) ──────────────────
+# ── MAIN DECISION ENGINE ─────────────────────────────────────────
 @app.post("/run")
 @app.post("/decision")
 async def run_kernel(data: dict):
@@ -66,49 +67,41 @@ async def run_kernel(data: dict):
     if not user_input:
         return {"error": "Input is required"}
 
-    # 1. บันทึกสัญญาณ (System Trace)
     if 'record_question' in globals(): record_question()
 
-    # 2. วิเคราะห์สถานะมนุษย์และเจตนา (Human & Intent)
     human_state = analyze_human(context)
     intent = analyze_intent(user_input)
 
-    # 3. รัน Decision Engine หลัก
     if engine:
         raw_result = engine.run(data)
     else:
         raw_result = {"action": "maintain", "message": "Standard fallback activated"}
 
-    # 4. เข้าสภา AI Council (ใช้ Council ที่พี่เขียน)
-    # เราส่งผลลัพธ์จาก Engine ไปให้สภาตรวจสอบและโหวต
     council_votes = council_engine(raw_result, state=human_state)
     final_consensus = consensus_engine(council_votes, state=human_state)
 
-    # 5. สรุปผลผ่านบุคลิก KING
     reply = king_response(user_input, json.dumps(final_consensus, ensure_ascii=False))
 
     return {
         "observer": "KING DIADEM",
-        "reply": reply,
+        "ai_response": reply,  # FIX: เปลี่ยนจาก "reply" → "ai_response" ให้ frontend อ่านได้
+        "route": "general",
         "governance": {
-            "entropy": human_state['entropy'],
             "intent": intent,
             "consensus": final_consensus
         }
     }
 
-# ── FUTURE SIMULATION (จำลองอนาคต) ──────────────────────────────
+# ── FUTURE SIMULATION ────────────────────────────────────────────
 @app.post("/simulate")
 async def simulate_future(data: dict):
     user_input = data.get("input", "")
     if not llm: return {"status": "OFFLINE", "message": "LLM not found"}
 
-    # ใช้ Prompt ที่พี่วางไว้แต่เพิ่มการคุมกฎผ่าน Lyla
     simulation_prompt = f"สถานการณ์: {user_input}\nวิเคราะห์ 30/90/365 วัน ตามกฎ HUMAN_PROTOCOL..."
-    
+
     raw = llm.generate_with_governance(simulation_prompt)
-    
-    # กรองผ่าน Lyla เพื่อความปลอดภัย (Stability over Destruction)
+
     if lyla:
         observation = lyla.observe(user_input)
     else:
@@ -117,12 +110,12 @@ async def simulate_future(data: dict):
     return {
         "status": "SUCCESS",
         "simulation": raw,
-        "lyla_note": observation
+        "lyla_observation": observation  # FIX: เปลี่ยนจาก "lyla_note" ให้ตรง frontend
     }
 
-# ── PAYMENT SYSTEM (Stripe) ─────────────────────────────────────
+# ── PAYMENT SYSTEM (Stripe) ──────────────────────────────────────
 import stripe
-stripe.api_key = os.getenv("STRIPE_SECRET")
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")  # FIX: ชื่อตรงกับ render.yaml
 
 @app.post("/payment/create-checkout")
 async def create_checkout():
@@ -137,5 +130,3 @@ async def create_checkout():
         return {"url": session.url}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
-
-
