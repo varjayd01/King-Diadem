@@ -154,6 +154,10 @@ Collapse Chain Root: {paticca_result.get('root_cause') if paticca_result else 'u
                 from ENGINE.consensus_engine import resolve
                 return resolve(pattern)
 
+            elif route == "civil":
+                from ENGINE.civil_work_engine import assess
+                return assess(pattern)
+
             else:
                 from ENGINE.strategy_planner import plan
                 return plan(pattern)
