@@ -2,10 +2,11 @@
 # 👑 KING DIADEM — ULTIMATE app.py
 # ==========================================
 
-from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi import FastAPI, Request, File, UploadFile
+from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import os, json, stripe
+from PIL import Image, ExifTags
 
 try:
     from ENGINE.decision_engine import DecisionEngine
@@ -33,11 +34,13 @@ except Exception as e:
 
 try:
     from DATABASE.db import init_db, log_decision, get_credits
+    from PAYMENT.stripe_webhook import handle_webhook
     init_db()
     print("✅ Database initialized")
 except Exception as e:
-    print(f"⚠ DB ERROR: {e}")
+    print(f"⚠ DB/Payment ERROR: {e}")
     init_db = log_decision = get_credits = None
+    handle_webhook = None
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 app = FastAPI(title="KING DIADEM OS")
@@ -121,16 +124,72 @@ async def simulate_future(data: dict):
     return {"status": "SUCCESS", "simulation": raw, "lyla_observation": observation}
 
 @app.post("/payment/create-checkout")
-async def create_checkout():
+async def create_checkout(request: Request):
+    payload = await request.json()
+    api_key = payload.get("api_key") or payload.get("email") or "guest"
+    plan = payload.get("plan", "basic")
+    price_id_basic = os.getenv("STRIPE_PRICE_ID")
+    price_id_civil = os.getenv("STRIPE_PRICE_ID_CIVIL")
+
     try:
+        if plan == "civil" and price_id_civil:
+            line_items = [{"price": price_id_civil, "quantity": 1}]
+        elif plan == "basic" and price_id_basic:
+            line_items = [{"price": price_id_basic, "quantity": 1}]
+        else:
+            amount = 500 if plan == "basic" else 29900
+            currency = "usd" if plan == "basic" else "thb"
+            label = "King Diadem Basic" if plan == "basic" else "King Diadem Civilization"
+            line_items = [{
+                "price_data": {
+                    "currency": currency,
+                    "product_data": {"name": label},
+                    "unit_amount": amount
+                },
+                "quantity": 1
+            }]
+
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
-            line_items=[{"price_data": {"currency": "usd", "product_data": {"name": "King Diadem AI Credits"}, "unit_amount": 500}, "quantity": 1}],
+            line_items=line_items,
             mode="payment",
             success_url="https://king-diadem.onrender.com/success",
             cancel_url="https://king-diadem.onrender.com/cancel",
+            metadata={"api_key": api_key, "plan": plan}
         )
         return {"url": session.url}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+@app.post("/upload-image")
+async def upload_image(file: UploadFile = File(...), email: str = "guest"):
+    try:
+        image = Image.open(file.file)
+        exif_data = image._getexif() or {}
+        parsed = {}
+        for tag, value in exif_data.items():
+            decoded = ExifTags.TAGS.get(tag, tag)
+            parsed[decoded] = value
+
+        date_time = parsed.get("DateTimeOriginal") or parsed.get("DateTime") or parsed.get("DateTimeDigitized")
+        message = "ไม่พบข้อมูลวันเวลาในรูปภาพ กรุณาถ่ายรูปด้วยกล้องที่บันทึกเวลาและวันที่"
+        if date_time:
+            message = f"พบ timestamp: {date_time}. ใช้เป็นหลักฐานสำหรับ Timeline ได้"
+
+        timeline = {
+            "email": email,
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "timestamp": date_time,
+            "exif": {k: str(v) for k, v in parsed.items() if k in ["DateTimeOriginal", "DateTime", "DateTimeDigitized"]}
+        }
+
+        return {
+            "status": "SUCCESS",
+            "message": message,
+            "timeline": timeline,
+            "recommendation": "ใช้รูปภาพพร้อมเวลา/วันที่เป็นหลักฐานประกอบการตัดสินใจและการรายงาน"
+        }
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 

@@ -106,6 +106,10 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Rajdhani',mon
 #sim-result{font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(168,212,232,0.5);line-height:1.7;max-height:120px;overflow-y:auto;padding:8px;border:1px solid rgba(123,47,255,0.1);border-radius:3px;background:rgba(0,0,10,0.5);display:none;margin-top:8px;}
 #stripe-btn{width:100%;padding:10px;background:linear-gradient(135deg,rgba(99,91,255,0.15),rgba(162,89,255,0.1));border:1px solid rgba(99,91,255,0.25);border-radius:3px;color:rgba(180,160,255,0.8);font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;cursor:pointer;transition:all .2s;}
 #stripe-btn:hover{border-color:rgba(99,91,255,0.5);color:#fff;}
+.stripe-input{width:100%;padding:8px 10px;margin-bottom:8px;background:rgba(0,0,0,0.9);border:1px solid rgba(0,204,255,0.15);border-radius:6px;color:#cdefff;outline:none;font-size:11px;font-family:monospace;}
+.plan-row{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;font-size:11px;}
+.plan-row label{display:flex;align-items:center;gap:6px;color:#cdefff;}
+.photo-output{background:rgba(0,0,0,0.9);border:1px solid rgba(0,204,255,0.15);border-radius:8px;padding:10px;font-size:11px;color:#cdefff;min-height:80px;white-space:pre-wrap;overflow-wrap:break-word;}
 #bottombar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-top:1px solid var(--border);background:rgba(0,5,16,0.9);font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(0,212,255,0.25);letter-spacing:1px;}
 #freedom-count{color:rgba(200,169,110,0.4);}
 #galaxy{position:fixed;inset:0;z-index:0;pointer-events:none;}
@@ -201,7 +205,22 @@ html,body{width:100%;height:100%;background:var(--bg);font-family:'Rajdhani',mon
     </div>
     <div class="rp-section">
       <div class="rp-header"><div class="rp-dot" style="background:#635bff"></div>AI CREDITS</div>
-      <div class="rp-body"><button id="stripe-btn" onclick="stripeCheckout()">⚡ TOP UP — STRIPE</button></div>
+      <div class="rp-body">
+        <input type="text" id="payment-email" placeholder="Email / username for receipt" class="stripe-input" />
+        <div class="plan-row">
+          <label><input type="radio" name="plan" value="basic" checked> $5 Basic AI Chat</label>
+          <label><input type="radio" name="plan" value="civil"> 999 THB Civilization Mode</label>
+        </div>
+        <button id="stripe-btn" onclick="stripeCheckout()">⚡ TOP UP — Stripe</button>
+      </div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-header"><div class="rp-dot" style="background:#00ccff"></div>Evidence Photo</div>
+      <div class="rp-body">
+        <input type="file" id="photo-file" accept="image/*" class="stripe-input" />
+        <button id="photo-btn" onclick="uploadImage()">📸 ANALYZE PHOTO</button>
+        <pre id="photo-output" class="photo-output">อัปโหลดภาพที่มีวันเวลาเพื่อวิเคราะห์ Timeline</pre>
+      </div>
     </div>
   </aside>
   <footer id="bottombar">
@@ -256,7 +275,38 @@ async function simulate(){
   try{const d=await post("/simulate",{input,paths});let txt=d.simulation||d.error||"No result";if(d.lyla_observation?.observation)txt+="\n\n— LYLA —\n"+d.lyla_observation.observation;document.getElementById("sim-result").textContent=txt;if(d.lyla_observation)updateLyla({lyla:d.lyla_observation});}catch(e){document.getElementById("sim-result").textContent="ERROR: "+e;}
   document.getElementById("sim-btn").disabled=false;}
 function addPath(){const g=document.getElementById("sim-paths"),n=g.children.length+1;const d=document.createElement("div");d.className="sim-path";d.innerHTML=`<span class="sim-path-num">0${n}</span><input type="text" placeholder="ทางเลือก ${n}...">`;g.appendChild(d);}
-async function stripeCheckout(){const d=await post("/payment/create-checkout",{});if(d.url)window.location.href=d.url;}
+async function stripeCheckout(){
+  const email = document.getElementById("payment-email").value.trim() || "guest";
+  const plan = document.querySelector('input[name="plan"]:checked')?.value || "basic";
+  const d = await post("/payment/create-checkout", {api_key: email, plan});
+  if(d.url) window.location.href = d.url;
+  else document.getElementById("photo-output").textContent = "❌ Stripe: " + (d.error || "checkout ไม่สำเร็จ");
+}
+
+async function uploadImage(){
+  const fileInput = document.getElementById("photo-file");
+  const output = document.getElementById("photo-output");
+  if(!fileInput.files.length){
+    output.textContent = "กรุณาเลือกภาพก่อน";
+    return;
+  }
+  const file = fileInput.files[0];
+  const form = new FormData();
+  form.append("file", file);
+  form.append("email", document.getElementById("payment-email").value.trim() || "guest");
+
+  try{
+    const res = await fetch("/upload-image", {method:"POST", body: form});
+    const data = await res.json();
+    if(data.error){
+      output.textContent = "❌ " + data.error;
+      return;
+    }
+    output.textContent = data.message + "\n\n" + JSON.stringify(data.timeline, null, 2) + "\n\n" + data.recommendation;
+  }catch(e){
+    output.textContent = "ERROR: " + e;
+  }
+}
 async function post(u,b){try{const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});return await r.json();}catch(e){return{error:String(e)};}}
 if("serviceWorker"in navigator)navigator.serviceWorker.register("/static/service-worker.js").catch(()=>{});
 </script>
