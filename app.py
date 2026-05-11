@@ -3,10 +3,10 @@
 # ==========================================
 
 from fastapi import FastAPI, Request, File, UploadFile
-from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-import os, json, stripe
-from PIL import Image, ExifTags
+from starlette.middleware.sessions import SessionMiddleware
+import os, json, stripe, hashlib
 
 try:
     from ENGINE.decision_engine import DecisionEngine
@@ -23,27 +23,39 @@ except Exception as e:
 try:
     from core.llm_gemini import GeminiLLM
     from core.lyla_kernel import LylaKernel
-    from core.axioms import AXIOMS
     lyla = LylaKernel()
     llm = GeminiLLM(model="gemini-2.0-flash")
     print("✅ LYLA & Gemini Loaded")
 except Exception as e:
     print(f"⚠ LLM/LYLA ERROR: {e}")
     llm = lyla = None
-    AXIOMS = {}
 
 try:
-    from DATABASE.db import init_db, log_decision, get_credits
-    from PAYMENT.stripe_webhook import handle_webhook
+    from DATABASE.db import init_db, log_decision, get_credits, add_credits
     init_db()
     print("✅ Database initialized")
 except Exception as e:
-    print(f"⚠ DB/Payment ERROR: {e}")
-    init_db = log_decision = get_credits = None
-    handle_webhook = None
+    print(f"⚠ DB ERROR: {e}")
+    init_db = log_decision = get_credits = add_credits = None
+
+try:
+    from authlib.integrations.starlette_client import OAuth
+    oauth = OAuth()
+    oauth.register(
+        name="google",
+        client_id=os.getenv("GOOGLE_CLIENT_ID"),
+        client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_kwargs={"scope": "openid email profile"},
+    )
+    print("✅ Google OAuth Loaded")
+except Exception as e:
+    print(f"⚠ OAuth ERROR: {e}")
+    oauth = None
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 app = FastAPI(title="KING DIADEM OS")
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "king-diadem-secret-2026"))
 engine = DecisionEngine() if DecisionEngine else None
 
 @app.get("/")
@@ -65,12 +77,85 @@ def health():
         "db_initialized": init_db is not None,
     }
 
+# ── GOOGLE LOGIN ──────────────────────────────────────────────────
+@app.get("/login/google")
+async def google_login(request: Request):
+    if not oauth:
+        return JSONResponse({"error": "OAuth not configured"}, status_code=500)
+    redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "https://king-diadem.onrender.com/auth/google/callback")
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+@app.get("/auth/google/callback")
+async def google_callback(request: Request):
+    if not oauth:
+        return RedirectResponse("/static/login.html?error=oauth_disabled")
+    try:
+        token = await oauth.google.authorize_access_token(request)
+        user = token.get("userinfo")
+        email = user.get("email", "unknown")
+        name = user.get("name", email)
+
+        # บันทึก user ลง DB ถ้ายังไม่มี
+        if get_credits:
+            credits = get_credits(email)
+            if credits == 0:
+                if add_credits:
+                    add_credits(email, 10)  # ให้ 10 credits ฟรีเมื่อสมัคร
+
+        response = RedirectResponse("/")
+        response.set_cookie("kd_email", email, max_age=86400*30)
+        response.set_cookie("kd_name", name, max_age=86400*30)
+        return response
+    except Exception as e:
+        return RedirectResponse(f"/static/login.html?error={str(e)[:50]}")
+
+@app.get("/me")
+async def me(request: Request):
+    email = request.cookies.get("kd_email")
+    name = request.cookies.get("kd_name")
+    if not email:
+        return {"logged_in": False}
+    credits = get_credits(email) if get_credits else 0
+    return {"logged_in": True, "email": email, "name": name, "credits": credits}
+
+@app.post("/logout")
+async def logout():
+    response = JSONResponse({"status": "ok"})
+    response.delete_cookie("kd_email")
+    response.delete_cookie("kd_name")
+    return response
+
+# ── EMAIL LOGIN / REGISTER ────────────────────────────────────────
+@app.post("/register")
+async def register(data: dict):
+    email = data.get("email", "")
+    password = data.get("password", "")
+    if not email or not password:
+        return {"status": "error", "message": "กรุณากรอก email และ password"}
+    if add_credits and get_credits:
+        if get_credits(email) == 0:
+            add_credits(email, 10)
+    return {"status": "ok", "email": email, "credits": 10}
+
+@app.post("/login")
+async def login_email(data: dict):
+    email = data.get("email", "")
+    if not email:
+        return {"status": "error"}
+    credits = get_credits(email) if get_credits else 0
+    response = JSONResponse({"status": "ok", "email": email, "credit": credits})
+    response.set_cookie("kd_email", email, max_age=86400*30)
+    return response
+
+# ── DECISION ENGINE ───────────────────────────────────────────────
 @app.post("/run")
 @app.post("/decision")
-async def run_kernel(data: dict):
+async def run_kernel(request: Request, data: dict):
     user_input = data.get("input") or data.get("text") or ""
     if not user_input:
         return {"error": "Input is required"}
+
+    email = request.cookies.get("kd_email", "anonymous")
 
     if record_question:
         record_question()
@@ -102,12 +187,13 @@ async def run_kernel(data: dict):
 
     if log_decision and result.get("ai_response"):
         try:
-            log_decision("anonymous", user_input, result.get("route", "general"), str(result.get("ai_response", "")))
+            log_decision(email, user_input, result.get("route", "general"), str(result.get("ai_response", "")))
         except Exception:
             pass
 
     return result
 
+# ── SIMULATE ──────────────────────────────────────────────────────
 @app.post("/simulate")
 async def simulate_future(data: dict):
     user_input = data.get("input", "")
@@ -123,78 +209,84 @@ async def simulate_future(data: dict):
     observation = lyla.observe(user_input) if lyla else {"stability": "NOMINAL"}
     return {"status": "SUCCESS", "simulation": raw, "lyla_observation": observation}
 
+# ── IMAGE ANALYSIS (Gemini Vision) ───────────────────────────────
+@app.post("/analyze-image")
+async def analyze_image(request: Request, file: UploadFile = File(...)):
+    if not llm:
+        return {"status": "OFFLINE", "message": "LLM not found"}
+    try:
+        import base64
+        content = await file.read()
+        b64 = base64.b64encode(content).decode()
+        mime = file.content_type or "image/jpeg"
+
+        from google import genai
+        from google.genai import types
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY2"))
+
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=[
+                types.Content(role="user", parts=[
+                    types.Part.from_bytes(data=content, mime_type=mime),
+                    types.Part.from_text(text="""วิเคราะห์ภาพนี้ผ่าน LYLA Governance Framework:
+1. สิ่งที่เห็นในภาพคืออะไร
+2. มี drift หรือความเสี่ยงที่ซ่อนอยู่ไหม
+3. ทางเลือกที่แนะนำ (≤3 ทาง)
+ตอบด้วยเมตตา ไม่ตัดสิน""")
+                ])
+            ]
+        )
+        return {"status": "SUCCESS", "analysis": response.text, "filename": file.filename}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+# ── PAYMENT ───────────────────────────────────────────────────────
 @app.post("/payment/create-checkout")
 async def create_checkout(request: Request):
     payload = await request.json()
-    api_key = payload.get("api_key") or payload.get("email") or "guest"
     plan = payload.get("plan", "basic")
-    price_id_basic = os.getenv("STRIPE_PRICE_ID")
-    price_id_civil = os.getenv("STRIPE_PRICE_ID_CIVIL")
+    email = request.cookies.get("kd_email", "guest")
+
+    # ราคาตาม plan
+    plans = {
+        "basic":        {"amount": 29900, "currency": "thb", "name": "KING DIADEM Basic — ฿299/เดือน"},
+        "civilization": {"amount": 99900, "currency": "thb", "name": "KING DIADEM Civilization — ฿999/เดือน"},
+        "topup":        {"amount": 5000,  "currency": "thb", "name": "KING DIADEM Credits — ฿50"},
+    }
+    p = plans.get(plan, plans["basic"])
 
     try:
-        if plan == "civil" and price_id_civil:
-            line_items = [{"price": price_id_civil, "quantity": 1}]
-        elif plan == "basic" and price_id_basic:
-            line_items = [{"price": price_id_basic, "quantity": 1}]
-        else:
-            amount = 500 if plan == "basic" else 29900
-            currency = "usd" if plan == "basic" else "thb"
-            label = "King Diadem Basic" if plan == "basic" else "King Diadem Civilization"
-            line_items = [{
-                "price_data": {
-                    "currency": currency,
-                    "product_data": {"name": label},
-                    "unit_amount": amount
-                },
-                "quantity": 1
-            }]
-
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
-            line_items=line_items,
+            line_items=[{
+                "price_data": {
+                    "currency": p["currency"],
+                    "product_data": {"name": p["name"]},
+                    "unit_amount": p["amount"]
+                },
+                "quantity": 1
+            }],
             mode="payment",
-            success_url="https://king-diadem.onrender.com/success",
-            cancel_url="https://king-diadem.onrender.com/cancel",
-            metadata={"api_key": api_key, "plan": plan}
+            success_url="https://king-diadem.onrender.com/success?plan=" + plan,
+            cancel_url="https://king-diadem.onrender.com/",
+            customer_email=email if "@" in email else None,
+            metadata={"email": email, "plan": plan}
         )
         return {"url": session.url}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
-@app.post("/upload-image")
-async def upload_image(file: UploadFile = File(...), email: str = "guest"):
-    try:
-        image = Image.open(file.file)
-        exif_data = image._getexif() or {}
-        parsed = {}
-        for tag, value in exif_data.items():
-            decoded = ExifTags.TAGS.get(tag, tag)
-            parsed[decoded] = value
+@app.get("/success")
+async def payment_success(plan: str = "basic"):
+    return FileResponse("static/index.html")
 
-        date_time = parsed.get("DateTimeOriginal") or parsed.get("DateTime") or parsed.get("DateTimeDigitized")
-        message = "ไม่พบข้อมูลวันเวลาในรูปภาพ กรุณาถ่ายรูปด้วยกล้องที่บันทึกเวลาและวันที่"
-        if date_time:
-            message = f"พบ timestamp: {date_time}. ใช้เป็นหลักฐานสำหรับ Timeline ได้"
-
-        timeline = {
-            "email": email,
-            "filename": file.filename,
-            "content_type": file.content_type,
-            "timestamp": date_time,
-            "exif": {k: str(v) for k, v in parsed.items() if k in ["DateTimeOriginal", "DateTime", "DateTimeDigitized"]}
-        }
-
-        return {
-            "status": "SUCCESS",
-            "message": message,
-            "timeline": timeline,
-            "recommendation": "ใช้รูปภาพพร้อมเวลา/วันที่เป็นหลักฐานประกอบการตัดสินใจและการรายงาน"
-        }
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
+@app.get("/cancel")
+async def payment_cancel():
+    return FileResponse("static/index.html")
 
 @app.get("/credits")
-async def credits(email: str = "anonymous"):
-    if get_credits:
-        return {"email": email, "credits": get_credits(email)}
-    return {"credits": 0}
+async def credits(request: Request):
+    email = request.cookies.get("kd_email", "anonymous")
+    c = get_credits(email) if get_credits else 0
+    return {"email": email, "credits": c}
