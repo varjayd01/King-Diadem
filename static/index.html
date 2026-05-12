@@ -2,410 +2,631 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#000510">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050208">
 <link rel="manifest" href="/static/manifest.json">
 <link rel="icon" href="/static/favicon.ico">
 <title>KING DIADEM — DriftZero OS</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cinzel:wght@400;600;900&family=Rajdhani:wght@300;400;600&display=swap');
-:root{--gold:#c8a96e;--gold-bright:#ffd27f;--cyan:#00d4ff;--bg:#000510;--border:rgba(0,212,255,0.12);--text:#a8d4e8;--text-bright:#cdefff;}
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Cinzel:wght@400;600;700&family=Rajdhani:wght@300;400;600&display=swap');
+:root{
+  --gold:#e8c078;--gold-hot:#ffd98a;--teal:#2dd4bf;--violet:#7c6cff;
+  --sun-core:#ff4500;--sun-mid:#ff6b1a;--sun-halo:rgba(255,140,60,.45);
+  --bg:#030208;--bg2:#0a0618;--border:rgba(232,192,120,.14);
+  --text:#b8d4e8;--text-bright:#e8f4ff;--safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-top:env(safe-area-inset-top,0px);
+}
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{width:100%;height:100%;background:var(--bg);font-family:'Rajdhani',monospace;color:var(--text);overflow:hidden;}
-.nebula{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 60% 40% at 15% 50%,rgba(255,80,0,0.08) 0%,transparent 60%),radial-gradient(ellipse 50% 60% at 85% 40%,rgba(0,100,255,0.10) 0%,transparent 60%),radial-gradient(ellipse 40% 50% at 50% 20%,rgba(100,0,150,0.05) 0%,transparent 50%);}
-.scanline{position:fixed;inset:0;z-index:2;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,212,255,0.012) 2px,rgba(0,212,255,0.012) 4px);}
-#app{position:relative;z-index:10;width:100%;height:100vh;display:grid;grid-template-columns:220px 1fr 280px;grid-template-rows:60px 1fr 50px;}
-#topbar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--border);background:rgba(0,5,16,0.9);backdrop-filter:blur(10px);}
-.topbar-left{display:flex;align-items:center;gap:14px;}
-.topbar-logo{width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 8px rgba(0,212,255,0.5));}
-.logo-text{font-family:'Cinzel',serif;font-size:18px;font-weight:600;letter-spacing:4px;background:linear-gradient(90deg,var(--gold),var(--gold-bright),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.logo-sub{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:rgba(0,212,255,0.4);margin-top:1px;}
-.topbar-right{display:flex;gap:16px;align-items:center;}
-.sys-badge{font-family:'Share Tech Mono',monospace;font-size:9px;padding:3px 10px;border-radius:2px;border:1px solid;letter-spacing:2px;transition:all .3s;}
-.sys-badge.ok{border-color:rgba(0,255,120,0.4);color:#00ff88;background:rgba(0,255,120,0.05);}
-.sys-badge.off{border-color:rgba(255,60,60,0.4);color:#ff5e5e;background:rgba(255,60,60,0.05);}
-#sys-time{font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(0,212,255,0.5);letter-spacing:2px;}
-#left-panel{border-right:1px solid var(--border);background:rgba(0,5,16,0.7);padding:20px 0;overflow-y:auto;display:flex;flex-direction:column;gap:4px;}
-.panel-label{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:3px;color:rgba(0,212,255,0.3);padding:8px 20px 4px;margin-top:8px;}
-.engine-btn{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;border:none;background:transparent;color:var(--text);font-family:'Rajdhani',monospace;font-size:13px;font-weight:400;letter-spacing:1px;transition:all .2s;text-align:left;width:100%;border-left:2px solid transparent;}
-.engine-btn:hover{background:rgba(0,212,255,0.05);border-left-color:var(--cyan);color:var(--text-bright);}
-.engine-btn.active{background:rgba(0,212,255,0.08);border-left-color:var(--gold);color:var(--gold-bright);}
-.engine-btn .e-icon{font-size:14px;width:20px;text-align:center;}
-.engine-btn .e-sub{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,212,255,0.3);display:block;letter-spacing:1px;}
-.engine-btn .e-dot{width:5px;height:5px;border-radius:50%;background:rgba(0,212,255,0.2);margin-left:auto;transition:all .3s;}
-.engine-btn.active .e-dot{background:var(--gold);box-shadow:0 0 6px var(--gold);}
-.waterline-bar{margin:16px 20px 0;padding:12px;border:1px solid rgba(0,212,255,0.1);border-radius:4px;background:rgba(0,212,255,0.03);}
-.wl-label{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,212,255,0.4);letter-spacing:2px;margin-bottom:6px;}
-.wl-meter{height:3px;background:rgba(255,255,255,0.05);border-radius:2px;margin-bottom:4px;overflow:hidden;}
-.wl-fill{height:100%;border-radius:2px;transition:width .8s ease;}
-.wl-fill.safe{background:linear-gradient(90deg,#00ff88,#00ccff);}
-.wl-fill.warn{background:linear-gradient(90deg,#ffb300,#ff6a00);}
-.wl-fill.crit{background:linear-gradient(90deg,#ff3c3c,#ff6a00);}
-.wl-val{font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(0,212,255,0.5);}
-#center{display:flex;flex-direction:column;padding:0;overflow:hidden;}
-#chat-area{flex:1;overflow-y:auto;padding:24px 28px;display:flex;flex-direction:column;gap:16px;scrollbar-width:thin;scrollbar-color:rgba(0,212,255,0.1) transparent;}
-#chat-area::-webkit-scrollbar{width:3px;}
-#chat-area::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.15);border-radius:2px;}
-#welcome{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:40px;}
-.welcome-logo{width:100px;height:100px;object-fit:contain;filter:drop-shadow(0 0 30px rgba(0,212,255,0.6)) drop-shadow(0 0 60px rgba(200,169,110,0.4));animation:float 4s ease-in-out infinite;}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-.welcome-title{font-family:'Cinzel',serif;font-size:28px;font-weight:600;letter-spacing:6px;background:linear-gradient(135deg,var(--gold),var(--gold-bright) 40%,var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.welcome-sub{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:3px;color:rgba(0,212,255,0.4);}
-.welcome-desc{font-size:13px;color:rgba(168,212,232,0.6);max-width:420px;line-height:1.8;margin-top:4px;}
-.welcome-hint{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px;}
-.hint-chip{font-family:'Share Tech Mono',monospace;font-size:10px;padding:6px 14px;border:1px solid rgba(0,212,255,0.15);border-radius:2px;color:rgba(0,212,255,0.5);cursor:pointer;transition:all .2s;letter-spacing:1px;}
-.hint-chip:hover{border-color:rgba(0,212,255,0.4);color:var(--cyan);background:rgba(0,212,255,0.05);}
-.msg{display:flex;gap:12px;align-items:flex-start;animation:msgIn .3s ease;}
-@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.msg.user{flex-direction:row-reverse;}
-.msg-avatar{width:32px;height:32px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-family:'Share Tech Mono',monospace;font-weight:bold;overflow:hidden;}
-.msg.user .msg-avatar{background:rgba(200,169,110,0.15);border:1px solid rgba(200,169,110,0.3);color:var(--gold);}
-.msg.system .msg-avatar{background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);}
-.msg-logo{width:100%;height:100%;object-fit:contain;padding:3px;filter:drop-shadow(0 0 4px rgba(0,212,255,0.5));}
-.msg-body{max-width:75%;}
-.msg-sender{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:rgba(0,212,255,0.3);margin-bottom:4px;}
-.msg.user .msg-sender{text-align:right;color:rgba(200,169,110,0.4);}
-.msg-text{padding:12px 16px;border-radius:4px;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word;}
-.msg.user .msg-text{background:rgba(200,169,110,0.07);border:1px solid rgba(200,169,110,0.15);color:var(--gold-bright);text-align:right;}
-.msg.system .msg-text{background:rgba(0,8,20,0.8);border:1px solid rgba(0,212,255,0.1);color:var(--text-bright);}
-.thinking{display:flex;gap:4px;align-items:center;padding:12px 16px;}
-.thinking span{width:4px;height:4px;border-radius:50%;background:var(--cyan);opacity:.4;animation:pulse 1.2s ease-in-out infinite;}
-.thinking span:nth-child(2){animation-delay:.2s;}.thinking span:nth-child(3){animation-delay:.4s;}
-@keyframes pulse{0%,100%{opacity:.2;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
-.route-tag{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;padding:3px 10px;border-radius:2px;border:1px solid rgba(0,212,255,0.15);color:rgba(0,212,255,0.4);background:rgba(0,212,255,0.03);display:inline-flex;align-items:center;gap:6px;margin-top:6px;}
-.rt-dot{width:4px;height:4px;border-radius:50%;background:var(--cyan);animation:pulse 2s infinite;}
-#input-area{border-top:1px solid var(--border);background:rgba(0,5,16,0.9);padding:16px 24px;}
-.input-context{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
-.ctx-tag{font-family:'Share Tech Mono',monospace;font-size:9px;padding:3px 10px;border:1px solid rgba(200,169,110,0.15);border-radius:2px;color:rgba(200,169,110,0.4);cursor:pointer;letter-spacing:1px;transition:all .2s;}
-.ctx-tag.active{border-color:var(--gold);color:var(--gold);background:rgba(200,169,110,0.08);}
-.input-row{display:flex;gap:10px;align-items:flex-end;}
-#main-input{flex:1;background:rgba(0,8,20,0.9);border:1px solid rgba(0,212,255,0.15);border-radius:4px;padding:12px 16px;color:var(--text-bright);font-family:'Rajdhani',monospace;font-size:14px;resize:none;outline:none;min-height:44px;max-height:120px;transition:border-color .2s;line-height:1.5;}
-#main-input:focus{border-color:rgba(0,212,255,0.35);}
-#main-input::placeholder{color:rgba(168,212,232,0.2);}
-#run-btn{padding:12px 20px;background:linear-gradient(135deg,rgba(200,169,110,0.2),rgba(255,210,127,0.1));border:1px solid rgba(200,169,110,0.3);border-radius:4px;color:var(--gold-bright);font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:2px;cursor:pointer;transition:all .2s;white-space:nowrap;display:flex;align-items:center;gap:8px;}
-#run-btn:hover{border-color:var(--gold);box-shadow:0 0 20px rgba(200,169,110,0.2);}
-#run-btn:disabled{opacity:.3;cursor:not-allowed;}
-#right-panel{border-left:1px solid var(--border);background:rgba(0,5,16,0.7);padding:20px 16px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;}
-.rp-section{border:1px solid var(--border);border-radius:4px;background:rgba(0,8,20,0.5);overflow:hidden;}
-.rp-header{padding:8px 14px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:rgba(0,212,255,0.4);display:flex;align-items:center;gap:6px;}
-.rp-dot{width:4px;height:4px;border-radius:50%;background:var(--cyan);opacity:.4;}
-.rp-body{padding:12px 14px;}
-.lyla-status{display:flex;flex-direction:column;gap:8px;}
-.lyla-item{display:flex;justify-content:space-between;align-items:center;}
-.lyla-key{font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(0,212,255,0.3);letter-spacing:1px;}
-.lyla-val{font-family:'Share Tech Mono',monospace;font-size:10px;font-weight:bold;}
-.lyla-val.safe{color:#00ff88;}.lyla-val.warn{color:#ffb300;}.lyla-val.crit{color:#ff5e5e;}.lyla-val.nominal{color:var(--cyan);}
-.sim-paths{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
-.sim-path{background:rgba(0,8,20,0.8);border:1px solid rgba(0,212,255,0.08);border-radius:3px;padding:7px 10px;font-size:11px;color:rgba(168,212,232,0.6);display:flex;align-items:center;gap:8px;}
-.sim-path input{flex:1;background:transparent;border:none;outline:none;color:inherit;font-family:'Rajdhani',monospace;font-size:11px;}
-.sim-path-num{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,212,255,0.3);min-width:16px;}
-#sim-btn{width:100%;padding:8px;background:rgba(123,47,255,0.1);border:1px solid rgba(123,47,255,0.25);border-radius:3px;color:rgba(180,140,255,0.8);font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;cursor:pointer;transition:all .2s;}
-#sim-btn:hover{background:rgba(123,47,255,0.2);border-color:rgba(123,47,255,0.4);}
-.add-path{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,212,255,0.25);cursor:pointer;letter-spacing:1px;padding:4px 0;transition:color .2s;}
-.add-path:hover{color:rgba(0,212,255,0.5);}
-#sim-result{font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(168,212,232,0.5);line-height:1.7;max-height:120px;overflow-y:auto;padding:8px;border:1px solid rgba(123,47,255,0.1);border-radius:3px;background:rgba(0,0,10,0.5);display:none;margin-top:8px;}
-#stripe-btn{width:100%;padding:10px;background:linear-gradient(135deg,rgba(99,91,255,0.15),rgba(162,89,255,0.1));border:1px solid rgba(99,91,255,0.25);border-radius:3px;color:rgba(180,160,255,0.8);font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;cursor:pointer;transition:all .2s;}
-#stripe-btn:hover{border-color:rgba(99,91,255,0.5);color:#fff;}
-.stripe-input{width:100%;padding:8px 10px;margin-bottom:8px;background:rgba(0,0,0,0.9);border:1px solid rgba(0,204,255,0.15);border-radius:6px;color:#cdefff;outline:none;font-size:11px;font-family:monospace;}
-.plan-row{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;font-size:11px;}
-.plan-row label{display:flex;align-items:center;gap:6px;color:#cdefff;}
-.photo-output{background:rgba(0,0,0,0.9);border:1px solid rgba(0,204,255,0.15);border-radius:8px;padding:10px;font-size:11px;color:#cdefff;min-height:80px;white-space:pre-wrap;overflow-wrap:break-word;}
-#bottombar{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-top:1px solid var(--border);background:rgba(0,5,16,0.9);font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(0,212,255,0.25);letter-spacing:1px;}
-#freedom-count{color:rgba(200,169,110,0.4);}
+html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:var(--text);
+  font-family:'Rajdhani',system-ui,sans-serif;overflow-x:hidden;}
 #galaxy{position:fixed;inset:0;z-index:0;pointer-events:none;}
+.nebula{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 100%,rgba(45,212,191,.12) 0%,transparent 55%),
+    radial-gradient(ellipse 90% 60% at 15% 30%,rgba(255,100,40,.14) 0%,transparent 50%),
+    radial-gradient(ellipse 70% 50% at 85% 25%,rgba(124,108,255,.12) 0%,transparent 45%),
+    radial-gradient(ellipse 100% 40% at 50% 0%,rgba(255,200,120,.08) 0%,transparent 40%),
+    linear-gradient(180deg,#030208 0%,#0a0514 40%,#050810 100%);
+}
+.scanline{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.35;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(45,212,191,.02) 2px,rgba(45,212,191,.02) 4px);}
+#app{position:relative;z-index:10;display:flex;flex-direction:column;height:100dvh;max-height:100dvh;width:100%;}
+
+/* header */
+#topbar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:calc(8px + var(--safe-top)) 12px 8px;border-bottom:1px solid var(--border);
+  background:rgba(5,4,12,.88);backdrop-filter:blur(12px);}
+.topbar-left{display:flex;align-items:center;gap:10px;min-width:0;}
+.topbar-logo{width:32px;height:32px;object-fit:contain;flex-shrink:0;
+  filter:drop-shadow(0 0 10px rgba(255,120,60,.5));}
+.logo-text{font-family:'Cinzel',serif;font-size:clamp(14px,4vw,18px);font-weight:600;letter-spacing:.12em;
+  background:linear-gradient(90deg,var(--gold),var(--gold-hot),var(--teal));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.logo-sub{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:.18em;color:rgba(232,192,120,.35);}
+.topbar-right{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:flex-end;max-width:52%;}
+.sys-badge{font-family:'Share Tech Mono',monospace;font-size:7px;padding:3px 6px;border-radius:3px;border:1px solid;letter-spacing:.06em;}
+.sys-badge.ok{border-color:rgba(0,255,160,.35);color:#5effc4;background:rgba(0,255,160,.06);}
+.sys-badge.off{border-color:rgba(255,90,90,.35);color:#ff8a8a;background:rgba(255,60,60,.06);}
+#sys-time{font-family:'Share Tech Mono',monospace;font-size:9px;color:rgba(232,192,120,.35);}
+
+/* main scroll */
+#main-scroll{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;}
+.view{display:none;flex:1;min-height:0;flex-direction:column;}
+.view.active{display:flex;}
+#chat-scroll{flex:1;min-height:0;overflow-y:auto;padding:12px 14px 8px;-webkit-overflow-scrolling:touch;}
+
+/* welcome + messages */
+#welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px 12px;}
+.welcome-logo{width:72px;height:72px;object-fit:contain;
+  filter:drop-shadow(0 0 24px rgba(255,100,40,.55));animation:float 5s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.welcome-title{font-family:'Cinzel',serif;font-size:clamp(20px,5.5vw,26px);letter-spacing:.2em;font-weight:600;
+  background:linear-gradient(135deg,var(--gold),var(--gold-hot),var(--teal));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.welcome-sub{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.25em;color:rgba(45,212,191,.35);}
+.welcome-desc{font-size:13px;line-height:1.75;color:rgba(184,212,232,.55);max-width:28rem;}
+.welcome-hint{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+.hint-chip{font-family:'Share Tech Mono',monospace;font-size:9px;padding:8px 12px;border:1px solid rgba(232,192,120,.2);
+  border-radius:4px;color:rgba(184,212,232,.55);cursor:pointer;}
+.hint-chip:active{background:rgba(232,192,120,.1);}
+.msg{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px;animation:msgIn .28s ease;}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg.user{flex-direction:row-reverse;}
+.msg-avatar{width:30px;height:30px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-family:'Share Tech Mono',monospace;font-weight:bold;}
+.msg.user .msg-avatar{background:rgba(232,192,120,.12);border:1px solid rgba(232,192,120,.25);color:var(--gold);}
+.msg.system .msg-avatar{background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.2);}
+.msg-logo{width:100%;height:100%;object-fit:contain;padding:2px;}
+.msg-body{max-width:min(92%,34rem);}
+.msg-sender{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:.15em;color:rgba(45,212,191,.3);margin-bottom:4px;}
+.msg.user .msg-sender{text-align:right;color:rgba(232,192,120,.35);}
+.msg-text{padding:11px 14px;border-radius:10px;font-size:14px;line-height:1.65;white-space:pre-wrap;word-break:break-word;}
+.msg.user .msg-text{background:rgba(232,192,120,.08);border:1px solid rgba(232,192,120,.15);color:var(--gold-hot);text-align:right;}
+.msg.system .msg-text{background:rgba(8,10,24,.92);border:1px solid rgba(45,212,191,.12);color:var(--text-bright);}
+.thinking{display:flex;gap:5px;padding:12px;}
+.thinking span{width:5px;height:5px;border-radius:50%;background:var(--teal);animation:pulse 1.1s ease-in-out infinite;}
+.thinking span:nth-child(2){animation-delay:.15s}.thinking span:nth-child(3){animation-delay:.3s}
+@keyframes pulse{0%,100%{opacity:.25;transform:scale(.85)}50%{opacity:1;transform:scale(1.15)}}
+.route-tag{font-family:'Share Tech Mono',monospace;font-size:8px;margin-top:6px;padding:4px 10px;border-radius:4px;
+  border:1px solid rgba(45,212,191,.15);color:rgba(45,212,191,.45);display:inline-flex;align-items:center;gap:6px;}
+
+/* tools + governance panels */
+.tools-pad,.gov-pad{padding:12px 14px 20px;overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch;}
+.section{margin-bottom:14px;border:1px solid var(--border);border-radius:10px;background:rgba(8,8,20,.55);overflow:hidden;}
+.sec-head{padding:8px 12px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:8px;
+  letter-spacing:.12em;color:rgba(232,192,120,.4);}
+.sec-body{padding:12px;}
+.route-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(min-width:480px){.route-grid{grid-template-columns:repeat(3,1fr);}}
+.route-chip{font-family:'Share Tech Mono',monospace;font-size:10px;padding:10px 8px;border-radius:8px;border:1px solid rgba(45,212,191,.15);
+  background:rgba(0,0,0,.35);color:var(--text);cursor:pointer;text-align:center;line-height:1.3;}
+.route-chip.active{border-color:var(--gold);color:var(--gold-hot);background:rgba(232,192,120,.08);}
+.wl-label{font-size:8px;font-family:'Share Tech Mono',monospace;color:rgba(184,212,232,.35);letter-spacing:.1em;margin:6px 0 4px;}
+.wl-meter{height:4px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;}
+.wl-fill{height:100%;transition:width .6s ease;}
+.wl-fill.safe{background:linear-gradient(90deg,#22d3a0,var(--teal));}
+.wl-fill.warn{background:linear-gradient(90deg,#fbbf24,#f97316);}
+.wl-fill.crit{background:linear-gradient(90deg,#f87171,#ef4444);}
+.lyla-item{display:flex;justify-content:space-between;font-size:11px;margin:6px 0;}
+.lyla-key{font-family:'Share Tech Mono',monospace;color:rgba(184,212,232,.35);font-size:9px;}
+.lyla-val{font-family:'Share Tech Mono',monospace;font-weight:600;}
+.lyla-val.safe{color:#5effc4}.lyla-val.warn{color:#fbbf24}.lyla-val.crit{color:#f87171}.lyla-val.nominal{color:var(--teal)}
+.sim-path{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+.sim-path input{flex:1;padding:8px;border-radius:6px;border:1px solid rgba(45,212,191,.12);background:rgba(0,0,0,.5);color:var(--text-bright);font-size:13px;}
+.btn{width:100%;padding:11px;border-radius:8px;border:1px solid;font-family:'Share Tech Mono',monospace;font-size:10px;
+  letter-spacing:.08em;cursor:pointer;margin-top:8px;}
+.btn-primary{background:linear-gradient(135deg,rgba(124,108,255,.25),rgba(45,212,191,.12));border-color:rgba(124,108,255,.35);color:#ddd6ff;}
+.btn-gold{background:linear-gradient(135deg,rgba(232,192,120,.2),rgba(255,140,60,.1));border-color:rgba(232,192,120,.35);color:var(--gold-hot);}
+.btn:active{transform:scale(.98);}
+.stripe-input{width:100%;padding:10px;margin-bottom:8px;border-radius:8px;border:1px solid rgba(45,212,191,.15);background:rgba(0,0,0,.55);color:var(--text-bright);font-size:14px;}
+.plan-row label{display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0;color:var(--text-bright);}
+.photo-out{min-height:100px;padding:10px;border-radius:8px;border:1px solid rgba(45,212,191,.12);background:rgba(0,0,0,.5);
+  font-size:12px;white-space:pre-wrap;word-break:break-word;line-height:1.55;margin-top:8px;}
+
+/* input dock — always visible */
+#input-dock{flex-shrink:0;border-top:1px solid var(--border);background:rgba(5,4,14,.94);
+  padding:10px 12px calc(10px + var(--safe-bottom));backdrop-filter:blur(14px);}
+.ctx-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.ctx-scroll::-webkit-scrollbar{display:none;}
+.ctx-tag{flex-shrink:0;font-family:'Share Tech Mono',monospace;font-size:9px;padding:6px 12px;border-radius:999px;
+  border:1px solid rgba(232,192,120,.18);color:rgba(184,212,232,.45);cursor:pointer;white-space:nowrap;}
+.ctx-tag.active{border-color:var(--gold);color:var(--gold-hot);background:rgba(232,192,120,.1);}
+.input-row{display:flex;gap:8px;align-items:flex-end;}
+#main-input{flex:1;min-height:48px;max-height:120px;padding:12px 14px;border-radius:12px;border:1px solid rgba(45,212,191,.18);
+  background:rgba(0,0,0,.55);color:var(--text-bright);font-size:16px;font-family:inherit;line-height:1.45;resize:none;outline:none;}
+#main-input:focus{border-color:rgba(232,192,120,.4);}
+#run-btn{flex-shrink:0;min-width:88px;min-height:48px;padding:0 14px;border-radius:12px;border:1px solid rgba(232,192,120,.4);
+  background:linear-gradient(180deg,rgba(255,120,60,.25),rgba(255,60,30,.15));color:var(--gold-hot);
+  font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.06em;cursor:pointer;}
+#run-btn:disabled{opacity:.4;}
+
+/* bottom tabs */
+#tabbar{flex-shrink:0;display:flex;border-top:1px solid var(--border);background:rgba(5,4,12,.95);
+  padding-bottom:var(--safe-bottom);}
+.tab-btn{flex:1;padding:12px 4px;border:none;background:transparent;color:rgba(184,212,232,.4);
+  font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:.06em;cursor:pointer;}
+.tab-btn.active{color:var(--gold-hot);box-shadow:inset 0 -2px 0 var(--gold);}
+.tab-btn .ti{display:block;font-size:16px;margin-bottom:2px;}
+
+#bottom-note{flex-shrink:0;text-align:center;font-family:'Share Tech Mono',monospace;font-size:8px;
+  color:rgba(184,212,232,.22);padding:4px 8px 6px;}
 </style>
 </head>
 <body>
 <canvas id="galaxy"></canvas>
 <div class="nebula"></div>
 <div class="scanline"></div>
+
 <div id="app">
   <header id="topbar">
     <div class="topbar-left">
-      <img src="/static/logo.png" alt="KD" class="topbar-logo">
-      <div>
+      <img src="/static/logo.png" alt="" class="topbar-logo" width="32" height="32">
+      <div style="min-width:0">
         <div class="logo-text">KING DIADEM</div>
-        <div class="logo-sub">DRIFTZERO WATERLINE GOVERNANCE OS · v1.0</div>
+        <div class="logo-sub">DRIFTZERO · MILKY SCOPE</div>
       </div>
     </div>
     <div class="topbar-right">
-      <span class="sys-badge off" id="b-ai">AI —</span>
-      <span class="sys-badge off" id="b-eng">ENGINE —</span>
-      <span class="sys-badge off" id="b-lyla">LYLA —</span>
-      <span class="sys-badge off" id="b-stripe">STRIPE —</span>
-      <div id="sys-time">——:——:——</div>
+      <span class="sys-badge off" id="b-ai">AI</span>
+      <span class="sys-badge off" id="b-eng">ENG</span>
+      <span class="sys-badge off" id="b-lyla">LYLA</span>
+      <span class="sys-badge off" id="b-stripe">$</span>
+      <span id="credits-pill" style="font-size:9px;color:rgba(232,192,120,.5);font-family:'Share Tech Mono',monospace;">—</span>
+      <div id="sys-time">--:--:--</div>
     </div>
   </header>
-  <nav id="left-panel">
-    <div class="panel-label">GOVERNANCE ROUTES</div>
-    <button class="engine-btn active" onclick="setRoute('general')" id="btn-general"><span class="e-icon">◈</span><span><span style="display:block">Choice Engine</span><span class="e-sub">GENERAL · CHOICE ANALYSIS</span></span><span class="e-dot"></span></button>
-    <button class="engine-btn" onclick="setRoute('risk')" id="btn-risk"><span class="e-icon">⊘</span><span><span style="display:block">Risk Engine</span><span class="e-sub">RISK · EXPOSURE AUDIT</span></span><span class="e-dot"></span></button>
-    <button class="engine-btn" onclick="setRoute('survival')" id="btn-survival"><span class="e-icon">◉</span><span><span style="display:block">Survival Engine</span><span class="e-sub">SURVIVAL · WATERLINE</span></span><span class="e-dot"></span></button>
-    <button class="engine-btn" onclick="setRoute('collapse')" id="btn-collapse"><span class="e-icon">⊛</span><span><span style="display:block">Collapse Detector</span><span class="e-sub">COLLAPSE · DRIFT MONITOR</span></span><span class="e-dot"></span></button>
-    <button class="engine-btn" onclick="setRoute('civil')" id="btn-civil"><span class="e-icon">⊞</span><span><span style="display:block">Civil Engine</span><span class="e-sub">CIVIL · GOVERNANCE WORK</span></span><span class="e-dot"></span></button>
-    <button class="engine-btn" onclick="setRoute('vega')" id="btn-vega"><span class="e-icon">★</span><span><span style="display:block">Vega Engine</span><span class="e-sub">FUTURE · WORLD EXPLORATION</span></span><span class="e-dot"></span></button>
-    <div class="panel-label" style="margin-top:16px">WATERLINE STATUS</div>
-    <div class="waterline-bar">
-      <div class="wl-label">ENTROPY</div><div class="wl-meter"><div class="wl-fill safe" id="wl-entropy" style="width:40%"></div></div><div class="wl-val" id="wl-entropy-val">40.0</div>
-      <div class="wl-label" style="margin-top:8px">STABILITY</div><div class="wl-meter"><div class="wl-fill safe" id="wl-stability" style="width:60%"></div></div><div class="wl-val" id="wl-stability-val">60.0</div>
-      <div class="wl-label" style="margin-top:8px">RESOURCE</div><div class="wl-meter"><div class="wl-fill safe" id="wl-resource" style="width:50%"></div></div><div class="wl-val" id="wl-resource-val">50.0</div>
+
+  <div id="main-scroll">
+    <div id="view-chat" class="view active">
+      <div id="chat-scroll">
+        <div id="welcome">
+          <img src="/static/logo.png" alt="" class="welcome-logo" width="72" height="72">
+          <div class="welcome-title">KING DIADEM</div>
+          <div class="welcome-sub">LYLA KERNEL · GOVERNANCE OS</div>
+          <p class="welcome-desc">ระบบไม่คิดแทนคุณ — ช่วยให้เห็นทางเลือกชัดขึ้น<br>การตัดสินใจสุดท้ายเป็นของคุณเสมอ</p>
+          <div class="welcome-hint">
+            <span class="hint-chip" onclick="useHint(this)">ฉันตกงาน ไม่รู้จะทำอะไร</span>
+            <span class="hint-chip" onclick="useHint(this)">ธุรกิจกำลังล้มเหลว</span>
+            <span class="hint-chip" onclick="useHint(this)">ต้องตัดสินใจสำคัญ</span>
+            <span class="hint-chip" onclick="useHint(this)">ทรัพยากรกำลังหมด</span>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <div id="view-tools" class="view">
+      <div class="tools-pad">
+        <div class="section">
+          <div class="sec-head">FUTURE SIMULATION</div>
+          <div class="sec-body">
+            <div id="sim-paths">
+              <div class="sim-path"><input type="text" value="เดินหน้าต่อแบบเดิม"></div>
+              <div class="sim-path"><input type="text" value="หยุดและประเมินใหม่"></div>
+              <div class="sim-path"><input type="text" value="หาพันธมิตร/ทรัพยากรเพิ่ม"></div>
+            </div>
+            <button type="button" class="btn" style="margin-top:4px;font-size:9px;opacity:.7" onclick="addSimPath()">+ เพิ่มเส้นทาง</button>
+            <button type="button" class="btn btn-primary" id="sim-btn" onclick="simulate()">SIMULATE FUTURES</button>
+            <pre id="sim-result" class="photo-out" style="display:none;margin-top:10px;max-height:200px;overflow-y:auto;"></pre>
+          </div>
+        </div>
+        <div class="section">
+          <div class="sec-head">STRIPE · CREDITS</div>
+          <div class="sec-body">
+            <input type="email" id="payment-email" class="stripe-input" placeholder="อีเมล (ใบเสร็จ / ระบุตัวตน)" autocomplete="email">
+            <div class="plan-row">
+              <label><input type="radio" name="plan" value="basic" checked> Basic (แผน basic)</label>
+              <label><input type="radio" name="plan" value="civilization"> Civilization</label>
+              <label><input type="radio" name="plan" value="topup"> Top-up credits</label>
+            </div>
+            <button type="button" class="btn btn-gold" onclick="stripeCheckout()">ชำระเงิน Stripe</button>
+          </div>
+        </div>
+        <div class="section">
+          <div class="sec-head">PHOTO · GOVERNANCE SCAN</div>
+          <div class="sec-body">
+            <input type="file" id="photo-file" class="stripe-input" accept="image/*">
+            <button type="button" class="btn btn-primary" onclick="uploadImage()">วิเคราะห์ภาพ</button>
+            <div id="photo-output" class="photo-out">อัปโหลดภาพแล้วกดวิเคราะห์</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-gov" class="view">
+      <div class="gov-pad">
+        <div class="section">
+          <div class="sec-head">GOVERNANCE ROUTE</div>
+          <div class="sec-body route-grid">
+            <button type="button" class="route-chip active" data-r="general" onclick="setRoute('general')">GENERAL</button>
+            <button type="button" class="route-chip" data-r="risk" onclick="setRoute('risk')">RISK</button>
+            <button type="button" class="route-chip" data-r="survival" onclick="setRoute('survival')">SURVIVAL</button>
+            <button type="button" class="route-chip" data-r="collapse" onclick="setRoute('collapse')">COLLAPSE</button>
+            <button type="button" class="route-chip" data-r="civil" onclick="setRoute('civil')">CIVIL</button>
+            <button type="button" class="route-chip" data-r="vega" onclick="setRoute('vega')">VEGA</button>
+          </div>
+        </div>
+        <div class="section">
+          <div class="sec-head">WATERLINE</div>
+          <div class="sec-body">
+            <div class="wl-label">ENTROPY</div><div class="wl-meter"><div class="wl-fill safe" id="wl-entropy" style="width:40%"></div></div>
+            <div class="wl-label">STABILITY</div><div class="wl-meter"><div class="wl-fill safe" id="wl-stability" style="width:60%"></div></div>
+            <div class="wl-label">RESOURCE</div><div class="wl-meter"><div class="wl-fill safe" id="wl-resource" style="width:50%"></div></div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(184,212,232,.4);">
+              <span id="wl-entropy-val">40</span><span id="wl-stability-val">60</span><span id="wl-resource-val">50</span>
+            </div>
+          </div>
+        </div>
+        <div class="section">
+          <div class="sec-head">LYLA STATUS</div>
+          <div class="sec-body">
+            <div class="lyla-item"><span class="lyla-key">STABILITY</span><span class="lyla-val nominal" id="lyla-stability">NOMINAL</span></div>
+            <div class="lyla-item"><span class="lyla-key">WATERLINE</span><span class="lyla-val safe" id="lyla-waterline">ABOVE</span></div>
+            <div class="lyla-item"><span class="lyla-key">ACTION</span><span class="lyla-val nominal" id="lyla-action">OBSERVE</span></div>
+            <div class="lyla-item"><span class="lyla-key">DRIFT</span><span class="lyla-val safe" id="lyla-drift">0%</span></div>
+            <div class="lyla-item"><span class="lyla-key">CHOICES</span><span class="lyla-val safe" id="lyla-choices">≥1</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="input-dock">
+    <div class="ctx-scroll" id="ctx-scroll">
+      <span class="ctx-tag active" data-r="general" onclick="setRoute('general')">GENERAL</span>
+      <span class="ctx-tag" data-r="risk" onclick="setRoute('risk')">RISK</span>
+      <span class="ctx-tag" data-r="survival" onclick="setRoute('survival')">SURVIVAL</span>
+      <span class="ctx-tag" data-r="collapse" onclick="setRoute('collapse')">COLLAPSE</span>
+      <span class="ctx-tag" data-r="civil" onclick="setRoute('civil')">CIVIL</span>
+      <span class="ctx-tag" data-r="vega" onclick="setRoute('vega')">VEGA</span>
+    </div>
+    <div class="input-row">
+      <textarea id="main-input" rows="1" placeholder="พิมพ์สถานการณ์… (Enter ส่ง · Shift+Enter ขึ้นบรรทัด)"
+        oninput="autoResize(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();run();}"></textarea>
+      <button type="button" id="run-btn" onclick="run()">ส่ง</button>
+    </div>
+  </div>
+
+  <nav id="tabbar">
+    <button type="button" class="tab-btn active" data-tab="chat" onclick="setTab('chat')"><span class="ti">◈</span>แชท</button>
+    <button type="button" class="tab-btn" data-tab="tools" onclick="setTab('tools')"><span class="ti">⚙</span>เครื่องมือ</button>
+    <button type="button" class="tab-btn" data-tab="gov" onclick="setTab('gov')"><span class="ti">◎</span>กำกับดูแล</button>
   </nav>
-  <main id="center">
-    <div id="chat-area">
-      <div id="welcome">
-        <img src="/static/logo.png" alt="KING DIADEM" class="welcome-logo">
-        <div class="welcome-title">KING DIADEM</div>
-        <div class="welcome-sub">DRIFTZERO · LYLA KERNEL · GOVERNANCE OS</div>
-        <div class="welcome-desc">ระบบไม่คิดแทนคุณ<br>ระบบช่วยให้คุณเห็นทางเลือกที่ชัดขึ้น<br>การตัดสินใจสุดท้ายเป็นของคุณเสมอ</div>
-        <div class="welcome-hint">
-          <span class="hint-chip" onclick="useHint(this)">ฉันตกงาน ไม่รู้จะทำอะไร</span>
-          <span class="hint-chip" onclick="useHint(this)">ธุรกิจกำลังล้มเหลว</span>
-          <span class="hint-chip" onclick="useHint(this)">ฉันต้องตัดสินใจสำคัญ</span>
-          <span class="hint-chip" onclick="useHint(this)">ทรัพยากรกำลังหมด</span>
-        </div>
-      </div>
-    </div>
-    <div id="input-area">
-      <div class="input-context">
-        <span class="ctx-tag active" id="ctx-general" onclick="setRoute('general')">◈ GENERAL</span>
-        <span class="ctx-tag" id="ctx-risk" onclick="setRoute('risk')">⊘ RISK</span>
-        <span class="ctx-tag" id="ctx-survival" onclick="setRoute('survival')">◉ SURVIVAL</span>
-        <span class="ctx-tag" id="ctx-collapse" onclick="setRoute('collapse')">⊛ COLLAPSE</span>
-        <span class="ctx-tag" id="ctx-civil" onclick="setRoute('civil')">⊞ CIVIL</span>
-        <span class="ctx-tag" id="ctx-vega" onclick="setRoute('vega')">★ VEGA</span>
-      </div>
-      <div class="input-row">
-        <textarea id="main-input" placeholder="พิมพ์สถานการณ์ของคุณ — ระบบจะวิเคราะห์และเสนอทางเลือก..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();run();}" oninput="autoResize(this)"></textarea>
-        <button id="run-btn" onclick="run()"><span>▶</span><span>ANALYZE</span></button>
-      </div>
-    </div>
-  </main>
-  <aside id="right-panel">
-    <div class="rp-section">
-      <div class="rp-header"><div class="rp-dot"></div>LYLA KERNEL STATUS</div>
-      <div class="rp-body"><div class="lyla-status">
-        <div class="lyla-item"><span class="lyla-key">STABILITY</span><span class="lyla-val nominal" id="lyla-stability">NOMINAL</span></div>
-        <div class="lyla-item"><span class="lyla-key">WATERLINE</span><span class="lyla-val safe" id="lyla-waterline">ABOVE LINE</span></div>
-        <div class="lyla-item"><span class="lyla-key">ACTION</span><span class="lyla-val nominal" id="lyla-action">OBSERVE</span></div>
-        <div class="lyla-item"><span class="lyla-key">DRIFT</span><span class="lyla-val safe" id="lyla-drift">0.0%</span></div>
-        <div class="lyla-item"><span class="lyla-key">CHOICES</span><span class="lyla-val safe" id="lyla-choices">≥ 1</span></div>
-      </div></div>
-    </div>
-    <div class="rp-section">
-      <div class="rp-header"><div class="rp-dot" style="background:#9999ff"></div>FUTURE SIMULATION</div>
-      <div class="rp-body">
-        <div class="sim-paths" id="sim-paths">
-          <div class="sim-path"><span class="sim-path-num">01</span><input type="text" value="เดินหน้าต่อแบบเดิม"></div>
-          <div class="sim-path"><span class="sim-path-num">02</span><input type="text" value="หยุดและประเมินใหม่"></div>
-          <div class="sim-path"><span class="sim-path-num">03</span><input type="text" value="หาพันธมิตร/ทรัพยากรเพิ่ม"></div>
-        </div>
-        <div class="add-path" onclick="addPath()">+ ADD PATH</div>
-        <button id="sim-btn" onclick="simulate()">◈ SIMULATE FUTURES</button>
-        <div id="sim-result"></div>
-      </div>
-    </div>
-    <div class="rp-section">
-      <div class="rp-header"><div class="rp-dot" style="background:#635bff"></div>AI CREDITS</div>
-      <div class="rp-body">
-        <input type="text" id="payment-email" placeholder="Email / username for receipt" class="stripe-input" />
-        <div class="plan-row">
-          <label><input type="radio" name="plan" value="basic" checked> $5 Basic AI Chat</label>
-          <label><input type="radio" name="plan" value="civil"> 279 THB Civilization Mode</label>
-        </div>
-        <button id="stripe-btn" onclick="stripeCheckout()">⚡ TOP UP — Stripe</button>
-      </div>
-    </div>
-    <div class="rp-section">
-      <div class="rp-header"><div class="rp-dot" style="background:#00ccff"></div>Evidence Photo</div>
-      <div class="rp-body">
-        <input type="file" id="photo-file" accept="image/*" class="stripe-input" />
-        <button id="photo-btn" onclick="uploadImage()">📸 ANALYZE PHOTO</button>
-        <pre id="photo-output" class="photo-output">อัปโหลดภาพที่มีวันเวลาเพื่อวิเคราะห์ Timeline</pre>
-      </div>
-    </div>
-  </aside>
-  <footer id="bottombar">
-    <span>KING DIADEM OS · FAIL LESS · HARM LESS · RESTORE MORE</span>
-    <span>QUESTIONS PROCESSED: <span id="freedom-count">0</span></span>
-    <span>NITHIKORN BUNSRANG · BANGKOK</span>
-  </footer>
+  <div id="bottom-note">FAIL LESS · HARM LESS · RESTORE CHOICE</div>
 </div>
+
 <script>
-(function () {
-  const canvas = document.getElementById("galaxy");
-  if (!canvas) return;
-  const ctx = canvas.getContext("2d");
-  function resize() { canvas.width = innerWidth; canvas.height = innerHeight; }
-  resize(); addEventListener("resize", resize);
-  // nodes จักรวาล KING DIADEM
-  const NODES = [
-    { name: "LYLA KERNEL",     color: "#00ccff", r: 8,  orbit: 0,    speed: 0 },
-    { name: "DECISION",        color: "#ffd700", r: 6,  orbit: 120,  speed: 0.0008 },
-    { name: "GOVERNANCE",      color: "#ff9966", r: 6,  orbit: 180,  speed: 0.0005 },
-    { name: "SURVIVAL",        color: "#00ff88", r: 5,  orbit: 240,  speed: 0.0006 },
-    { name: "CIVILIZATION",    color: "#9999ff", r: 5,  orbit: 300,  speed: 0.0004 },
-    { name: "DRIFTZERO",       color: "#ff5e5e", r: 4,  orbit: 200,  speed: 0.0009 },
-    { name: "WATERLINE",       color: "#66ffcc", r: 4,  orbit: 160,  speed: 0.0007 },
-    { name: "CHOICE ENGINE",   color: "#ffcc00", r: 4,  orbit: 260,  speed: 0.0005 },
-    { name: "SIMULATION",      color: "#cc88ff", r: 4,  orbit: 320,  speed: 0.0003 },
-    { name: "VEGA",            color: "#ffff00", r: 4,  orbit: 340,  speed: 0.0002 },
-    { name: "COLLAPSE DETECT", color: "#ff6666", r: 3,  orbit: 140,  speed: 0.0010 },
-  ];
-  let angles = NODES.map((n, i) => (i / NODES.length) * Math.PI * 2);
-  let positions = NODES.map(() => ({ x: 0, y: 0 }));
-  // background stars
-  const stars = Array.from({ length: 200 }, () => ({
-    x: Math.random() * 2000, y: Math.random() * 2000,
-    s: Math.random() * 1.5 + 0.3,
-    a: Math.random(), f: (Math.random() - 0.5) * 0.01
+(function(){
+  const canvas=document.getElementById('galaxy'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  let W,H,cx,cy;
+  function resize(){
+    W=canvas.width=innerWidth; H=canvas.height=innerHeight;
+    cx=W*.5; cy=H*.42;
+  }
+  resize(); addEventListener('resize',resize);
+
+  const STAR_N=1400;
+  const stars=Array.from({length:STAR_N},()=>({
+    x:Math.random(), y:Math.random(),
+    z:.15+Math.random()*.85,
+    s:.35+Math.random()*1.8,
+    tw:Math.random()*Math.PI*2,
+    sp:.02+Math.random()*.04
   }));
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const cx = canvas.width / 2, cy = canvas.height / 2;
-    // stars
-    for (const s of stars) {
-      s.a = Math.max(0.1, Math.min(1, s.a + s.f));
-      if (s.a <= 0.1 || s.a >= 1) s.f *= -1;
+
+  const planets=[
+    {a:0.42,b:0.22,sp:.0009,r:5.5,col:'#6eb8ff',ring:false},
+    {a:0.55,b:0.30,sp:.00065,r:4.2,col:'#c49cff',ring:false},
+    {a:0.68,b:0.36,sp:.0005,r:6.8,col:'#d4a574',ring:true},
+    {a:0.78,b:0.28,sp:.00038,r:3.8,col:'#ff8866',ring:false},
+    {a:0.9,b:0.4,sp:.00028,r:4.5,col:'#88ffd0',ring:false},
+    {a:1.05,b:0.33,sp:.00022,r:3.2,col:'#aaaaff',ring:false},
+  ];
+  let ang=planets.map(()=>Math.random()*Math.PI*2);
+
+  function drawNebula(){
+    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(W,H)*.85);
+    g.addColorStop(0,'rgba(45,180,170,.12)');
+    g.addColorStop(.25,'rgba(255,90,40,.08)');
+    g.addColorStop(.5,'rgba(90,40,140,.07)');
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g;
+    ctx.fillRect(0,0,W,H);
+  }
+
+  function drawStars(t){
+    for(const s of stars){
+      const tw=.55+.45*Math.sin(t*s.sp+s.tw);
+      const px=s.x*W, py=s.y*H;
+      const sc=s.s*s.z*tw;
       ctx.beginPath();
-      ctx.arc(s.x % canvas.width, s.y % canvas.height, s.s, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(200,240,255,${s.a * 0.6})`;
+      ctx.arc(px,py,sc,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,245,230,${.08+.55*s.z*tw})`;
       ctx.fill();
     }
-    // center glow — LYLA core
-    const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 60);
-    grad.addColorStop(0, "rgba(0,204,255,0.25)");
-    grad.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.beginPath(); ctx.arc(cx, cy, 60, 0, Math.PI * 2);
-    ctx.fillStyle = grad; ctx.fill();
-    // orbit rings
-    for (const n of NODES) {
-      if (n.orbit === 0) continue;
+  }
+
+  function drawSun(t){
+    const pulse=1+.04*Math.sin(t*.001);
+    const r=Math.min(W,H)*.11*pulse;
+    const cor=ctx.createRadialGradient(cx,cy,0,cx,cy,r*1.35);
+    cor.addColorStop(0,'#fff8e8');
+    cor.addColorStop(.12,'#ffcc66');
+    cor.addColorStop(.35,'#ff6b1a');
+    cor.addColorStop(.65,'#cc2200');
+    cor.addColorStop(1,'rgba(80,0,0,0)');
+    ctx.beginPath(); ctx.arc(cx,cy,r*1.35,0,Math.PI*2);
+    ctx.fillStyle=cor; ctx.fill();
+
+    const core=ctx.createRadialGradient(cx,cy,0,cx,cy,r*.55);
+    core.addColorStop(0,'#fff6d0');
+    core.addColorStop(.5,'#ff8c28');
+    core.addColorStop(1,'#c41e00');
+    ctx.beginPath(); ctx.arc(cx,cy,r*.55,0,Math.PI*2);
+    ctx.fillStyle=core; ctx.fill();
+  }
+
+  function drawOrbits(){
+    ctx.strokeStyle='rgba(255,255,255,.06)';
+    ctx.lineWidth=1;
+    for(const p of planets){
       ctx.beginPath();
-      ctx.arc(cx, cy, n.orbit, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(0,204,255,0.06)";
-      ctx.lineWidth = 1; ctx.stroke();
+      ctx.ellipse(cx,cy,p.a*Math.min(W,H)*.48,p.b*Math.min(W,H)*.48,0,0,Math.PI*2);
+      ctx.stroke();
     }
-    // update positions
-    NODES.forEach((n, i) => {
-      angles[i] += n.speed;
-      positions[i] = {
-        x: cx + Math.cos(angles[i]) * n.orbit,
-        y: cy + Math.sin(angles[i]) * n.orbit * 0.38
-      };
-    });
-    // connection lines
-    for (let i = 1; i < NODES.length; i++) {
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(positions[i].x, positions[i].y);
-      ctx.strokeStyle = `rgba(0,204,255,0.07)`;
-      ctx.lineWidth = 1; ctx.stroke();
-    }
-    // nodes
-    NODES.forEach((n, i) => {
-      const { x, y } = positions[i];
-      const glow = ctx.createRadialGradient(x, y, 0, x, y, n.r * 3);
-      glow.addColorStop(0, n.color + "cc");
-      glow.addColorStop(1, "transparent");
-      ctx.beginPath(); ctx.arc(x, y, n.r * 3, 0, Math.PI * 2);
-      ctx.fillStyle = glow; ctx.fill();
-      ctx.beginPath(); ctx.arc(x, y, n.r, 0, Math.PI * 2);
-      ctx.fillStyle = n.color; ctx.fill();
-      if (n.orbit > 0) {
-        ctx.fillStyle = "rgba(200,240,255,0.7)";
-        ctx.font = "9px monospace";
-        ctx.fillText(n.name, x + n.r + 4, y + 3);
+  }
+
+  function drawPlanets(t){
+    const scale=Math.min(W,H)*.48;
+    planets.forEach((p,i)=>{
+      ang[i]+=p.sp;
+      const x=cx+Math.cos(ang[i])*p.a*scale;
+      const y=cy+Math.sin(ang[i])*p.b*scale;
+      const grd=ctx.createRadialGradient(x,y,0,x,y,p.r*4);
+      grd.addColorStop(0,p.col+'ee');
+      grd.addColorStop(1,'transparent');
+      ctx.beginPath(); ctx.arc(x,y,p.r*4,0,Math.PI*2);
+      ctx.fillStyle=grd; ctx.fill();
+      ctx.beginPath(); ctx.arc(x,y,p.r,0,Math.PI*2);
+      ctx.fillStyle=p.col; ctx.fill();
+      if(p.ring){
+        ctx.save();
+        ctx.translate(x,y);
+        ctx.rotate(ang[i]*.7);
+        ctx.strokeStyle='rgba(220,200,160,.35)';
+        ctx.lineWidth=1.2;
+        ctx.beginPath();
+        ctx.ellipse(0,0,p.r*2.4,p.r*.85,0,0,Math.PI*2);
+        ctx.stroke();
+        ctx.restore();
       }
     });
-    // center node label
-    ctx.fillStyle = "#00ccff";
-    ctx.font = "bold 11px monospace";
-    ctx.textAlign = "center";
-    ctx.fillText("LYLA", cx, cy + 4);
-    ctx.textAlign = "left";
-    requestAnimationFrame(draw);
   }
-  draw();
+
+  let t0=0;
+  function frame(t){
+    if(!t0) t0=t;
+    const tt=t-t0;
+    ctx.fillStyle='#020105';
+    ctx.fillRect(0,0,W,H);
+    drawNebula();
+    drawStars(tt);
+    drawSun(tt);
+    drawOrbits();
+    drawPlanets(tt);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 })();
-function tick(){document.getElementById("sys-time").textContent=new Date().toTimeString().slice(0,8);}tick();setInterval(tick,1000);
-let R="general",Q=0;
-async function checkHealth(){try{const d=await(await fetch("/health")).json();sB("b-ai",d.llm_loaded,"GEMINI OK","AI OFF");sB("b-eng",d.engine_loaded,"ENGINE OK","ENGINE OFF");sB("b-lyla",d.lyla_loaded,"LYLA OK","LYLA OFF");sB("b-stripe",d.stripe_loaded,"STRIPE OK","STRIPE OFF");if(d.freedom_score)document.getElementById("freedom-count").textContent=d.freedom_score;}catch(e){sB("b-ai",false,"","NO CONN");}}
-function sB(id,ok,a,b){const el=document.getElementById(id);el.textContent=ok?a:b;el.className="sys-badge "+(ok?"ok":"off");}
-checkHealth();setInterval(checkHealth,30000);
-function setRoute(r){R=r;document.querySelectorAll(".engine-btn").forEach(b=>b.classList.remove("active"));document.querySelectorAll(".ctx-tag").forEach(t=>t.classList.remove("active"));const b=document.getElementById("btn-"+r),c=document.getElementById("ctx-"+r);if(b)b.classList.add("active");if(c)c.classList.add("active");}
-function useHint(el){document.getElementById("main-input").value=el.textContent;autoResize(document.getElementById("main-input"));}
-function autoResize(el){el.style.height="auto";el.style.height=Math.min(el.scrollHeight,120)+"px";}
-function hideWelcome(){const w=document.getElementById("welcome");if(w)w.remove();}
+
+let R='general',Q=0,activeTab='chat';
+
+function setTab(tab){
+  activeTab=tab;
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    b.classList.toggle('active',b.dataset.tab===tab);
+  });
+  document.querySelectorAll('.view').forEach(v=>{
+    v.classList.toggle('active',v.id==='view-'+tab);
+  });
+}
+
+function tick(){
+  document.getElementById('sys-time').textContent=new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+}
+tick(); setInterval(tick,30000);
+
+async function refreshMe(){
+  try{
+    const d=await (await fetch('/me')).json();
+    const el=document.getElementById('credits-pill');
+    if(d.logged_in) el.textContent='CR '+String(d.credits??0);
+    else el.textContent='guest';
+  }catch(e){}
+}
+refreshMe();
+
+async function checkHealth(){
+  try{
+    const d=await (await fetch('/health')).json();
+    sB('b-ai',d.llm_loaded,'AI','AI');
+    sB('b-eng',d.engine_loaded,'ENG','ENG');
+    sB('b-lyla',d.lyla_loaded,'LYLA','LYLA');
+    sB('b-stripe',d.stripe_loaded,'$','$');
+    if(d.freedom_score!=null) Q=d.freedom_score;
+  }catch(e){
+    ['b-ai','b-eng','b-lyla','b-stripe'].forEach(id=>{const el=document.getElementById(id);if(el){el.className='sys-badge off';el.textContent='?';}});
+  }
+}
+function sB(id,ok,a,b){
+  const el=document.getElementById(id);
+  el.textContent=ok?a:b;
+  el.className='sys-badge '+(ok?'ok':'off');
+}
+checkHealth(); setInterval(checkHealth,45000);
+
+function setRoute(r){
+  R=r;
+  document.querySelectorAll('.route-chip').forEach(b=>b.classList.toggle('active',b.dataset.r===r));
+  document.querySelectorAll('.ctx-tag').forEach(t=>t.classList.toggle('active',t.dataset.r===r));
+}
+
+function useHint(el){ const inp=document.getElementById('main-input'); inp.value=el.textContent; autoResize(inp); inp.focus(); setTab('chat'); }
+
+function autoResize(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,120)+'px';
+}
+
+function hideWelcome(){
+  const w=document.getElementById('welcome');
+  if(w) w.remove();
+}
+
+function escH(t){
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function addMsg(type,text,meta){
-  hideWelcome();const area=document.getElementById("chat-area");const div=document.createElement("div");div.className="msg "+type;
-  const av=type==="user"?`<div class="msg-avatar">YOU</div>`:`<div class="msg-avatar"><img src="/static/logo.png" class="msg-logo" alt="KD"></div>`;
-  const snd=type==="user"?"OPERATOR":"KING DIADEM · LYLA KERNEL";
-  div.innerHTML=`${av}<div class="msg-body"><div class="msg-sender">${snd}</div><div class="msg-text">${escH(text)}</div>${meta?`<div class="route-tag"><div class="rt-dot"></div>${meta}</div>`:""}</div>`;
-  area.appendChild(div);area.scrollTop=area.scrollHeight;}
-function escH(t){return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-function addThinking(){hideWelcome();const area=document.getElementById("chat-area");const div=document.createElement("div");div.className="msg system";div.id="thinking-msg";div.innerHTML=`<div class="msg-avatar"><img src="/static/logo.png" class="msg-logo" alt="KD"></div><div class="msg-body"><div class="msg-sender">KING DIADEM · ANALYZING</div><div class="msg-text"><div class="thinking"><span></span><span></span><span></span></div></div></div>`;area.appendChild(div);area.scrollTop=area.scrollHeight;}
-function removeThinking(){const el=document.getElementById("thinking-msg");if(el)el.remove();}
+  hideWelcome();
+  const area=document.getElementById('chat-scroll');
+  const div=document.createElement('div');
+  div.className='msg '+type;
+  const av=type==='user'
+    ?'<div class="msg-avatar">YOU</div>'
+    :'<div class="msg-avatar"><img class="msg-logo" src="/static/logo.png" alt=""></div>';
+  const snd=type==='user'?'YOU':'KING DIADEM';
+  div.innerHTML=av+'<div class="msg-body"><div class="msg-sender">'+snd+'</div><div class="msg-text">'+escH(text)+'</div>'+
+    (meta?'<div class="route-tag">'+escH(meta)+'</div>':'')+'</div>';
+  area.appendChild(div);
+  area.scrollTop=area.scrollHeight;
+}
+
+function addThinking(){
+  hideWelcome();
+  const area=document.getElementById('chat-scroll');
+  const div=document.createElement('div');
+  div.className='msg system';
+  div.id='thinking-msg';
+  div.innerHTML='<div class="msg-avatar"><img class="msg-logo" src="/static/logo.png" alt=""></div><div class="msg-body"><div class="msg-sender">ANALYZING</div><div class="msg-text"><div class="thinking"><span></span><span></span><span></span></div></div></div>';
+  area.appendChild(div);
+  area.scrollTop=area.scrollHeight;
+}
+function removeThinking(){ const el=document.getElementById('thinking-msg'); if(el) el.remove(); }
+
 function updateLyla(data){
-  const lyla=data.lyla||data.governance?.lyla||null,hs=data.governance?.human_state||data.pattern||null;
-  if(lyla){sT("lyla-stability",lyla.stability||"NOMINAL");sT("lyla-waterline",lyla.waterline||"ABOVE LINE");sT("lyla-action",lyla.action||"OBSERVE");sLC("lyla-stability",lyla.stability);sLC("lyla-waterline",lyla.waterline);sLC("lyla-action",lyla.action);}
-  if(hs){const e=hs.entropy||40,s=hs.stability||60,r=hs.resource||50;uM("wl-entropy",e,true);uM("wl-stability",s,false);uM("wl-resource",r,false);document.getElementById("wl-entropy-val").textContent=e.toFixed(1);document.getElementById("wl-stability-val").textContent=s.toFixed(1);document.getElementById("wl-resource-val").textContent=r.toFixed(1);document.getElementById("lyla-drift").textContent=(e/100*0.1).toFixed(2)+"%";}
-  document.getElementById("lyla-choices").textContent=data.risk_score>80?"CRITICAL":"≥ 1";}
-function sT(id,val){const el=document.getElementById(id);if(el)el.textContent=val;}
-function sLC(id,val){const el=document.getElementById(id);if(!el)return;el.className="lyla-val";if(["STABLE","ABOVE_LINE","MAINTAIN"].includes(val))el.classList.add("safe");else if(["CRITICAL","BREACHED","INTERVENE"].includes(val))el.classList.add("crit");else if(["DRIFTING","DECLINING","MONITOR","AUDIT"].includes(val))el.classList.add("warn");else el.classList.add("nominal");}
-function uM(id,val,inv){const f=document.getElementById(id);if(!f)return;const p=Math.min(100,Math.max(0,val));f.style.width=p+"%";const d=inv?p>70:p<30,w=inv?p>50:p<50;f.className="wl-fill "+(d?"crit":w?"warn":"safe");}
+  const pat=data.pattern||{};
+  const e=+pat.entropy||40,s=+pat.stability||60,r=+pat.resource||50;
+  uM('wl-entropy',e,true); uM('wl-stability',s,false); uM('wl-resource',r,false);
+  document.getElementById('wl-entropy-val').textContent=e.toFixed(0);
+  document.getElementById('wl-stability-val').textContent=s.toFixed(0);
+  document.getElementById('wl-resource-val').textContent=r.toFixed(0);
+  const rs=data.risk_score;
+  document.getElementById('lyla-choices').textContent=(rs!=null&&rs>75)?'LOW':'≥1';
+  document.getElementById('lyla-drift').textContent=((e/100)*0.1).toFixed(2)+'%';
+}
+
+function uM(id,val,inv){
+  const f=document.getElementById(id);
+  if(!f) return;
+  const p=Math.max(0,Math.min(100,val));
+  f.style.width=p+'%';
+  const bad=inv?p>72:p<28, mid=inv?p>48:p<48;
+  f.className='wl-fill '+(bad?'crit':mid?'warn':'safe');
+}
+
 async function run(){
-  const inp=document.getElementById("main-input"),text=inp.value.trim();if(!text)return;
-  addMsg("user",text);inp.value="";inp.style.height="auto";
-  document.getElementById("run-btn").disabled=true;addThinking();Q++;document.getElementById("freedom-count").textContent=Q;
-  try{const res=await fetch("/run",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({input:text,route:R})});const data=await res.json();removeThinking();
+  const inp=document.getElementById('main-input');
+  const text=inp.value.trim();
+  if(!text) return;
+  addMsg('user',text);
+  inp.value=''; inp.style.height='auto';
+  const btn=document.getElementById('run-btn');
+  btn.disabled=true;
+  addThinking();
+  Q++;
+  try{
+    const res=await fetch('/run',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({input:text,route:R})});
+    const data=await res.json();
+    removeThinking();
+    if(data.error){ addMsg('system','ข้อผิดพลาด: '+data.error,'ERROR'); btn.disabled=false; return; }
     const reply=data.ai_response||data.message||JSON.stringify(data,null,2);
-    const risk=data.risk_score!==undefined?` · RISK: ${Math.round(data.risk_score)}`:"";
-    addMsg("system",reply,`ROUTE: ${(data.route||R).toUpperCase()}${risk}`);updateLyla(data);
-  }catch(e){removeThinking();addMsg("system","SYSTEM ERROR: "+e,"ERROR");}
-  document.getElementById("run-btn").disabled=false;}
+    const risk=data.risk_score!=null?' · RISK '+Math.round(data.risk_score):'';
+    addMsg('system',reply,'ROUTE '+(data.route||R).toUpperCase()+risk);
+    updateLyla(data);
+    refreshMe();
+  }catch(e){
+    removeThinking();
+    addMsg('system','เครือข่าย: '+e,'ERROR');
+  }
+  btn.disabled=false;
+}
+
+function addSimPath(){
+  const g=document.getElementById('sim-paths');
+  const d=document.createElement('div');
+  d.className='sim-path';
+  d.innerHTML='<input type="text" placeholder="เส้นทางใหม่…">';
+  g.appendChild(d);
+}
+
 async function simulate(){
-  const input=document.getElementById("main-input").value.trim();
-  if(!input){document.getElementById("sim-result").style.display="block";document.getElementById("sim-result").textContent="⚠ พิมพ์สถานการณ์ก่อน";return;}
-  const paths=[...document.querySelectorAll("#sim-paths input")].map(i=>i.value).filter(v=>v.trim());
-  document.getElementById("sim-btn").disabled=true;document.getElementById("sim-result").style.display="block";document.getElementById("sim-result").textContent="⟳ กำลังจำลอง...";
-  try{const d=await post("/simulate",{input,paths});let txt=d.simulation||d.error||"No result";if(d.lyla_observation?.observation)txt+="\n\n— LYLA —\n"+d.lyla_observation.observation;document.getElementById("sim-result").textContent=txt;if(d.lyla_observation)updateLyla({lyla:d.lyla_observation});}catch(e){document.getElementById("sim-result").textContent="ERROR: "+e;}
-  document.getElementById("sim-btn").disabled=false;}
-function addPath(){const g=document.getElementById("sim-paths"),n=g.children.length+1;const d=document.createElement("div");d.className="sim-path";d.innerHTML=`<span class="sim-path-num">0${n}</span><input type="text" placeholder="ทางเลือก ${n}...">`;g.appendChild(d);}
+  const input=document.getElementById('main-input').value.trim();
+  const btn=document.getElementById('sim-btn');
+  const out=document.getElementById('sim-result');
+  out.style.display='block';
+  if(!input){ out.textContent='พิมพ์ในช่องแชทก่อน หรือพิมพ์ในช่องด้านล่างแล้วกลับมากดใหม่'; return; }
+  btn.disabled=true;
+  out.textContent='กำลังจำลอง…';
+  const paths=[...document.querySelectorAll('#sim-paths input')].map(i=>i.value).filter(Boolean);
+  try{
+    const d=await post('/simulate',{input,paths});
+    let txt=d.simulation||d.message||d.error||'—';
+    if(d.lyla_observation){
+      if(typeof d.lyla_observation==='object'){
+        try{ txt+='\n\nLYLA\n'+JSON.stringify(d.lyla_observation,null,2); }catch(_){}
+      } else txt+='\n\nLYLA\n'+d.lyla_observation;
+    }
+    out.textContent=txt;
+  }catch(e){ out.textContent='ERROR '+e; }
+  btn.disabled=false;
+}
+
 async function stripeCheckout(){
-  const email = document.getElementById("payment-email").value.trim() || "guest";
-  const plan = document.querySelector('input[name="plan"]:checked')?.value || "basic";
-  const d = await post("/payment/create-checkout", {api_key: email, plan});
-  if(d.url) window.location.href = d.url;
-  else document.getElementById("photo-output").textContent = "❌ Stripe: " + (d.error || "checkout ไม่สำเร็จ");
+  const email=document.getElementById('payment-email').value.trim();
+  const plan=document.querySelector('input[name="plan"]:checked')?.value||'basic';
+  const d=await post('/payment/create-checkout',{plan,email,api_key:email});
+  if(d.url) location.href=d.url;
+  else alert(d.error||'Stripe ไม่สำเร็จ');
 }
 
 async function uploadImage(){
-  const fileInput = document.getElementById("photo-file");
-  const output = document.getElementById("photo-output");
-  if(!fileInput.files.length){
-    output.textContent = "กรุณาเลือกภาพก่อน";
-    return;
-  }
-  const file = fileInput.files[0];
-  const form = new FormData();
-  form.append("file", file);
-  form.append("email", document.getElementById("payment-email").value.trim() || "guest");
-
+  const fi=document.getElementById('photo-file');
+  const out=document.getElementById('photo-output');
+  if(!fi.files.length){ out.textContent='เลือกภาพก่อน'; return; }
+  const fd=new FormData();
+  fd.append('file',fi.files[0]);
+  out.textContent='กำลังวิเคราะห์…';
   try{
-    const res = await fetch("/upload-image", {method:"POST", body: form});
-    const data = await res.json();
-    if(data.error){
-      output.textContent = "❌ " + data.error;
-      return;
-    }
-    output.textContent = data.message + "\n\n" + JSON.stringify(data.timeline, null, 2) + "\n\n" + data.recommendation;
-  }catch(e){
-    output.textContent = "ERROR: " + e;
-  }
+    const res=await fetch('/analyze-image',{method:'POST',body:fd});
+    const data=await res.json();
+    if(data.error){ out.textContent='❌ '+data.error; return; }
+    out.textContent=(data.analysis||'')+'\n\n['+(data.filename||'')+']';
+  }catch(e){ out.textContent='ERROR '+e; }
 }
-async function post(u,b){try{const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});return await r.json();}catch(e){return{error:String(e)};}}
-if("serviceWorker"in navigator)navigator.serviceWorker.register("/static/service-worker.js").catch(()=>{});
+
+async function post(u,b){
+  try{
+    const r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});
+    return await r.json();
+  }catch(e){ return {error:String(e)}; }
+}
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/static/service-worker.js').catch(function(){});
+}
 </script>
 </body>
 </html>
