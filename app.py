@@ -216,6 +216,30 @@ def _route_bias(route: str, text: str) -> str:
     return f"{tags.get(route, '')} {text}".strip()
 
 
+def _voice_client_bias(data: dict, routed_text: str) -> str:
+    """นำสัญญาณโทนจาก client (voice_mode) แนบเข้า prompt ก่อนส่ง engine/LLM"""
+    vm = str(data.get("voice_mode") or "").lower().strip()
+    vh = str(data.get("voice_hint") or "").strip()
+    head = ""
+    if vm == "crisis":
+        head = (
+            "[สัญญาณผู้ใช้จาก client: วิกฤต/ความปลอดภัย — "
+            "ตอบด้วยความเมตตาและระมัดระวังสูงสุด หลีกเลี่ยงโทนคำสั่งหรือตัดสิน]\n\n"
+        )
+    elif vm == "vega":
+        head = (
+            "[สัญญาณผู้ใช้จาก client: อารมณ์หนัก — "
+            "ตอบแบบอ่อนโยน สั้น คลายความตึง ไม่ฟันธงแทนผู้ใช้]\n\n"
+        )
+    elif vm == "lyla":
+        head = (
+            "[สัญญาณผู้ใช้จาก client: โหมดสังเกตการณ์ LYLA — "
+            "กระชับ เป็นหลักฐาน เปิดทางเลือก]\n\n"
+        )
+    tail = f"\n\n[คำแนะนำโทนเพิ่มเติมจาก client: {vh}]" if vh else ""
+    return head + routed_text + tail
+
+
 # ── DECISION ENGINE ───────────────────────────────────────────────
 @app.post("/run")
 @app.post("/decision")
@@ -237,7 +261,9 @@ async def run_kernel(request: Request, data: dict):
     intent = analyze_intent(user_input) if analyze_intent else {"intent": "general", "confidence": 0.5}
 
     route = data.get("route") or "general"
-    payload = {**data, "input": _route_bias(route, user_input)}
+    routed = _route_bias(route, user_input)
+    effective_input = _voice_client_bias(data, routed)
+    payload = {**data, "input": effective_input}
 
     if full_run_decision:
         result = full_run_decision(payload)
@@ -247,8 +273,11 @@ async def run_kernel(request: Request, data: dict):
         if llm:
             try:
                 reply = llm.generate_with_governance(
-                    prompt=user_input,
-                    additional_context=f"entropy={human_state.get('entropy')}, stability={human_state.get('stability')}",
+                    prompt=effective_input,
+                    additional_context=(
+                        f"entropy={human_state.get('entropy')}, stability={human_state.get('stability')}, "
+                        f"voice_mode={data.get('voice_mode')!r}"
+                    ),
                 )
             except Exception as e:
                 reply = f"[Gemini Error: {e}]"
