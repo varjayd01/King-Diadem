@@ -22,7 +22,7 @@ function _getHistory(sid) {
 function _pushHistory(sid, role, content) {
   const h = _getHistory(sid);
   h.push({ role, content: String(content) });
-  if (h.length > 40) h.splice(0, h.length - 40);
+  if (h.length > 40) h.splice(0, h.length - 40); // เก็บ 20 turns
 }
 
 /* ── Tone detection ─────────────────────────────────────────── */
@@ -74,6 +74,7 @@ function addMsg(type, text, meta) {
     ? '<div class="msg-avatar">YOU</div>'
     : '<div class="msg-avatar"><img class="msg-logo" src="/static/logo.png" alt=""></div>';
   const snd = type === 'user' ? 'YOU' : 'KING DIADEM';
+  /* render **bold** + newlines */
   const html = escH(text)
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\n/g, '<br>');
@@ -122,7 +123,7 @@ function updateLyla(data) {
   if (sv) sv.textContent = s.toFixed(0);
   if (rv) rv.textContent = r.toFixed(0);
   const lc = document.getElementById('lyla-choices');
-  if (lc) lc.textContent = (data.risk_score != null && data.risk_score > 75) ? 'LOW' : '>=1';
+  if (lc) lc.textContent = (data.risk_score != null && data.risk_score > 75) ? 'LOW' : '≥1';
   const ld = document.getElementById('lyla-drift');
   if (ld) ld.textContent = ((e / 100) * 0.1).toFixed(2) + '%';
 }
@@ -165,9 +166,11 @@ async function run() {
   const mode      = window.detectConversationMode(text);
   const voiceHint = window.buildVoiceHint(text, mode);
 
+  /* tone pill */
   const tp = document.getElementById('tone-pill');
   if (tp) { tp.textContent = mode.toUpperCase(); tp.className = 'tone-pill ' + mode; }
 
+  /* UI */
   addMsg('user', text);
   if (typeof maybeRenameSessionFromMessage === 'function') maybeRenameSessionFromMessage(text);
   inp.value = ''; inp.style.height = 'auto';
@@ -177,6 +180,8 @@ async function run() {
 
   /* snapshot history BEFORE pushing new user turn */
   const historySnapshot = [..._getHistory(sid)];
+
+  /* record user turn */
   _pushHistory(sid, 'user', text);
 
   try {
@@ -188,8 +193,12 @@ async function run() {
         route:      window._KD_ROUTE,
         voice_mode: mode,
         voice_hint: voiceHint,
-        history:    historySnapshot,
-        context: { client_voice: mode, tone_notes: voiceHint, route_ui: window._KD_ROUTE }
+        history:    historySnapshot,   // ★ ส่ง history ก่อนหน้าทั้งหมด ★
+        context: {
+          client_voice: mode,
+          tone_notes:   voiceHint,
+          route_ui:     window._KD_ROUTE,
+        }
       })
     });
 
@@ -199,19 +208,24 @@ async function run() {
 
     removeThinking();
 
-    if (data.error) { addMsg('system', 'error: ' + data.error, 'ERROR'); return; }
+    if (data.error) {
+      addMsg('system', '⚠ ' + data.error, 'ERROR');
+      return;
+    }
 
     const reply  = data.ai_response || data.message || JSON.stringify(data, null, 2);
-    const risk   = data.risk_score != null ? ' RISK ' + Math.round(data.risk_score) : '';
-    const prefix = mode === 'crisis' ? '[VEGA SAFETY]' : mode === 'vega' ? '[VEGA]' : '[LYLA]';
-    const meta   = 'ROUTE ' + (data.route || window._KD_ROUTE).toUpperCase() + risk + ' ' + mode.toUpperCase();
+    const risk   = data.risk_score != null ? ' · RISK ' + Math.round(data.risk_score) : '';
+    const prefix = mode === 'crisis' ? '[VEGA · SAFETY]' : mode === 'vega' ? '[VEGA]' : '[LYLA]';
+    const meta   = 'ROUTE ' + (data.route || window._KD_ROUTE).toUpperCase() + risk + ' · ' + mode.toUpperCase();
 
+    /* record assistant turn */
     _pushHistory(sid, 'assistant', reply);
     addMsg('system', prefix + '\n\n' + reply, meta);
 
     updateLyla(data);
     if (typeof refreshMe === 'function') refreshMe();
 
+    /* broadcast for galaxy/council widgets */
     try {
       const intent = (data.governance && data.governance.intent) ? data.governance.intent : {};
       const pat    = data.pattern || {};
@@ -231,19 +245,19 @@ async function run() {
 
   } catch (e) {
     removeThinking();
-    addMsg('system', 'network error: ' + e.message, 'ERROR');
+    addMsg('system', '🔴 เครือข่าย: ' + e.message, 'ERROR');
   } finally {
     if (btn) btn.disabled = false;
     if (typeof persistActiveChatHtml === 'function') persistActiveChatHtml();
   }
 }
 
-/* ── Simulate ────────────────────────────────────────────────── */
+/* ── Simulate futures ────────────────────────────────────────── */
 function addSimPath() {
   const g = document.getElementById('sim-paths');
   const d = document.createElement('div');
   d.className = 'sim-path';
-  d.innerHTML = '<input type="text" placeholder="เส้นทางใหม่...">';
+  d.innerHTML = '<input type="text" placeholder="เส้นทางใหม่…">';
   g.appendChild(d);
 }
 
@@ -254,14 +268,16 @@ async function simulate() {
   out.style.display = 'block';
   if (!input) { out.textContent = 'พิมพ์ข้อความในช่องแชทก่อน แล้วกลับมากดใหม่'; return; }
   if (btn) btn.disabled = true;
-  out.textContent = 'กำลังจำลอง...';
+  out.textContent = 'กำลังจำลอง…';
   const paths = [...document.querySelectorAll('#sim-paths input')].map(i => i.value).filter(Boolean);
   try {
     const d = await _post('/simulate', { input, paths });
-    let txt = d.simulation || d.message || d.error || '-';
+    let txt = d.simulation || d.message || d.error || '—';
     if (d.lyla_observation) {
       txt += '\n\nLYLA OBSERVATION\n' +
-        (typeof d.lyla_observation === 'object' ? JSON.stringify(d.lyla_observation, null, 2) : d.lyla_observation);
+        (typeof d.lyla_observation === 'object'
+          ? JSON.stringify(d.lyla_observation, null, 2)
+          : d.lyla_observation);
     }
     out.textContent = txt;
   } catch (e) { out.textContent = 'ERROR ' + e; }
@@ -277,18 +293,18 @@ async function stripeCheckout() {
   else alert(d.error || 'Stripe ไม่สำเร็จ');
 }
 
-/* ── Image ───────────────────────────────────────────────────── */
+/* ── Image analysis ──────────────────────────────────────────── */
 async function uploadImage() {
   const fi  = document.getElementById('photo-file');
   const out = document.getElementById('photo-output');
   if (!fi.files.length) { out.textContent = 'เลือกภาพก่อน'; return; }
   const fd = new FormData();
   fd.append('file', fi.files[0]);
-  out.textContent = 'กำลังวิเคราะห์...';
+  out.textContent = 'กำลังวิเคราะห์…';
   try {
     const res  = await fetch('/analyze-image', { method: 'POST', body: fd });
     const data = await res.json();
-    if (data.error) { out.textContent = 'error: ' + data.error; return; }
+    if (data.error) { out.textContent = '❌ ' + data.error; return; }
     out.textContent = (data.analysis || '') + '\n\n[' + (data.filename || '') + ']';
   } catch (e) { out.textContent = 'ERROR ' + e; }
 }
