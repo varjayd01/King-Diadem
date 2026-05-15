@@ -204,4 +204,3 @@ class GeminiLLM:
         sys = system_prompt or LYLA_SYSTEM
         contents = [types.Content(role="user", parts=[types.Part.from_text(text=prompt)])]
         return self._call(sys, contents, temperature=temperature, max_tokens=max_tokens)
-                     perature=temperature, max_tokens=max_tokens)
