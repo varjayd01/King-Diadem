@@ -25,7 +25,6 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
 .tone-pill.vega{border-color:rgba(255,210,140,.4);color:var(--gold-hot);}
 .tone-pill.lyla{border-color:rgba(45,212,191,.35);color:#7ee0d0;}
 .kd-diag{font-family:'Share Tech Mono',monospace;font-size:9px;line-height:1.45;color:rgba(184,212,232,.55);white-space:pre-wrap;word-break:break-word;min-height:2.5em;}
-/* ★ nebula บางลง — ดาวเห็นชัดขึ้น ★ */
 .nebula{
   position:fixed;inset:0;z-index:1;pointer-events:none;
   background:
@@ -43,7 +42,6 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
 }
 .scanline{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:.14;
   background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(45,212,191,.02) 2px,rgba(45,212,191,.02) 4px);}
-/* ★ cockpit glass บางลงมาก — ดาวโผล่ ★ */
 body::after{
   content:'';position:fixed;inset:0;z-index:3;pointer-events:none;
   background:
@@ -654,7 +652,7 @@ function getSessionStore(){
   try{var raw=localStorage.getItem(SESSION_KEY);if(raw){var o=JSON.parse(raw);if(o&&Array.isArray(o.items)&&o.active){if(typeof o.savedAt!=='number'||isNaN(o.savedAt))o.savedAt=0;return o;}}}catch(_){}
   return{active:'s1',items:[{id:'s1',title:'แชท 1',html:''}],savedAt:0};
 }
-function setSessionStore(s){try{localStorage.setItem(SESSION_KEY,JSON.stringify(s));}catch(_){}}
+function setSessionStore(s){try{localStorage.setItem(SESSION_KEY,JSON.stringify(s));}catch(_){}
 function persistActiveChatHtml(skipCloud){
   var area=document.getElementById('chat-scroll');if(!area)return;
   var s=getSessionStore(),cur=s.items.find(function(x){return x.id===s.active;});
