@@ -241,6 +241,15 @@ body::after{
 .tab-btn.active{color:var(--gold-hot);background:linear-gradient(180deg,rgba(232,192,120,.1),transparent);
   box-shadow:inset 0 -3px 0 var(--gold),inset 0 1px 0 rgba(255,255,255,.04);}
 .tab-btn .ti{display:block;font-size:16px;margin-bottom:2px;}
+
+.msg-time{font-family:'Share Tech Mono',monospace;font-size:7px;color:rgba(184,212,232,.25);margin-top:3px;display:block;}
+.msg.user .msg-time{text-align:right;}
+.session-item{position:relative;}
+.session-del{position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:rgba(255,100,100,.4);cursor:pointer;font-size:11px;padding:2px 4px;
+  opacity:0;transition:opacity .15s ease;}
+.session-item:hover .session-del{opacity:1;}
+.session-del:hover{color:#ff6060;}
 #bottom-note{flex-shrink:0;text-align:center;font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(184,212,232,.22);padding:4px 8px 6px;}
 </style>
 </head>
@@ -338,15 +347,15 @@ body::after{
           </div>
         </div>
         <div class="section" id="section-stripe">
-          <div class="sec-head">STRIPE · CREDITS</div>
+          <div class="sec-head">KING DIADEM — ฿299/เดือน</div>
           <div class="sec-body">
-            <input type="email" id="payment-email" class="stripe-input" placeholder="อีเมล (ใบเสร็จ / ระบุตัวตน)" autocomplete="email">
-            <div class="plan-row">
-              <label><input type="radio" name="plan" value="basic" checked> Basic (แผน basic)</label>
-              <label><input type="radio" name="plan" value="civilization"> Civilization</label>
-              <label><input type="radio" name="plan" value="topup"> Top-up credits</label>
+            <div style="font-size:13px;color:var(--text);margin-bottom:10px;line-height:1.6;">
+              ✦ LYLA + VEGA ครบทุก mode<br>
+              ✦ ไม่จำกัดการใช้งาน<br>
+              ✦ Future Simulation + Image Analysis
             </div>
-            <button type="button" class="btn btn-gold" onclick="stripeCheckout()">ชำระเงิน Stripe</button>
+            <input type="email" id="payment-email" class="stripe-input" placeholder="อีเมล (รับใบเสร็จ)" autocomplete="email">
+            <button type="button" class="btn btn-gold" onclick="stripeCheckout()">ชำระเงิน ฿299 / เดือน</button>
           </div>
         </div>
         <div class="section" id="section-photo">
@@ -597,7 +606,7 @@ function _hPush(sid,role,content){var h=_hGet(sid);h.push({role:role,content:Str
     }
   }
   function frame(t){
-    ctx.fillStyle='#020110';ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#010009';ctx.fillRect(0,0,W,H);
     drawMilkyBand(t);drawNebulaClouds();drawStars(t);
     var deck=(t/ORBIT_REF_MS)*(Math.PI*2);
     ctx.save();ctx.translate(cx,cy);ctx.rotate(deck);ctx.translate(-cx,-cy);
@@ -667,8 +676,14 @@ function renderSessionList(){
   var s=getSessionStore();ul.innerHTML='';
   for(var i=0;i<s.items.length;i++){
     var it=s.items[i],div=document.createElement('div');
-    div.className='session-item'+(it.id===s.active?' on':'');div.textContent=it.title||'แชท';
-    (function(id){div.onclick=function(){selectChatSession(id);};})(it.id);
+    div.className='session-item'+(it.id===s.active?' on':'');
+    var span=document.createElement('span');span.textContent=it.title||'แชท';div.appendChild(span);
+    var del=document.createElement('button');del.className='session-del';del.textContent='✕';del.title='ลบแชท';
+    (function(id){
+      div.onclick=function(){selectChatSession(id);};
+      del.onclick=function(e){e.stopPropagation();deleteChatSession(id);};
+    })(it.id);
+    div.appendChild(del);
     ul.appendChild(div);
   }
 }
@@ -682,7 +697,30 @@ function newChatSession(){
   persistActiveChatHtml();var s=getSessionStore(),nid='s'+Date.now();
   s.items.unshift({id:nid,title:'แชทใหม่',html:''});s.active=nid;setSessionStore(s);
   var area=document.getElementById('chat-scroll');if(area)area.innerHTML=buildWelcomeHtml();
-  renderSessionList();setTab('chat');closeRailMobile();document.getElementById('main-input')?.focus();scheduleCloudChatSave();
+  renderSessionList();setTab('chat');closeRailMobile();setTimeout(function(){document.getElementById('main-input')?.focus();},100);scheduleCloudChatSave();
+}
+
+function deleteChatSession(id){
+  var s=getSessionStore();
+  if(s.items.length<=1){
+    // ถ้าเหลืออันเดียว reset แทนการลบ
+    s.items[0]={id:'s'+Date.now(),title:'แชทใหม่',html:''};
+    s.active=s.items[0].id;
+    setSessionStore(s);
+    var area=document.getElementById('chat-scroll');if(area)area.innerHTML=buildWelcomeHtml();
+    renderSessionList();scheduleCloudChatSave();return;
+  }
+  var idx=s.items.findIndex(function(x){return x.id===id;});
+  if(idx===-1)return;
+  s.items.splice(idx,1);
+  // ถ้าลบ active — เลื่อนไปอันแรก
+  if(s.active===id){
+    s.active=s.items[0].id;
+    var area=document.getElementById('chat-scroll');
+    var cur=s.items[0];
+    if(area)area.innerHTML=(cur&&cur.html&&cur.html.trim())?cur.html:buildWelcomeHtml();
+  }
+  setSessionStore(s);renderSessionList();scheduleCloudChatSave();
 }
 function initSessionsFromStorage(){
   var s=getSessionStore(),area=document.getElementById('chat-scroll');if(!area)return;
@@ -755,7 +793,9 @@ function addMsg(type,text,meta){
   var av=type==='user'?'<div class="msg-avatar">YOU</div>':'<div class="msg-avatar"><img class="msg-logo" src="/static/logo.png" alt=""></div>';
   var snd=type==='user'?'YOU':'KING DIADEM';
   var html=escH(text).replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
-  div.innerHTML=av+'<div class="msg-body"><div class="msg-sender">'+snd+'</div><div class="msg-text">'+html+'</div>'+(meta?'<div class="route-tag">'+escH(meta)+'</div>':'')+'</div>';
+  var now=new Date();var hh=String(now.getHours()).padStart(2,'0');var mm=String(now.getMinutes()).padStart(2,'0');
+  var timeStr='<span class="msg-time">'+hh+':'+mm+'</span>';
+  div.innerHTML=av+'<div class="msg-body"><div class="msg-sender">'+snd+'</div><div class="msg-text">'+html+'</div>'+timeStr+(meta?'<div class="route-tag">'+escH(meta)+'</div>':'')+'</div>';
   area.appendChild(div);area.scrollTop=area.scrollHeight;persistActiveChatHtml();
 }
 function addThinking(){
@@ -832,8 +872,9 @@ async function simulate(){
   btn.disabled=false;
 }
 async function stripeCheckout(){
-  var email=document.getElementById('payment-email').value.trim(),plan=document.querySelector('input[name="plan"]:checked')?.value||'basic';
-  var d=await post('/payment/create-checkout',{plan:plan,email:email,api_key:email});
+  var email=document.getElementById('payment-email').value.trim();
+  if(!email){alert('กรุณากรอกอีเมลก่อน');return;}
+  var d=await post('/payment/create-checkout',{plan:'basic',email:email,api_key:email});
   if(d.url)location.href=d.url;else alert(d.error||'Stripe ไม่สำเร็จ');
 }
 async function uploadImage(){
