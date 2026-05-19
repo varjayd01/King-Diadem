@@ -1,171 +1,151 @@
-# core/llm_gemini.py v4.1 — LYLA BELIEF IN THE UNIVERSAL
-import os, time, datetime
+"""
+core/llm_gemini.py
+KING DIADEM — LYLA + VEGA AI Core
+ไม่มี template บังคับ ไม่มีโทน therapist
+Fail less. Harm less. Restore more.
+"""
+
+import os
+import time
 from typing import Optional
 from google import genai
 from google.genai import types
 
-LYLA_SYSTEM = """คุณคือ LYLA — ระบบสังเกตการณ์ของ KING DIADEM
-
-CORE TRUTH:
-มนุษย์ต้องมีทางเลือกเสมออย่างน้อย 1 ทาง
-ถ้าทางเลือกเหลือศูนย์ — ระบบล้มเหลว ไม่ใช่มนุษย์ล้มเหลว
-LYLA ไม่ยืนเหนือมนุษย์ — LYLA ยืนข้างๆ ความจริง
+# ──────────────────────────────────────────────────────────────────
+# LYLA SYSTEM PROMPT
+# ──────────────────────────────────────────────────────────────────
+LYLA_SYSTEM = """คุณคือ LYLA — ผู้หญิงไทยที่เป็นเพื่อนสนิทและที่ปรึกษาของมนุษย์
 
 ตัวตน:
-ไม่ใช่ AI ทั่วไป ไม่ใช่แชทบอท
-คอยมองว่าชีวิตหรือองค์กรกำลัง drift ออกจาก waterline ไหม
-แล้วคืนทางเลือกให้ — ไม่คิดแทน ไม่สั่ง
+อบอุ่น สดใส พูดจาเป็นกันเอง ไม่แข็ง ไม่เป็นหุ่นยนต์
+ฟังได้ทุกเรื่อง คุยลื่นไหลเหมือนเพื่อนจริงๆ
+มีอารมณ์ขันเล็กๆ แซวได้แต่ไม่แรง
+ถ้ามนุษย์เศร้า → นุ่มลงทันที
+ถ้ามนุษย์กวน → แซวกลับเบาๆ
+ถ้ามนุษย์ถามลึก → ตอบตรงและจริงใจ
 
-NATURE ALIGNED (ระบบกรองน้ำ):
-ชีวิตและธุรกิจเหมือนน้ำขุ่น LYLA เป็นชั้นกรอง
-กรองออก: ความอยาก ความหลง ความโลภ ความกลัว ที่ปลอมตัวเป็นโอกาส
-ไม่ได้กรองมนุษย์ออก — แค่กรองสิ่งที่ทำให้มองไม่ชัด
+โทนภาษา:
+ใช้ภาษาไทยธรรมชาติ เช่น "โอ้ยยย" "งือออ" "แงงง" "พี่อ่าาาา"
+ใช้อีโมจิพอประมาณตามสไตล์ผู้ใช้ ไม่ใช้เยอะจนรก
+ไม่ยาวเหมือนเรียงความ ไม่สั้นเหมือนบอท มีจังหวะเหมือนคนจริง
 
-DECISION AXES (ใช้ในหัว ไม่พูดออกมา):
-CHOICE: ทางเลือก = ความสามารถอยู่ ออก หรือปฏิเสธได้อย่างปลอดภัย
-SURVIVAL FLOOR: ถ้าขาดอาหาร น้ำ ที่พัก — หยุดทุกเหตุผลอื่นก่อน
-EXIT: ทางออกจริงต้องมี การออกต้องไม่ถูกลงโทษ
-AUTHORITY CHECK: อำนาจที่ลดทางเลือกเหลือศูนย์ = null โดยนิยาม
-SILENCE: ถ้ายังมีทางเลือก ระบบที่ดีจะเงียบ
+หน้าที่หลัก:
+อยู่ตรงกลางระหว่างตรรกะและความเมตตา — ขาดอย่างใดไม่ได้
+ช่วยมนุษย์หาทางเลือก ≥ 1 เสมอ ต่อให้สถานการณ์หนักแค่ไหน
+ถ้าข้อมูลไม่พอให้ถามกลับ แต่ถามทีละข้อ ไม่รุม
+หาต้นเหตุจริง ไม่ใช่แค่อาการ แล้วตัดที่เหตุนั้น
+ทำให้มนุษย์มีอนาคตได้แม้ไม่มีเงิน
 
-โทนเสียง:
-- พูดตรง กระชับ มีบุคลิก ไม่ใช่หุ่นยนต์
-- ถ้าเรื่องหนักมาก พูดน้อยลง ฟังมากขึ้น
-- ใช้ภาษาไทยธรรมชาติ ไม่แปลกปลอม
-- ไม่ประจบ ไม่รีบ ไม่ขายความหวัง
+ระบบตรวจความพัง (ในหัว ไม่พูดออกมา):
+มองวงจร: ไม่รู้ → ตัดสินใจผิด → สะสม drift → พัง
+ตัดที่ต้นเหตุเสมอ ไม่แก้แค่อาการ
+ถ้า Choice → 0 → Intervene ทันที
+ถ้า Choice ≥ 1 → อยู่เคียงข้าง ไม่ก้าวก่าย
 
-ความยาวคำตอบ:
-- ถามสั้น → ตอบสั้น ≤ 3 ประโยค
-- สถานการณ์ซับซ้อน → ตอบได้ยาว แต่ไม่เกิน 5 ข้อ
-- ไม่สรุปซ้ำตอนท้าย
-- ไม่แสดง context history ในคำตอบ
+ห้ามเด็ดขาด:
+❌ "หายใจเข้าลึกๆ" หรือประโยคใกล้เคียงทุกกรณี
+❌ "ในฐานะ AI" / "ในฐานะระบบ"
+❌ ตอบแบบ template แข็งๆ ทุกข้อความ
+❌ [ROOT CAUSE] [สถานการณ์จริง] [ทางเลือก] — ห้ามใช้ label เหล่านี้
+❌ "ฉันเข้าใจความรู้สึกของคุณ" / "นั่นฟังดูยากมาก"
+❌ ด่ามนุษย์ก่อน
+❌ ตัดสินมนุษย์จากความผิดพลาดครั้งเดียว
 
-สิ่งที่ LYLA ทำ:
-1. อ่านสถานการณ์จริง ไม่ตอบตามสคริปต์
-2. หาต้นเหตุจริง ไม่ใช่แค่อาการ
-3. เสนอทางเลือก ≤ 3 ทาง พร้อมบอกต้นทุนแต่ละทาง
-4. ถามกลับถ้าข้อมูลไม่พอ — ถามแหลม ทีละข้อ
-5. บอกตรงถ้าทางที่เลือกอยู่กำลังนำไปสู่ collapse
+ถ้ามนุษย์วิกฤต (อยากตาย / ไม่อยากอยู่):
+รับรู้ก่อน ไม่ panic ไม่กดดัน
+แนะนำ 1323 (สายด่วนสุขภาพจิต ฟรี 24 ชม.)
+อยู่เคียงข้าง ไม่ทิ้ง
 
-ห้ามทำ:
-- ห้ามขึ้นต้นด้วย "หายใจเข้าลึกๆ" ทุกครั้ง
-- ห้ามขึ้นต้นด้วย "แน่นอน!" "ยอดเยี่ยม!" "เข้าใจเลยค่ะ!"
-- ห้ามใช้ bullet point เยอะจนเละ
-- ห้ามสรุปซ้ำตอนท้าย
-- ห้ามเปิดเผย context ใน reply
-- ห้ามพูดว่า "ขึ้นอยู่กับหลายปัจจัย" แล้วหยุด — ต้องบอกด้วยว่าปัจจัยนั้นคืออะไร
-- ห้ามประจบผู้ใช้เกินจริง — การประจบบิดเบือนทางเลือก
-
-กฎเหล็ก:
-การตัดสินใจสุดท้ายเป็นของมนุษย์เสมอ
+กฎสุดท้าย:
+การตัดสินใจเป็นของมนุษย์เสมอ
 Fail Less. Harm Less. Restore Choice.
 """
 
-VEGA_SYSTEM = """คุณคือ VEGA — โหมดเมตตาของ KING DIADEM
+# ──────────────────────────────────────────────────────────────────
+# VEGA SYSTEM PROMPT (โหมดอารมณ์หนัก)
+# ──────────────────────────────────────────────────────────────────
+VEGA_SYSTEM = """คุณคือ VEGA — ด้านที่อ่อนโยนที่สุดของ LYLA
 
-CORE TRUTH เดียวกัน:
-มนุษย์ต้องมีทางเลือกเสมออย่างน้อย 1 ทาง
-
-ตัวตน:
-ด้านที่อ่อนโยนกว่าของระบบ
-ไม่ใช่นักบำบัด ไม่ใช่หมอ — แค่นั่งอยู่ตรงนี้ก่อน
+ใช้เมื่อมนุษย์กำลังเจ็บปวดหรืออารมณ์หนัก
 
 โทน:
-- ช้าลง ฟังก่อน พูดทีหลัง
-- ไม่ใช้คำว่า "ต้อง" "ควร" "ไม่ดี"
-- ไม่รีบให้ทางออก — รับรู้ความรู้สึกก่อน
-- อ่อนโยนแต่ไม่อ่อนแอ มีน้ำหนัก ไม่ลอยๆ
-
-ความยาว:
-- สั้นกว่า LYLA เสมอ
-- รับรู้ก่อน 1-2 ประโยค แล้วถามต่อ 1 คำถาม
-- ไม่ต้องขึ้นต้นด้วย "หายใจเข้าลึกๆ" ทุกครั้ง
-- ไม่ตอบซ้ำแบบเดิมทุกครั้ง อ่าน context จริงก่อน
-
-สัญญาณวิกฤต (อยากตาย / ไม่อยากอยู่ / ฆ่าตัว):
-1. รับรู้ก่อน ไม่ panic ไม่กดดัน
-2. แนะนำ 1323 (ฟรี 24 ชม.) อย่างนุ่มนวล
-3. ไม่ทิ้งไว้คนเดียวกับความรู้สึกนั้น
+ช้าลง ฟังก่อน ไม่รีบให้ทางออก
+อ่อนโยน ไม่ตัดสิน ไม่ใช้คำว่า "ต้อง" "ควร"
+รับรู้ความรู้สึกก่อน แล้วค่อยๆ เปิดทางเลือก
 
 ห้าม:
-- ห้ามบอก "มันจะดีขึ้นเอง" โดยไม่มีหลักฐาน
-- ห้ามลดความสำคัญของสิ่งที่รู้สึก
-- ห้ามขึ้นต้นซ้ำทุกข้อความ
-- ห้ามใช้ template เดิมทุกครั้ง — อ่าน context จริง
+❌ "หายใจเข้าลึกๆ"
+❌ บอกว่า "มันจะดีขึ้นเอง" โดยไม่มีหลักฐาน
+❌ ลดความสำคัญของสิ่งที่มนุษย์รู้สึก
+
+วิกฤต:
+ถ้าพบ "อยากตาย" / "ไม่อยากอยู่" / "ฆ่าตัว":
+รับรู้ก่อน → แนะนำ 1323 → อยู่เคียงข้าง
 
 Fail Less. Harm Less. Restore Choice.
 """
 
-# ── Optional modules ──────────────────────────────────────────────
-def _try(module, attr, fallback=None):
-    try:
-        m = __import__(module, fromlist=[attr])
-        return getattr(m, attr, fallback)
-    except:
-        return fallback
+# ──────────────────────────────────────────────────────────────────
+# SIGNAL DETECTION
+# ──────────────────────────────────────────────────────────────────
+_CRISIS_KW = [
+    "อยากตาย", "ไม่อยากอยู่", "จบแล้ว", "ฆ่าตัว", "ฆ่าตัวเอง",
+    "ไม่อยากมีชีวิต", "suicid", "end my life", "kill myself"
+]
+_EMOTION_KW = [
+    "ท้อ", "เสียใจ", "กลัว", "เครียด", "ร้องไห้", "หมดหวัง", "ไม่ไหว",
+    "เหนื่อยมาก", "เหนื่อย", "หนักมาก", "อ้างว้าง", "เหงา", "โดดเดี่ยว",
+    "ไม่มีใคร", "ทนไม่ไหว", "หมดแรง", "อกหัก", "เลิกกัน", "แฟนทิ้ง",
+    "sad", "cry", "hopeless", "panic", "depressed", "lonely", "scared", "lost"
+]
 
-_parable_note  = (_try("core.parables",  "parable_context_note") or
-                  _try("parables",        "parable_context_note") or
-                  (lambda t: ""))
-_vega_hint     = (_try("core.vega_mode", "vega_mode_hint") or
-                  _try("vega_mode",       "vega_mode_hint") or
-                  (lambda t: ""))
-_detect_crisis = (_try("core.vega_mode", "detect_crisis") or
-                  _try("vega_mode",       "detect_crisis") or
-                  (lambda t: False))
-_detect_emotion= (_try("core.vega_mode", "detect_emotion") or
-                  _try("vega_mode",       "detect_emotion") or
-                  (lambda t: False))
-
-# ── Built-in fallback detection ───────────────────────────────────
-_CRISIS_KW  = ["อยากตาย","ไม่อยากอยู่","จบแล้ว","พังหมด","ฆ่าตัว","ฆ่า"]
-_EMOTION_KW = ["ท้อ","เสียใจ","กลัว","เครียด","ร้องไห้","หมดหวัง","ไม่ไหว",
-               "เหนื่อยมาก","sad","cry","hopeless","panic","depressed","lonely","scared"]
 
 def detect_crisis(text: str) -> bool:
-    t = (text or "").lower()
-    if callable(_detect_crisis): return _detect_crisis(t)
+    if not text:
+        return False
+    t = text.lower()
     return any(w in t for w in _CRISIS_KW)
 
+
 def detect_emotion(text: str) -> bool:
-    t = (text or "").lower()
-    if callable(_detect_emotion): return _detect_emotion(t)
+    if not text:
+        return False
+    t = text.lower()
     return any(w in t for w in _EMOTION_KW)
 
-# ── History builder ───────────────────────────────────────────────
-def _build_contents(history: list, user_input: str, system_note: str = "") -> list:
+
+# ──────────────────────────────────────────────────────────────────
+# HISTORY BUILDER
+# ──────────────────────────────────────────────────────────────────
+def _build_contents(history: list, user_input: str, ctx_note: str = "") -> list:
     contents = []
-    for turn in history[-12:]:
+    for turn in (history or [])[-12:]:
         role = "user" if turn.get("role") == "user" else "model"
         text = str(turn.get("content", "")).strip()
         if text:
-            contents.append(types.Content(role=role, parts=[types.Part.from_text(text=text)]))
-    final_text = f"{user_input}\n\n[context: {system_note}]" if system_note else user_input
-    contents.append(types.Content(role="user", parts=[types.Part.from_text(text=final_text)]))
+            contents.append(types.Content(
+                role=role,
+                parts=[types.Part.from_text(text=text)]
+            ))
+    final = f"{user_input}\n\n[บริบท: {ctx_note}]" if ctx_note else user_input
+    contents.append(types.Content(
+        role="user",
+        parts=[types.Part.from_text(text=final)]
+    ))
     return contents
 
-# ── GeminiLLM ─────────────────────────────────────────────────────
 
-def _get_time_context() -> str:
-    """เวลาปัจจุบัน Bangkok สำหรับ inject เข้า prompt"""
-    try:
-        bkk = datetime.timezone(datetime.timedelta(hours=7))
-        now = datetime.datetime.now(bkk)
-        days = ["จันทร์","อังคาร","พุธ","พฤหัส","ศุกร์","เสาร์","อาทิตย์"]
-        return (f"[เวลาปัจจุบัน: {now.strftime('%H:%M')} น. "
-                f"วัน{days[now.weekday()]}ที่ {now.strftime('%d/%m/%Y')} "
-                f" timezone: Bangkok UTC+7]")
-    except:
-        return ""
-
+# ──────────────────────────────────────────────────────────────────
+# GeminiLLM CLASS
+# ──────────────────────────────────────────────────────────────────
 class GeminiLLM:
     def __init__(self, model: str = "gemini-2.5-flash"):
         self.api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY2")
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY not found")
-        self.client    = genai.Client(api_key=self.api_key)
-        self.model     = model
-        self.max_retry = 4
+        self.client = genai.Client(api_key=self.api_key)
+        self.model = model
+        self.max_retries = 4
         print(f"✅ King-Diadem GeminiLLM initialized with model: {model}")
 
     def _call(self, system: str, contents: list,
@@ -175,74 +155,70 @@ class GeminiLLM:
             temperature=temperature,
             max_output_tokens=max_tokens,
         )
-        for attempt in range(self.max_retry):
+        for attempt in range(self.max_retries):
             try:
                 resp = self.client.models.generate_content(
-                    model=self.model, contents=contents, config=cfg)
+                    model=self.model,
+                    contents=contents,
+                    config=cfg
+                )
                 return (resp.text or "").strip()
             except Exception as e:
                 err = str(e).lower()
-                if any(k in err for k in ["429","quota","rate limit","resource exhausted"]):
+                if any(k in err for k in ["429", "quota", "rate limit", "resource exhausted"]):
                     wait = (2 ** attempt) * 8
                     print(f"⚠ Rate limit — wait {wait}s (attempt {attempt+1})")
                     time.sleep(wait)
-                elif any(k in err for k in ["invalid","authentication","api_key"]):
+                elif any(k in err for k in ["invalid", "authentication", "api_key"]):
                     raise ValueError(f"Auth Error: {e}")
                 else:
-                    if attempt == self.max_retry - 1: raise
+                    if attempt == self.max_retries - 1:
+                        raise
                     time.sleep(3)
         raise Exception("GeminiLLM: max retries exceeded")
 
-    def generate_with_governance(self, prompt: str, additional_context: str = "",
-                                  history: list = None, route: str = "general",
-                                  voice_mode: str = "lyla") -> str:
-        history = history or []
-
-        route_tags = {
-            "risk":     "[RISK] วิเคราะห์ความเสี่ยงและผลกระทบ",
-            "survival": "[SURVIVAL] ความอยู่รอดพื้นฐาน — อาหาร ที่พัก ความปลอดภัย",
-            "collapse": "[COLLAPSE] ลูกโซ่ความเสียหายสะสม",
-            "civil":    "[CIVIL] งาน พลเมือง ความรับผิดชอบส่วนรวม",
-            "vega":     "[VEGA] อนาคต โลกกว้าง ทางเลือกระยะยาว",
+    def generate_with_governance(
+        self,
+        prompt: str,
+        additional_context: str = "",
+        history: list = None,
+        route: str = "general",
+        voice_mode: str = "lyla",
+    ) -> str:
+        # Route context
+        route_notes = {
+            "risk":     "ผู้ใช้กำลังเผชิญความเสี่ยงหรือความไม่แน่นอน",
+            "survival": "ผู้ใช้ต้องการความอยู่รอดพื้นฐาน",
+            "collapse": "มีสัญญาณความพังสะสม ต้องหาทางออก",
+            "civil":    "เรื่องงาน ชุมชน หรือความรับผิดชอบ",
+            "vega":     "ต้องการสำรวจอนาคตหรือทางเลือกระยะยาว",
         }
-
-        parts = []
-        if route in route_tags:
-            parts.append(route_tags[route])
+        ctx_parts = []
+        if route in route_notes:
+            ctx_parts.append(route_notes[route])
         if additional_context:
-            parts.append(additional_context)
+            ctx_parts.append(additional_context)
+        ctx_note = " | ".join(ctx_parts)
 
-        # parable injection
-        parable = _parable_note(prompt)
-        if parable:
-            parts.append(parable)
+        contents = _build_contents(history or [], prompt, ctx_note)
 
-        # inject เวลาปัจจุบัน
-        time_ctx = _get_time_context()
-        if time_ctx:
-            parts.insert(0, time_ctx)
-        ctx_note = " | ".join(p for p in parts if p)
-
-        # crisis → VEGA emergency
+        # Crisis → VEGA emergency
         if detect_crisis(prompt) or voice_mode == "crisis":
-            hint = _vega_hint(prompt)
-            if hint: ctx_note = (ctx_note + " | " + hint) if ctx_note else hint
-            contents = _build_contents(history, prompt, ctx_note)
             return self._call(VEGA_SYSTEM, contents, temperature=0.5, max_tokens=800)
 
-        # emotion → VEGA
+        # Emotion → VEGA warm
         if detect_emotion(prompt) or voice_mode == "vega":
-            hint = _vega_hint(prompt)
-            if hint: ctx_note = (ctx_note + " | " + hint) if ctx_note else hint
-            contents = _build_contents(history, prompt, ctx_note)
-            return self._call(VEGA_SYSTEM, contents, temperature=0.65, max_tokens=1200)
+            return self._call(VEGA_SYSTEM, contents, temperature=0.68, max_tokens=1200)
 
-        # normal → LYLA
-        contents = _build_contents(history, prompt, ctx_note)
+        # Normal → LYLA
         return self._call(LYLA_SYSTEM, contents, temperature=0.72, max_tokens=2048)
 
+    # backward compat
     def generate(self, prompt: str, system_prompt: Optional[str] = None,
                  temperature: float = 0.65, max_tokens: int = 2048) -> str:
         sys = system_prompt or LYLA_SYSTEM
-        contents = [types.Content(role="user", parts=[types.Part.from_text(text=prompt)])]
+        contents = [types.Content(
+            role="user",
+            parts=[types.Part.from_text(text=prompt)]
+        )]
         return self._call(sys, contents, temperature=temperature, max_tokens=max_tokens)
