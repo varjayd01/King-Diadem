@@ -1,10 +1,10 @@
 {
   "name": "KING DIADEM",
-  "short_name": "DIADEM",
+  "short_name": "KD",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#050208",
-  "theme_color": "#050208",
+  "background_color": "#030208",
+  "theme_color": "#030208",
   "icons": [
     {
       "src": "/static/logo.png",
