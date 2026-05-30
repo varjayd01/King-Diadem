@@ -1,6 +1,7 @@
 # ENGINE/decision_engine.py
 # KING DIADEM — Decision Engine · กลางทุกสรรพสิ่ง
-# ★ FIX: LYLA/VEGA persona ชัดเจน · voice_mode ส่งต่อ LLM ถูกต้อง
+# v5.0 — เชื่อม engine_router + UDOK v2.0 paticcasamuppada
+# ตรรกะ: paticca อ่านเวทนา → router ตัดสิน route → LLM ตอบ
 
 import json
 import re
@@ -13,6 +14,7 @@ from core.emptiness_guard import emptiness_guard
 class DecisionEngine:
 
     def __init__(self):
+        # ── LLM ──────────────────────────────────────────────
         try:
             self.llm = GeminiLLM(model="gemini-2.5-flash")
             print("✅ DecisionEngine: GeminiLLM loaded")
@@ -20,6 +22,7 @@ class DecisionEngine:
             print(f"❌ DecisionEngine: GeminiLLM failed - {e}")
             self.llm = None
 
+        # ── LYLA Kernel ───────────────────────────────────────
         try:
             from core.lyla_kernel import LylaKernel
             self.lyla = LylaKernel()
@@ -27,43 +30,64 @@ class DecisionEngine:
         except Exception:
             self.lyla = None
 
+        # ── UDOK v2.0 — paticcasamuppada ─────────────────────
+        # ใช้ analyze() ใหม่ที่คืน kill_zone + UAP + nirvana_mode
         try:
-            from ENGINE.paticcasamuppada_engine import suffering_infrastructure
-            self.paticca = suffering_infrastructure
-        except Exception:
+            from ENGINE.paticcasamuppada_engine import analyze as paticca_analyze
+            self.paticca = paticca_analyze
+            print("✅ DecisionEngine: paticcasamuppada UDOK v2.0 loaded")
+        except Exception as e:
+            print(f"⚠️  DecisionEngine: paticca fallback - {e}")
             self.paticca = None
 
+        # ── Engine Router ─────────────────────────────────────
+        try:
+            from ENGINE.engine_router import run as router_run
+            self.router = router_run
+            print("✅ DecisionEngine: engine_router loaded")
+        except Exception as e:
+            print(f"⚠️  DecisionEngine: router fallback - {e}")
+            self.router = None
+
+        # ── Core Loop ─────────────────────────────────────────
         try:
             from core.core_loop import run_core
             self.core_loop = run_core
         except Exception:
             self.core_loop = None
 
+    # ══════════════════════════════════════════════════════════
+    # MAIN RUN
+    # ══════════════════════════════════════════════════════════
     def run(self, data: dict) -> dict:
         user_input = data.get("input") or data.get("text") or ""
 
         if not user_input:
-            return {"observer": "KING DIADEM", "status": "ERROR", "message": "ไม่พบ input"}
+            return {
+                "observer": "KING DIADEM",
+                "status":   "ERROR",
+                "message":  "ไม่พบ input",
+            }
 
-        # 1. PATTERN
+        # ── STEP 1: Pattern Analysis ──────────────────────────
         pattern = analyze_pattern(data)
         route   = pattern.get("route", "general")
 
-        # 2. EMPTINESS GUARD
+        # ── STEP 2: Emptiness Guard ───────────────────────────
         guarded = emptiness_guard(pattern)
 
         if guarded.get("blocked") and guarded.get("reason") in (
             "CHOICE_COLLAPSE", "KERNEL_IMPORT_FAIL", "invalid_state"
         ):
             return {
-                "observer":   "KING DIADEM",
-                "route":      "BLOCKED",
-                "reason":     guarded.get("reason", "GUARD_BLOCK"),
-                "action":     "stabilize",
-                "status":     "BLOCKED",
+                "observer":    "KING DIADEM",
+                "route":       "BLOCKED",
+                "reason":      guarded.get("reason", "GUARD_BLOCK"),
+                "action":      "stabilize",
+                "status":      "BLOCKED",
                 "ai_response": "ระบบพบปัญหาภายใน กรุณาลองใหม่อีกครั้งครับ",
-                "risk_score": guarded.get("risk_score", 0),
-                "persona":    "LYLA",
+                "risk_score":  guarded.get("risk_score", 0),
+                "persona":     "LYLA",
                 "pattern": {
                     "entropy":   pattern.get("entropy"),
                     "resource":  pattern.get("resource"),
@@ -77,61 +101,110 @@ class DecisionEngine:
             if route not in ("survival", "collapse", "vega"):
                 route = "survival"
 
-        # ── Resolve persona ──────────────────────────────────────
+        # ── STEP 3: Persona / Voice Mode ─────────────────────
         raw_vm = str(data.get("voice_mode") or "lyla").lower()
-        if route == "crisis" or raw_vm == "crisis":
-            voice_mode = "crisis"
-        elif route == "vega" or raw_vm == "vega":
-            voice_mode = "vega"
-        else:
-            voice_mode = "lyla"
+        if   route == "crisis" or raw_vm == "crisis": voice_mode = "crisis"
+        elif route == "vega"   or raw_vm == "vega":   voice_mode = "vega"
+        else:                                          voice_mode = "lyla"
 
         persona = "VEGA" if voice_mode == "vega" else "LYLA"
 
-        # 3. CORE LOOP
+        # ── STEP 4: Core Loop ─────────────────────────────────
         core_result = None
         if self.core_loop:
             try:
                 core_result = self.core_loop({
-                    "entropy":   pattern.get("entropy", 40),
-                    "resource":  pattern.get("resource", 50),
+                    "entropy":   pattern.get("entropy",   40),
+                    "resource":  pattern.get("resource",  50),
                     "stability": pattern.get("stability", 60),
-                    "drift":     0
+                    "drift":     0,
                 })
-                if core_result.get("status") == "HALT" and route not in ("vega",):
+                if core_result.get("status") == "HALT" and route != "vega":
                     route = "survival"
             except Exception:
                 pass
 
-        # 4. COLLAPSE CHAIN (ปฏิจสมุปบาท)
+        # ── STEP 5: UDOK v2.0 — paticcasamuppada ─────────────
+        # คืน: root_cause, feeling_tone, kill_zone, uap,
+        #       nirvana_mode, collapse_chain, summary
         paticca_result = None
         if self.paticca:
             try:
-                paticca_result = self.paticca(user_input, pattern)
+                paticca_result = self.paticca(pattern)
             except Exception:
                 pass
 
-        # 5. ENGINE ROUTE
-        engine_result = self._run_route(route, pattern)
+        # ถ้า nirvana_mode (chain ดับที่เวทนา) → ลด route ลงเป็น stable
+        if paticca_result:
+            if paticca_result.get("nirvana_mode") and route not in ("collapse", "crisis", "vega"):
+                route = "stable" if route != "survival" else route
 
-        # 6. GEMINI — รันเสมอ · ส่ง voice_mode + route ถูกต้อง
+            # ถ้า UAP บอกหยุด + craving สูง → อย่า push ตัดสินใจทันที
+            uap = paticca_result.get("uap", {})
+            if uap.get("should_pause") and route == "general":
+                route = "uncertain"
+
+        # ── STEP 6: Engine Router ─────────────────────────────
+        # router รับ pattern + paticca context → คืน route, action,
+        # consensus, simulation, strategy, survival
+        router_result = None
+        if self.router:
+            try:
+                router_payload = {
+                    **pattern,
+                    "input":      user_input,
+                    "voice_mode": voice_mode,
+                    "route_hint": route,          # hint จาก step ก่อน
+                    "paticca":    paticca_result, # ส่ง paticca ให้ router ใช้
+                }
+                router_result = self.router(router_payload)
+
+                # router อาจ override route ถ้า collapse/risk ชัดเจน
+                if router_result and router_result.get("route") not in (None, "error"):
+                    # ยกเว้น vega/crisis — persona สำคัญกว่า
+                    if voice_mode not in ("vega", "crisis"):
+                        route = router_result["route"]
+            except Exception as e:
+                router_result = {"error": f"router fail: {e}"}
+        else:
+            # fallback: ใช้ _run_route เดิม
+            router_result = self._run_route(route, pattern)
+
+        # ── STEP 7: LLM (Gemini) ──────────────────────────────
         ai_response = None
         if self.llm:
             try:
-                context = (
-                    f"Route: {route} | "
-                    f"Entropy: {pattern.get('entropy')} | "
-                    f"Resource: {pattern.get('resource')} | "
-                    f"Stability: {pattern.get('stability')}"
-                )
+                context_parts = [
+                    f"Route: {route}",
+                    f"Entropy: {pattern.get('entropy')}",
+                    f"Resource: {pattern.get('resource')}",
+                    f"Stability: {pattern.get('stability')}",
+                ]
+
                 if guarded.get("emotional_flag"):
-                    context += " | EMOTIONAL_FLAG: true — ผู้ใช้อาจอยู่ในสถานการณ์ยาก"
-                if paticca_result and paticca_result.get("root_cause"):
-                    context += f" | ปฏิจสมุปบาท root: {paticca_result.get('root_cause')}"
+                    context_parts.append("EMOTIONAL_FLAG: true — ผู้ใช้อาจอยู่ในสถานการณ์ยาก")
+
+                if paticca_result:
+                    root    = paticca_result.get("root_cause", "")
+                    feeling = paticca_result.get("feeling_tone", "")
+                    nirvana = paticca_result.get("nirvana_mode", False)
+                    kz_out  = paticca_result.get("kill_zone", {}).get("outcome", "")
+                    uap_note = paticca_result.get("uap", {}).get("audit_note", "")
+
+                    if root:    context_parts.append(f"ปฏิจสมุปบาท root: {root}")
+                    if feeling: context_parts.append(f"เวทนา: {feeling}")
+                    if nirvana: context_parts.append("nirvana_mode: chain ดับที่เวทนา")
+                    elif kz_out:context_parts.append(f"kill_zone: {kz_out}")
+                    if uap_note:context_parts.append(f"UAP: {uap_note}")
+
+                if router_result:
+                    action = router_result.get("action", "")
+                    if action:
+                        context_parts.append(f"Router action: {action}")
 
                 ai_response = self.llm.generate_with_governance(
                     prompt             = user_input,
-                    additional_context = context,
+                    additional_context = " | ".join(context_parts),
                     history            = data.get("history", []),
                     route              = route,
                     voice_mode         = voice_mode,
@@ -139,7 +212,7 @@ class DecisionEngine:
             except Exception as e:
                 ai_response = f"[Gemini unavailable: {e}]"
 
-        # 7. LYLA observation
+        # ── STEP 8: LYLA Observation ──────────────────────────
         lyla_note = None
         if self.lyla:
             try:
@@ -147,29 +220,36 @@ class DecisionEngine:
             except Exception:
                 pass
 
+        # ── OUTPUT ────────────────────────────────────────────
         return {
-            "observer":      "KING DIADEM — Decision Engine · กลางทุกสรรพสิ่ง",
-            "status":        "SUCCESS",
-            "route":         route,
-            "persona":       persona,
-            "voice_mode":    voice_mode,
-            "input":         user_input,
+            "observer":   "KING DIADEM — Decision Engine · กลางทุกสรรพสิ่ง",
+            "status":     "SUCCESS",
+            "route":      route,
+            "persona":    persona,
+            "voice_mode": voice_mode,
+            "input":      user_input,
             "pattern": {
                 "entropy":    pattern.get("entropy"),
                 "resource":   pattern.get("resource"),
                 "stability":  pattern.get("stability"),
                 "confidence": pattern.get("confidence"),
-                "warnings":   pattern.get("warnings", [])
+                "warnings":   pattern.get("warnings", []),
             },
-            "engine_result":  engine_result,
-            "ai_response":    ai_response,
-            "collapse_chain": paticca_result,
-            "core_loop":      core_result,
-            "lyla":           lyla_note,
-            "risk_score":     guarded.get("risk_score", 0),
-            "emotional_flag": guarded.get("emotional_flag", False),
+            # paticca — UDOK v2.0 (เวทนา, kill_zone, UAP, nirvana)
+            "collapse_chain":  paticca_result,
+            # router — consensus, simulation, strategy, survival
+            "engine_result":   router_result,
+            # LLM
+            "ai_response":     ai_response,
+            # core + lyla
+            "core_loop":       core_result,
+            "lyla":            lyla_note,
+            # guard
+            "risk_score":      guarded.get("risk_score", 0),
+            "emotional_flag":  guarded.get("emotional_flag", False),
         }
 
+    # ── Fallback route (ถ้า engine_router ไม่โหลด) ───────────
     def _run_route(self, route: str, pattern: dict) -> dict:
         try:
             if route == "survival":
@@ -187,8 +267,8 @@ class DecisionEngine:
             elif route == "civil":
                 from ENGINE.civil_work_engine import assess
                 return assess(pattern)
-            elif route == "vega":
-                return {"route": "vega", "status": "pass_to_llm"}
+            elif route in ("vega", "stable"):
+                return {"route": route, "status": "pass_to_llm"}
             else:
                 from ENGINE.strategy_planner import plan
                 return plan(pattern)
@@ -196,10 +276,12 @@ class DecisionEngine:
             return {"error": f"ENGINE ROUTE FAIL [{route}]: {str(e)}"}
 
 
-# ── Singleton ─────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+# SINGLETON + PUBLIC API
+# ══════════════════════════════════════════════════════════════
 _ENGINE_SINGLETON = None
 
-def _engine() -> "DecisionEngine":
+def _engine() -> DecisionEngine:
     global _ENGINE_SINGLETON
     if _ENGINE_SINGLETON is None:
         _ENGINE_SINGLETON = DecisionEngine()
@@ -208,10 +290,17 @@ def _engine() -> "DecisionEngine":
 
 def _build_payload(data: dict) -> dict:
     out  = dict(data) if isinstance(data, dict) else {}
-    text = str(out.get("input") or out.get("text") or out.get("question") or "").strip()
+    text = str(
+        out.get("input") or out.get("text") or
+        out.get("question") or ""
+    ).strip()
+
     if not text:
         parts = []
-        for k, label in [("location","ที่ตั้ง"),("food","อาหาร"),("money","เงิน"),("risk","ความเสี่ยง")]:
+        for k, label in [
+            ("location", "ที่ตั้ง"), ("food", "อาหาร"),
+            ("money",    "เงิน"),    ("risk", "ความเสี่ยง"),
+        ]:
             v = out.get(k)
             if v not in (None, "", "unknown"):
                 parts.append(f"{label}: {v}")
@@ -226,7 +315,7 @@ def _build_payload(data: dict) -> dict:
             pass
 
     risk_s = str(out.get("risk", "")).lower()
-    if any(w in risk_s for w in ["high","สูง","critical"]):
+    if any(w in risk_s for w in ["high", "สูง", "critical"]):
         try:
             out["entropy"] = min(95.0, float(out.get("entropy", 40)) + 20.0)
         except (TypeError, ValueError):
@@ -243,30 +332,37 @@ def eternal_snapshot_for_decision(state: dict) -> dict:
         return {"error": str(e)}
 
 
-def run_decision(data):
+def run_decision(data) -> dict:
     if not isinstance(data, dict):
         data = {"input": str(data)}
 
     merged = _build_payload(data)
     if not (merged.get("input") or "").strip():
-        return {"observer": "KING DIADEM", "status": "ERROR", "message": "ไม่พบ input"}
+        return {
+            "observer": "KING DIADEM",
+            "status":   "ERROR",
+            "message":  "ไม่พบ input",
+        }
 
+    # Eternal snapshot
     merged["_eternal_snapshot"] = eternal_snapshot_for_decision({
         "entropy":   float(merged.get("entropy",   40)),
         "resource":  float(merged.get("resource",  50)),
         "stability": float(merged.get("stability", 60)),
     })
 
+    # Self-learning patterns
     try:
         from ENGINE.self_learning import analyze_patterns
         merged["_learning_patterns"] = analyze_patterns()
     except Exception:
         merged["_learning_patterns"] = None
 
+    # Human engine
     try:
         from ENGINE.human_engine import analyze_human
         merged["_human_engine"] = analyze_human(
-            {"state": merged.get("input",""), "context": merged.get("intent")}
+            {"state": merged.get("input", ""), "context": merged.get("intent")}
         )
     except Exception:
         merged["_human_engine"] = None
@@ -274,25 +370,38 @@ def run_decision(data):
     return _engine().run(merged)
 
 
-def decide(input=None, intent=None, risk=None, **kwargs):
+def decide(input=None, intent=None, risk=None, **kwargs) -> dict:
     chunks = []
-    if input  is not None: chunks.append(str(input))
-    if intent is not None: chunks.append("บริบท: " + (json.dumps(intent, ensure_ascii=False) if isinstance(intent, dict) else str(intent)))
-    if risk   is not None: chunks.append("ความเสี่ยง: " + (json.dumps(risk, ensure_ascii=False) if isinstance(risk, dict) else str(risk)))
+    if input  is not None:
+        chunks.append(str(input))
+    if intent is not None:
+        chunks.append("บริบท: " + (
+            json.dumps(intent, ensure_ascii=False)
+            if isinstance(intent, dict) else str(intent)
+        ))
+    if risk is not None:
+        chunks.append("ความเสี่ยง: " + (
+            json.dumps(risk, ensure_ascii=False)
+            if isinstance(risk, dict) else str(risk)
+        ))
     for k, v in kwargs.items():
-        if v is not None: chunks.append(f"{k}: {v}")
+        if v is not None:
+            chunks.append(f"{k}: {v}")
     return run_decision({"input": "\n".join(chunks).strip()})
 
 
-def generate_choices(location, food, money, risk):
+def generate_choices(location, food, money, risk) -> list:
     body = {"input": (
         f"เสนอทางเลือก 3–5 ข้อ สั้น กระชับ "
         f"บริบท: ที่ตั้ง {location} อาหาร {food} เงิน {money} ความเสี่ยง {risk}"
     )}
     out = run_decision(body)
     ai  = out.get("ai_response") or ""
-    lines = [re.sub(r"^[\d\.\)\-\*•]+\s*","",s.strip())
-             for s in str(ai).splitlines() if len(s.strip()) > 3]
+    lines = [
+        re.sub(r"^[\d\.\)\-\*•]+\s*", "", s.strip())
+        for s in str(ai).splitlines()
+        if len(s.strip()) > 3
+    ]
     if len(lines) >= 3:
         return lines[:10]
     return [
@@ -303,13 +412,14 @@ def generate_choices(location, food, money, risk):
     ]
 
 
-def decision_intelligence(state, risk):
+def decision_intelligence(state: dict, risk: dict) -> dict:
     state = state if isinstance(state, dict) else {}
     risk  = risk  if isinstance(risk,  dict) else {}
-    level = str(risk.get("level","MEDIUM")).upper()
+    level = str(risk.get("level", "MEDIUM")).upper()
+
     try:    score = float(risk.get("risk_score", 0))
     except: score = 0.0
-    try:    res   = float(state.get("resource", 50))
+    try:    res   = float(state.get("resource",  50))
     except: res   = 50.0
     try:    stab  = float(state.get("stability", 60))
     except: stab  = 60.0
