@@ -1,8 +1,6 @@
 # ENGINE/decision_engine.py
-# KING DIADEM — Decision Engine
-# ★ FIX: BLOCKED ไม่ return raw dict แล้ว
-#         emotional_flag → route vega + Gemini ยังรัน
-#         ไม่มี early return ที่ตัด Gemini ออก
+# KING DIADEM — Decision Engine · กลางทุกสรรพสิ่ง
+# ★ FIX: LYLA/VEGA persona ชัดเจน · voice_mode ส่งต่อ LLM ถูกต้อง
 
 import json
 import re
@@ -49,53 +47,63 @@ class DecisionEngine:
 
         # 1. PATTERN
         pattern = analyze_pattern(data)
-        route = pattern.get("route", "general")
+        route   = pattern.get("route", "general")
 
         # 2. EMPTINESS GUARD
         guarded = emptiness_guard(pattern)
 
-        # ★ FIX: BLOCK จริงมีแค่ CHOICE_COLLAPSE และ KERNEL_IMPORT_FAIL
-        #         กรณีนั้น system พัง ไม่ใช่ผู้ใช้พูดอะไร
-        if guarded.get("blocked") and guarded.get("reason") in ("CHOICE_COLLAPSE", "KERNEL_IMPORT_FAIL", "invalid_state"):
+        if guarded.get("blocked") and guarded.get("reason") in (
+            "CHOICE_COLLAPSE", "KERNEL_IMPORT_FAIL", "invalid_state"
+        ):
             return {
-                "observer": "KING DIADEM",
-                "route": "BLOCKED",
-                "reason": guarded.get("reason", "GUARD_BLOCK"),
-                "action": "stabilize",
-                "status": "BLOCKED",
+                "observer":   "KING DIADEM",
+                "route":      "BLOCKED",
+                "reason":     guarded.get("reason", "GUARD_BLOCK"),
+                "action":     "stabilize",
+                "status":     "BLOCKED",
                 "ai_response": "ระบบพบปัญหาภายใน กรุณาลองใหม่อีกครั้งครับ",
                 "risk_score": guarded.get("risk_score", 0),
+                "persona":    "LYLA",
                 "pattern": {
-                    "entropy": pattern.get("entropy"),
-                    "resource": pattern.get("resource"),
+                    "entropy":   pattern.get("entropy"),
+                    "resource":  pattern.get("resource"),
                     "stability": pattern.get("stability"),
                 },
             }
 
-        # ★ FIX: emotional_flag → route vega ไม่ block
         if guarded.get("emotional_flag") or guarded.get("suggested_route") == "vega":
             route = "vega"
         elif guarded.get("forced_action") == "stabilize":
-            # risk สูง → route survival แต่ยัง run Gemini
             if route not in ("survival", "collapse", "vega"):
                 route = "survival"
+
+        # ── Resolve persona ──────────────────────────────────────
+        raw_vm = str(data.get("voice_mode") or "lyla").lower()
+        if route == "crisis" or raw_vm == "crisis":
+            voice_mode = "crisis"
+        elif route == "vega" or raw_vm == "vega":
+            voice_mode = "vega"
+        else:
+            voice_mode = "lyla"
+
+        persona = "VEGA" if voice_mode == "vega" else "LYLA"
 
         # 3. CORE LOOP
         core_result = None
         if self.core_loop:
             try:
                 core_result = self.core_loop({
-                    "entropy": pattern.get("entropy", 40),
-                    "resource": pattern.get("resource", 50),
+                    "entropy":   pattern.get("entropy", 40),
+                    "resource":  pattern.get("resource", 50),
                     "stability": pattern.get("stability", 60),
-                    "drift": 0
+                    "drift":     0
                 })
                 if core_result.get("status") == "HALT" and route not in ("vega",):
                     route = "survival"
             except Exception:
                 pass
 
-        # 4. COLLAPSE CHAIN
+        # 4. COLLAPSE CHAIN (ปฏิจสมุปบาท)
         paticca_result = None
         if self.paticca:
             try:
@@ -106,7 +114,7 @@ class DecisionEngine:
         # 5. ENGINE ROUTE
         engine_result = self._run_route(route, pattern)
 
-        # 6. GEMINI — รันเสมอ ไม่มีเงื่อนไขตัดออก
+        # 6. GEMINI — รันเสมอ · ส่ง voice_mode + route ถูกต้อง
         ai_response = None
         if self.llm:
             try:
@@ -119,15 +127,19 @@ class DecisionEngine:
                 if guarded.get("emotional_flag"):
                     context += " | EMOTIONAL_FLAG: true — ผู้ใช้อาจอยู่ในสถานการณ์ยาก"
                 if paticca_result and paticca_result.get("root_cause"):
-                    context += f" | Root: {paticca_result.get('root_cause')}"
+                    context += f" | ปฏิจสมุปบาท root: {paticca_result.get('root_cause')}"
+
                 ai_response = self.llm.generate_with_governance(
-                    prompt=user_input,
-                    additional_context=context
+                    prompt             = user_input,
+                    additional_context = context,
+                    history            = data.get("history", []),
+                    route              = route,
+                    voice_mode         = voice_mode,
                 )
             except Exception as e:
                 ai_response = f"[Gemini unavailable: {e}]"
 
-        # 7. LYLA
+        # 7. LYLA observation
         lyla_note = None
         if self.lyla:
             try:
@@ -136,23 +148,25 @@ class DecisionEngine:
                 pass
 
         return {
-            "observer": "KING DIADEM",
-            "status": "SUCCESS",
-            "route": route,
-            "input": user_input,
+            "observer":      "KING DIADEM — Decision Engine · กลางทุกสรรพสิ่ง",
+            "status":        "SUCCESS",
+            "route":         route,
+            "persona":       persona,
+            "voice_mode":    voice_mode,
+            "input":         user_input,
             "pattern": {
-                "entropy": pattern.get("entropy"),
-                "resource": pattern.get("resource"),
-                "stability": pattern.get("stability"),
+                "entropy":    pattern.get("entropy"),
+                "resource":   pattern.get("resource"),
+                "stability":  pattern.get("stability"),
                 "confidence": pattern.get("confidence"),
-                "warnings": pattern.get("warnings", [])
+                "warnings":   pattern.get("warnings", [])
             },
-            "engine_result": engine_result,
-            "ai_response": ai_response,
+            "engine_result":  engine_result,
+            "ai_response":    ai_response,
             "collapse_chain": paticca_result,
-            "core_loop": core_result,
-            "lyla": lyla_note,
-            "risk_score": guarded.get("risk_score", 0),
+            "core_loop":      core_result,
+            "lyla":           lyla_note,
+            "risk_score":     guarded.get("risk_score", 0),
             "emotional_flag": guarded.get("emotional_flag", False),
         }
 
@@ -174,7 +188,6 @@ class DecisionEngine:
                 from ENGINE.civil_work_engine import assess
                 return assess(pattern)
             elif route == "vega":
-                # vega route — engine ไม่มีอะไรพิเศษ ปล่อย Gemini ทำงาน
                 return {"route": "vega", "status": "pass_to_llm"}
             else:
                 from ENGINE.strategy_planner import plan
@@ -183,9 +196,8 @@ class DecisionEngine:
             return {"error": f"ENGINE ROUTE FAIL [{route}]: {str(e)}"}
 
 
-# ── Singleton ──────────────────────────────────────────────────────
+# ── Singleton ─────────────────────────────────────────────────────
 _ENGINE_SINGLETON = None
-
 
 def _engine() -> "DecisionEngine":
     global _ENGINE_SINGLETON
@@ -195,11 +207,11 @@ def _engine() -> "DecisionEngine":
 
 
 def _build_payload(data: dict) -> dict:
-    out = dict(data) if isinstance(data, dict) else {}
+    out  = dict(data) if isinstance(data, dict) else {}
     text = str(out.get("input") or out.get("text") or out.get("question") or "").strip()
     if not text:
         parts = []
-        for k, label in [("location", "ที่ตั้ง"), ("food", "อาหาร"), ("money", "เงิน"), ("risk", "ความเสี่ยง")]:
+        for k, label in [("location","ที่ตั้ง"),("food","อาหาร"),("money","เงิน"),("risk","ความเสี่ยง")]:
             v = out.get(k)
             if v not in (None, "", "unknown"):
                 parts.append(f"{label}: {v}")
@@ -214,7 +226,7 @@ def _build_payload(data: dict) -> dict:
             pass
 
     risk_s = str(out.get("risk", "")).lower()
-    if any(w in risk_s for w in ["high", "สูง", "critical"]):
+    if any(w in risk_s for w in ["high","สูง","critical"]):
         try:
             out["entropy"] = min(95.0, float(out.get("entropy", 40)) + 20.0)
         except (TypeError, ValueError):
@@ -237,15 +249,11 @@ def run_decision(data):
 
     merged = _build_payload(data)
     if not (merged.get("input") or "").strip():
-        return {
-            "observer": "KING DIADEM",
-            "status": "ERROR",
-            "message": "ไม่พบ input",
-        }
+        return {"observer": "KING DIADEM", "status": "ERROR", "message": "ไม่พบ input"}
 
     merged["_eternal_snapshot"] = eternal_snapshot_for_decision({
-        "entropy": float(merged.get("entropy", 40)),
-        "resource": float(merged.get("resource", 50)),
+        "entropy":   float(merged.get("entropy",   40)),
+        "resource":  float(merged.get("resource",  50)),
         "stability": float(merged.get("stability", 60)),
     })
 
@@ -258,39 +266,32 @@ def run_decision(data):
     try:
         from ENGINE.human_engine import analyze_human
         merged["_human_engine"] = analyze_human(
-            {"state": merged.get("input", ""), "context": merged.get("intent")}
+            {"state": merged.get("input",""), "context": merged.get("intent")}
         )
     except Exception:
         merged["_human_engine"] = None
 
-    result = _engine().run(merged)
-    return result
+    return _engine().run(merged)
 
 
 def decide(input=None, intent=None, risk=None, **kwargs):
     chunks = []
-    if input is not None:
-        chunks.append(str(input))
-    if intent is not None:
-        chunks.append("บริบท: " + (json.dumps(intent, ensure_ascii=False) if isinstance(intent, dict) else str(intent)))
-    if risk is not None:
-        chunks.append("ความเสี่ยง: " + (json.dumps(risk, ensure_ascii=False) if isinstance(risk, dict) else str(risk)))
+    if input  is not None: chunks.append(str(input))
+    if intent is not None: chunks.append("บริบท: " + (json.dumps(intent, ensure_ascii=False) if isinstance(intent, dict) else str(intent)))
+    if risk   is not None: chunks.append("ความเสี่ยง: " + (json.dumps(risk, ensure_ascii=False) if isinstance(risk, dict) else str(risk)))
     for k, v in kwargs.items():
-        if v is not None:
-            chunks.append(f"{k}: {v}")
+        if v is not None: chunks.append(f"{k}: {v}")
     return run_decision({"input": "\n".join(chunks).strip()})
 
 
 def generate_choices(location, food, money, risk):
-    body = {
-        "input": (
-            f"เสนอทางเลือก 3–5 ข้อ สั้น กระชับ "
-            f"บริบท: ที่ตั้ง {location} อาหาร {food} เงิน {money} ความเสี่ยง {risk}"
-        )
-    }
+    body = {"input": (
+        f"เสนอทางเลือก 3–5 ข้อ สั้น กระชับ "
+        f"บริบท: ที่ตั้ง {location} อาหาร {food} เงิน {money} ความเสี่ยง {risk}"
+    )}
     out = run_decision(body)
-    ai = out.get("ai_response") or ""
-    lines = [re.sub(r"^[\d\.\)\-\*•]+\s*", "", s.strip())
+    ai  = out.get("ai_response") or ""
+    lines = [re.sub(r"^[\d\.\)\-\*•]+\s*","",s.strip())
              for s in str(ai).splitlines() if len(s.strip()) > 3]
     if len(lines) >= 3:
         return lines[:10]
@@ -304,27 +305,21 @@ def generate_choices(location, food, money, risk):
 
 def decision_intelligence(state, risk):
     state = state if isinstance(state, dict) else {}
-    risk = risk if isinstance(risk, dict) else {}
-    level = str(risk.get("level", "MEDIUM")).upper()
-    try:
-        score = float(risk.get("risk_score", 0))
-    except (TypeError, ValueError):
-        score = 0.0
-    try:
-        res = float(state.get("resource", 50))
-    except (TypeError, ValueError):
-        res = 50.0
-    try:
-        stab = float(state.get("stability", 60))
-    except (TypeError, ValueError):
-        stab = 60.0
+    risk  = risk  if isinstance(risk,  dict) else {}
+    level = str(risk.get("level","MEDIUM")).upper()
+    try:    score = float(risk.get("risk_score", 0))
+    except: score = 0.0
+    try:    res   = float(state.get("resource", 50))
+    except: res   = 50.0
+    try:    stab  = float(state.get("stability", 60))
+    except: stab  = 60.0
 
     if level == "CRITICAL" or score >= 85 or res <= 10:
-        return {"action": "stabilize", "message": "ชะลอการตัดสินใจใหญ่ — ดูแลพื้นฐานก่อน"}
-    if level == "HIGH" or score >= 60 or stab < 35:
-        return {"action": "stabilize", "message": "แยกปัญหาเป็นขั้นเล็กๆ แล้วทำทีละขั้น"}
+        return {"action": "stabilize",        "message": "ชะลอการตัดสินใจใหญ่ — ดูแลพื้นฐานก่อน"}
+    if level == "HIGH"     or score >= 60 or stab < 35:
+        return {"action": "stabilize",        "message": "แยกปัญหาเป็นขั้นเล็กๆ แล้วทำทีละขั้น"}
     if res < 30:
         return {"action": "recover_resource", "message": "ทรัพยากรต่ำ — เลือกสิ่งจำเป็นก่อน"}
     if stab < 45:
-        return {"action": "expand_choices", "message": "หาทางเลือกเสริม 2–3 แบบก่อนตัดสินใจ"}
-    return {"action": "maintain", "message": "ไปต่อได้ — รักษาจังหวะพอประมาณ"}
+        return {"action": "expand_choices",   "message": "หาทางเลือกเสริม 2–3 แบบก่อนตัดสินใจ"}
+    return     {"action": "maintain",         "message": "ไปต่อได้ — รักษาจังหวะพอประมาณ"}
