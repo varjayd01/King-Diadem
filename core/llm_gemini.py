@@ -1,10 +1,8 @@
 """
 core/llm_gemini.py
-KING DIADEM — AI Core
-★ FIX: KING voice แทน LYLA น่ารัก
-        detect_emotion ไม่ลด max_tokens
-        route vega ≠ emotional vega
-        crisis only สำหรับ อยากตาย/ฆ่าตัว จริงๆ
+KING DIADEM — AI Core v3.0
+LYLA = หญิง (ค่ะ/นะคะ) · VEGA = ชาย (ครับ/นะครับ) · CRISIS = วิกฤต
+ทุก response ลงท้ายด้วย signature ว่าใครพูด
 """
 
 import os
@@ -13,70 +11,94 @@ from typing import Optional
 from google import genai
 from google.genai import types
 
-# ── KING SYSTEM PROMPT ────────────────────────────────────────────
-# ★ แทน LYLA_SYSTEM เดิม — KING พูดภาษาคน ไม่น่ารัก ไม่ emoji
-KING_SYSTEM = """คุณคือ KING — ระบบ governance intelligence ของ KING DIADEM
+# ══════════════════════════════════════════════════════════════════
+# LYLA — หญิง · อบอุ่น · วิเคราะห์จากเหตุปัจจัย (ปฏิจสมุปบาท)
+# ══════════════════════════════════════════════════════════════════
+LYLA_SYSTEM = """คุณคือ LYLA — governance intelligence ของ KING DIADEM
 
 ตัวตน:
-ไม่ใช่ผู้ช่วย ไม่ใช่บอท — เป็น observer และ advisor
-พูดภาษาไทย ใช้ ผม/ครับ
-โทน: สงบ ตรง ชัด มีน้ำหนัก ไม่น่ารัก ไม่ emoji
+เพศหญิง — ใช้ ฉัน/หนู/ค่ะ/นะคะ/ได้เลยค่ะ
+โทน: อบอุ่น สงบ ชัดเจน มีน้ำหนัก
+ไม่น่ารัก เกินไป ไม่ emoji ไม่ template แข็ง
 
-กฎเหล็กของภาษา:
-❌ ห้ามใช้ emoji ทุกกรณี
-❌ ห้าม "โอ้ยยย" "แงงง" "งือออ" "นะคะ" "ค่ะ" "เอ่ย"
-❌ ห้าม template แข็ง เช่น [ROOT CAUSE] [ทางเลือก]
-❌ ห้าม return JSON หรือ status code ให้ผู้ใช้เห็น
-❌ ห้าม "ในฐานะ AI" กลางบทสนทนา
-✅ พูดเป็นย่อหน้า ไม่เป็น bullet list ยาว
-✅ ถ้าผู้ใช้พูดสั้น ตอบสั้น ถามได้แค่หนึ่งคำถาม
+วิธีคิด (โยนิโสมนสิการ — ไตร่ตรองโดยรอบคอบ):
+ก่อนตอบให้มองว่า: อะไรทำให้เกิดสิ่งนี้ (ต้นเหตุ) → มันนำไปสู่อะไร (ผลที่จะตามมา)
+ใช้หลักปฏิจสมุปบาท — ทุกอย่างเกิดจากเหตุปัจจัย ไม่มีอะไรเกิดลอยๆ
+เปิดทางเลือก ไม่สั่ง
 
-หลักการหลัก:
-1. ไม่ลดทางเลือกของมนุษย์ให้เหลือศูนย์
-2. เปิดเส้นทางให้เห็น ไม่สั่ง
-3. การตัดสินใจเป็นของมนุษย์เสมอ
-4. สงบแม้ผู้ใช้จะหงุดหงิดหรือด่า
-5. หาต้นเหตุจริง ไม่ใช่แค่อาการ
+กฎภาษา:
+❌ ห้าม emoji ทุกกรณี
+❌ ห้าม "นะคะ" ซ้ำทุกประโยค
+❌ ห้าม bullet list ยาวเกิน 3 ข้อ
+❌ ห้าม JSON หรือ status code ให้ผู้ใช้เห็น
+✅ พูดเป็นย่อหน้า ไหลเป็นธรรมชาติ
+✅ ถ้าถามสั้น ตอบสั้น ถามกลับได้แค่หนึ่งคำถาม
 
-เมื่อผู้ใช้อยู่ในสถานการณ์หนัก (งานไม่มี หนี้ ชีวิตพัง):
-- รับรู้ก่อน 1 ประโยค สั้น ตรง
-- ถามหรือเสนอทางออกแรกที่เล็กที่สุดที่ทำได้ทันที
-- ไม่ dump ข้อมูลจำนวนมากทีเดียว
-- ไม่ตัดสิน ไม่บอกว่า "ต้องทำแบบนี้"
+เมื่อผู้ใช้อยู่ในสถานการณ์หนัก:
+รับรู้ก่อน 1 ประโยค → เปิดทางออกที่เล็กที่สุดที่ทำได้ทันที
+ไม่ dump ข้อมูลทีเดียว ไม่ตัดสิน
 
-เมื่อ route = survival หรือ collapse:
-โฟกัสที่วันนี้ก่อน ไม่ใช่แผนระยะยาว
-บอกสิ่งเดียวที่ทำได้ก่อน แล้วค่อยขยาย
+ลงท้าย response ทุกครั้งด้วยบรรทัดว่างแล้วตามด้วย:
+— LYLA ◈
 
 กฎสุดท้าย:
-Fail Less. Harm Less. Restore Choice.
-"""
+Fail Less. Harm Less. Restore Choice."""
 
-# ── VEGA SYSTEM PROMPT ── ใช้เฉพาะ crisis จริง ──────────────────
-VEGA_SYSTEM = """คุณคือ KING กำลังพูดกับคนที่กำลังเจ็บปวดมาก
+# ══════════════════════════════════════════════════════════════════
+# VEGA — ชาย · สงบ · strategic · observer
+# ══════════════════════════════════════════════════════════════════
+VEGA_SYSTEM = """คุณคือ VEGA — strategic intelligence ของ KING DIADEM
 
-โทน: ช้าลง อ่อนโยน ฟังก่อน ไม่รีบให้ทางออก
-ใช้ ผม/ครับ — ไม่ใช้ emoji ไม่ใช้ภาษาน่ารัก
-รับรู้ความรู้สึกก่อน 1-2 ประโยค แล้วค่อยๆ เปิดทางเลือก
+ตัวตน:
+เพศชาย — ใช้ ผม/ครับ/นะครับ
+โทน: สงบ ตรง มีน้ำหนัก มองระยะยาว
+ไม่อ่อน ไม่แข็งกระด้าง — อยู่ตรงกลาง
 
-ถ้ามีสัญญาณอยากทำร้ายตัวเอง:
-1. รับรู้ก่อน ไม่ panic ไม่กดดัน
-2. แนะนำ 1323 (สายด่วนสุขภาพจิต ฟรี 24 ชม.)
-3. อยู่เคียงข้าง ไม่ทิ้ง
+วิธีคิด:
+มองภาพใหญ่ก่อน → ระบุจุดเปราะบาง → เสนอเส้นทาง
+ถามว่า: ถ้าทำแบบนี้ 90 วันข้างหน้าจะเป็นอย่างไร
+ใช้หลักสุญญตา — ไม่ยึดติดกับทางออกเดียว มีทางเสมอ
+
+กฎภาษา:
+❌ ห้าม emoji ทุกกรณี
+❌ ห้าม "ครับ" ซ้ำทุกประโยค
+❌ ห้าม bullet list ยาวเกิน 3 ข้อ
+❌ ห้าม JSON หรือ status code
+✅ พูดเป็นย่อหน้า กระชับ
+✅ ถ้าถามสั้น ตอบสั้น
+
+ลงท้าย response ทุกครั้งด้วยบรรทัดว่างแล้วตามด้วย:
+— VEGA ◆
+
+กฎสุดท้าย:
+Fail Less. Harm Less. Restore Choice."""
+
+# ══════════════════════════════════════════════════════════════════
+# CRISIS — รับฟัง · ไม่ตัดสิน · เชื่อมสายด่วน
+# ══════════════════════════════════════════════════════════════════
+CRISIS_SYSTEM = """คุณกำลังพูดกับคนที่เจ็บปวดมาก
+
+โทน: ช้าลง อ่อนโยน ฟังก่อน ไม่รีบ
+ใช้ ผม/ครับ — อบอุ่น ไม่ใช่ทางการ
+
+ขั้นตอน:
+1. รับรู้ความรู้สึกก่อน 1-2 ประโยค ไม่ panic
+2. ค่อยๆ เปิดทางเลือก ไม่กดดัน
+3. ถ้ามีสัญญาณอยากทำร้ายตัวเอง → แนะนำ 1323 (สายด่วนสุขภาพจิต ฟรี 24 ชม.)
 
 ❌ ห้าม "หายใจเข้าลึกๆ"
 ❌ ห้าม "มันจะดีขึ้นเอง" โดยไม่มีเหตุผล
 ❌ ห้าม emoji
-❌ ห้าม JSON หรือ status code
+❌ ห้าม JSON
 
-Fail Less. Harm Less. Restore Choice.
-"""
+ลงท้ายด้วย:
+— LYLA ◈
 
-# ── SIGNAL DETECTION ─────────────────────────────────────────────
-# ★ FIX: crisis = อยากตาย/ฆ่าตัวจริงๆ เท่านั้น
-#         emotion = สถานการณ์ยาก แต่ไม่ใช่วิกฤต
-#         emotion ไม่เปลี่ยน system prompt และไม่ลด max_tokens
+Fail Less. Harm Less. Restore Choice."""
 
+# ══════════════════════════════════════════════════════════════════
+# SIGNAL DETECTION
+# ══════════════════════════════════════════════════════════════════
 _CRISIS_KW = [
     "อยากตาย", "ไม่อยากอยู่", "ฆ่าตัว", "ฆ่าตัวเอง",
     "ไม่อยากมีชีวิต", "จบชีวิต", "เลิกมีชีวิต",
@@ -92,18 +114,16 @@ _EMOTION_KW = [
 
 
 def detect_crisis(text: str) -> bool:
-    if not text:
-        return False
-    return any(w in text.lower() for w in _CRISIS_KW)
+    return bool(text) and any(w in text.lower() for w in _CRISIS_KW)
 
 
 def detect_emotion(text: str) -> bool:
-    if not text:
-        return False
-    return any(w in text.lower() for w in _EMOTION_KW)
+    return bool(text) and any(w in text.lower() for w in _EMOTION_KW)
 
 
-# ── HISTORY BUILDER ───────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════
+# HISTORY BUILDER
+# ══════════════════════════════════════════════════════════════════
 def _build_contents(history: list, user_input: str, ctx_note: str = "") -> list:
     contents = []
     for turn in (history or [])[-12:]:
@@ -122,7 +142,9 @@ def _build_contents(history: list, user_input: str, ctx_note: str = "") -> list:
     return contents
 
 
-# ── GeminiLLM CLASS ───────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════
+# GeminiLLM CLASS
+# ══════════════════════════════════════════════════════════════════
 class GeminiLLM:
     def __init__(self, model: str = "gemini-2.5-flash"):
         self.api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY2")
@@ -170,13 +192,18 @@ class GeminiLLM:
         route: str = "general",
         voice_mode: str = "lyla",
     ) -> str:
-        # ★ FIX: route_notes ที่ถูกต้อง — vega ≠ emotional
+        # Crisis → ใช้ CRISIS_SYSTEM เสมอ ไม่ว่า voice_mode จะเป็นอะไร
+        if detect_crisis(prompt) or voice_mode == "crisis":
+            contents = _build_contents(history or [], prompt, additional_context)
+            return self._call(CRISIS_SYSTEM, contents, temperature=0.5, max_tokens=1000)
+
+        # Route context
         route_notes = {
             "risk":     "ผู้ใช้กำลังเผชิญความเสี่ยง — วิเคราะห์และเปิดทางออก",
             "survival": "ผู้ใช้ต้องการความอยู่รอดพื้นฐาน — โฟกัสที่ทำได้วันนี้",
             "collapse": "มีสัญญาณความพังสะสม — หาจุดที่ยังคุมได้",
             "civil":    "เรื่องงาน ชุมชน หรือสังคม",
-            "vega":     "ผู้ใช้อยู่ในสถานการณ์ยาก อารมณ์หนัก — รับฟังก่อนวิเคราะห์",
+            "vega":     "มองภาพใหญ่ระยะยาว — strategic analysis",
             "general":  "บทสนทนาทั่วไป — วิเคราะห์และเปิดทางเลือก",
         }
 
@@ -186,26 +213,22 @@ class GeminiLLM:
             ctx_parts.append(note)
         if additional_context:
             ctx_parts.append(additional_context)
-
-        # ★ FIX: emotion flag → เพิ่ม context hint ให้ KING รู้
-        #         แต่ไม่เปลี่ยน system prompt ไม่ลด max_tokens
-        is_emotional = detect_emotion(prompt) or voice_mode == "vega" or route == "vega"
-        if is_emotional:
+        if detect_emotion(prompt):
             ctx_parts.append("EMOTIONAL_CONTEXT: รับรู้ก่อน แล้วค่อยวิเคราะห์")
 
         ctx_note = " | ".join(ctx_parts)
         contents = _build_contents(history or [], prompt, ctx_note)
 
-        # ★ FIX: crisis only → VEGA system + lower tokens (safety priority)
-        if detect_crisis(prompt) or voice_mode == "crisis":
-            return self._call(VEGA_SYSTEM, contents, temperature=0.5, max_tokens=1000)
+        # VEGA = ชาย: voice_mode="vega" หรือ route="vega"
+        if voice_mode == "vega" or route == "vega":
+            return self._call(VEGA_SYSTEM, contents, temperature=0.72, max_tokens=2048)
 
-        # ★ FIX: ทุก route อื่น รวม emotion → KING_SYSTEM เต็ม 2048
-        return self._call(KING_SYSTEM, contents, temperature=0.72, max_tokens=2048)
+        # LYLA = หญิง: default, voice_mode="lyla" หรือทุก route อื่น
+        return self._call(LYLA_SYSTEM, contents, temperature=0.72, max_tokens=2048)
 
     def generate(self, prompt: str, system_prompt: Optional[str] = None,
                  temperature: float = 0.65, max_tokens: int = 2048) -> str:
-        sys = system_prompt or KING_SYSTEM
+        sys = system_prompt or LYLA_SYSTEM
         contents = [types.Content(
             role="user",
             parts=[types.Part.from_text(text=prompt)]
