@@ -1,6 +1,6 @@
 # =========================
-# 👑 KING DIADEM — app.py v2.2
-# Gemini + LYLA + VEGA + Stripe + Google OAuth + Survivor Engine
+# 👑 KING DIADEM — app.py v3.0
+# LYLA (หญิง/ค่ะ) · VEGA (ชาย/ครับ) · ปฏิจสมุปบาท · โยนิโสมนสิการ · สุญยตา
 # Fail less. Harm less. Restore more.
 # =========================
 
@@ -20,11 +20,45 @@ except Exception:
 
 try:
     from ENGINE.human_engine import analyze_human
+except Exception:
+    analyze_human = None
+
+try:
+    from ENGINE.paticcasamuppada_engine import analyze_chain
+except Exception:
+    analyze_chain = None
+
+try:
+    from ENGINE.collapse_predictor import predict_collapse
+except Exception:
+    predict_collapse = None
+
+try:
+    from ENGINE.consensus_engine import build_consensus
+except Exception:
+    build_consensus = None
+
+try:
+    from ENGINE.simulation_engine import simulate
+except Exception:
+    simulate = None
+
+try:
+    from ENGINE.risk_engine import assess_risk
+except Exception:
+    assess_risk = None
+
+try:
+    from ENGINE.realhuman_survivorengine import analyze as survivor_analyze
+except Exception:
+    survivor_analyze = None
+
+try:
     from AI.intent_engine import analyze_intent
     from AI.freedom_signal import record_question, freedom_index, record_choice, record_crisis
 except Exception as e:
-    print(f"⚠ ENGINE IMPORT ERROR: {e}")
-    analyze_human = analyze_intent = record_question = freedom_index = None
+    print(f"⚠ AI MODULE ERROR: {e}")
+    analyze_intent = record_question = freedom_index = None
     record_choice = record_crisis = None
 
 # ── CORE ──────────────────────────────────────────────────────────
@@ -32,7 +66,7 @@ try:
     from core.llm_gemini import GeminiLLM
     from core.lyla_kernel import LylaKernel
     lyla = LylaKernel()
-    llm = GeminiLLM(model="gemini-2.0-flash")
+    llm  = GeminiLLM(model="gemini-2.0-flash")
     print("✅ LYLA & Gemini Loaded")
 except Exception as e:
     print(f"⚠ LLM/LYLA ERROR: {e}")
@@ -86,7 +120,6 @@ except Exception as e:
     print(f"⚠ OAuth ERROR: {e}")
     oauth = None
 
-# ── STRIPE ────────────────────────────────────────────────────────
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 # ── APP ───────────────────────────────────────────────────────────
@@ -96,7 +129,6 @@ app.add_middleware(
     secret_key=os.getenv("SECRET_KEY", "king-diadem-secret-2026")
 )
 engine = DecisionEngine() if DecisionEngine else None
-
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
@@ -119,6 +151,11 @@ def health():
         "llm_loaded": llm is not None,
         "engine_loaded": engine is not None,
         "lyla_loaded": lyla is not None,
+        "paticcasamuppada": analyze_chain is not None,
+        "collapse_predictor": predict_collapse is not None,
+        "consensus_engine": build_consensus is not None,
+        "simulation_engine": simulate is not None,
+        "risk_engine": assess_risk is not None,
         "stripe_loaded": bool(os.getenv("STRIPE_SECRET_KEY")),
         "freedom_score": freedom_index() if freedom_index else 0,
         "db_initialized": init_db is not None,
@@ -181,9 +218,9 @@ async def google_callback(request: Request):
         return RedirectResponse("/static/login.html?error=oauth_disabled")
     try:
         token = await oauth.google.authorize_access_token(request)
-        user = token.get("userinfo")
+        user  = token.get("userinfo")
         email = user.get("email", "unknown")
-        name = user.get("name", email)
+        name  = user.get("name", email)
         if ensure_user:
             ensure_user(email)
         if get_credits and add_credits:
@@ -194,16 +231,14 @@ async def google_callback(request: Request):
             if sess is not None:
                 for k in list(sess.keys()):
                     if isinstance(k, str) and (
-                        k.startswith("_state")
-                        or "oauth" in k.lower()
-                        or k.endswith("_token")
+                        k.startswith("_state") or "oauth" in k.lower() or k.endswith("_token")
                     ):
                         sess.pop(k, None)
         except Exception:
             pass
         response = RedirectResponse("/")
         response.set_cookie("kd_email", _cookie_ascii(email), max_age=86400 * 30)
-        response.set_cookie("kd_name", _cookie_ascii(name), max_age=86400 * 30)
+        response.set_cookie("kd_name",  _cookie_ascii(name),  max_age=86400 * 30)
         return response
     except Exception as e:
         print(f"google_callback error: {repr(e)}")
@@ -213,7 +248,7 @@ async def google_callback(request: Request):
 @app.get("/me")
 async def me(request: Request):
     email = unquote(request.cookies.get("kd_email") or "")
-    name = unquote(request.cookies.get("kd_name") or "")
+    name  = unquote(request.cookies.get("kd_name")  or "")
     if not email:
         return {"logged_in": False}
     credits = get_credits(email) if get_credits else 0
@@ -241,7 +276,7 @@ async def register(data: dict):
     credits = get_credits(email) if get_credits else 0
     response = JSONResponse({"status": "ok", "email": email, "credits": credits})
     response.set_cookie("kd_email", _cookie_ascii(email), max_age=86400 * 30)
-    response.set_cookie("kd_name", _cookie_ascii(email), max_age=86400 * 30)
+    response.set_cookie("kd_name",  _cookie_ascii(email), max_age=86400 * 30)
     return response
 
 
@@ -292,7 +327,9 @@ async def post_chat_state(request: Request, data: dict):
     return await put_chat_state(request, data)
 
 
-# ── HELPERS ───────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════
+# HELPERS
+# ══════════════════════════════════════════════════════════════════
 def _route_bias(route: str, text: str) -> str:
     if not route or route == "general":
         return text
@@ -301,23 +338,45 @@ def _route_bias(route: str, text: str) -> str:
         "survival": "[โหมด: ความอยู่รอดพื้นฐาน — อาหาร ที่พัก ความปลอดภัย]",
         "collapse": "[โหมด: ลูกโซ่ความเสียหาย/แรงกดดันสะสม]",
         "civil":    "[โหมด: งาน/พลเมือง/ความรับผิดชอบต่อส่วนรวม]",
-        "vega":     "[โหมด: อนาคต/โลกกว้าง/ทางเลือกระยะยาว]",
+        "vega":     "[โหมด: VEGA — strategic analysis ระยะยาว]",
     }
     return f"{tags.get(route, '')} {text}".strip()
 
 
-def _voice_client_bias(data: dict, routed_text: str) -> str:
+def _resolve_voice_mode(data: dict, route: str) -> str:
+    """
+    กำหนด voice_mode ที่ชัดเจน:
+    - route=vega หรือ user เลือก vega → VEGA (ชาย/ครับ)
+    - route=crisis หรือ detect crisis → CRISIS
+    - default → LYLA (หญิง/ค่ะ)
+    """
     vm = str(data.get("voice_mode") or "").lower().strip()
-    vh = str(data.get("voice_hint") or "").strip()
-    head = ""
     if vm == "crisis":
-        head = "[สัญญาณผู้ใช้จาก client: วิกฤต/ความปลอดภัย — ตอบด้วยความเมตตาสูงสุด]\n\n"
-    elif vm == "vega":
-        head = "[สัญญาณผู้ใช้จาก client: อารมณ์หนัก — ตอบแบบอ่อนโยน ไม่ฟันธงแทนผู้ใช้]\n\n"
-    elif vm == "lyla":
-        head = "[สัญญาณผู้ใช้จาก client: LYLA mode — กระชับ เป็นหลักฐาน เปิดทางเลือก]\n\n"
-    tail = f"\n\n[voice hint: {vh}]" if vh else ""
-    return head + routed_text + tail
+        return "crisis"
+    if vm == "vega" or route == "vega":
+        return "vega"
+    if vm == "lyla" or not vm:
+        return "lyla"
+    return "lyla"
+
+
+def _paticcasamuppada_context(text: str) -> str:
+    """
+    ปฏิจสมุปบาท — วิเคราะห์ลูกโซ่เหตุปัจจัย
+    ถ้า engine ไม่ available ใช้ prompt hint แทน
+    """
+    if analyze_chain:
+        try:
+            chain = analyze_chain(text)
+            if isinstance(chain, dict):
+                root = chain.get("root_cause", "")
+                downstream = chain.get("downstream", "")
+                if root:
+                    return f"[ปฏิจสมุปบาท — ต้นเหตุ: {root} | ผลที่จะตามมา: {downstream}]"
+        except Exception:
+            pass
+    # fallback — แค่ hint ให้ LLM รู้ว่าต้องวิเคราะห์ chain
+    return "[โยนิโสมนสิการ: วิเคราะห์ต้นเหตุและลูกโซ่ผลกระทบ]"
 
 
 def _build_history_text(history: list) -> str:
@@ -325,18 +384,20 @@ def _build_history_text(history: list) -> str:
         return ""
     lines = []
     for turn in history[-10:]:
-        role = turn.get("role", "user")
+        role    = turn.get("role", "user")
         content = str(turn.get("content", "")).strip()
         if not content:
             continue
-        label = "ผู้ใช้" if role == "user" else "LYLA"
+        label = "ผู้ใช้" if role == "user" else "LYLA/VEGA"
         lines.append(f"{label}: {content}")
     if not lines:
         return ""
     return "=== บทสนทนาก่อนหน้า ===\n" + "\n".join(lines) + "\n=== สิ้นสุด ===\n\n"
 
 
-# ── DECISION ENGINE ───────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════
+# DECISION ENGINE — /run และ /decision
+# ══════════════════════════════════════════════════════════════════
 @app.post("/run")
 @app.post("/decision")
 async def run_kernel(request: Request, data: dict):
@@ -344,27 +405,55 @@ async def run_kernel(request: Request, data: dict):
     if not user_input:
         return {"error": "Input is required"}
 
-    email = unquote(request.cookies.get("kd_email") or "anonymous")
-    route = data.get("route") or "general"
+    email  = unquote(request.cookies.get("kd_email") or "anonymous")
+    route  = data.get("route") or "general"
+    vm     = _resolve_voice_mode(data, route)
 
     if record_question:
         record_question()
 
-    human_state = (
-        analyze_human(data.get("context", {}))
-        if analyze_human
-        else {"entropy": 40, "resource": 50, "stability": 60, "risk_score": 10}
-    )
-    intent = (
-        analyze_intent(user_input)
-        if analyze_intent
-        else {"intent": "general", "confidence": 0.5}
-    )
+    # ── Human state ──────────────────────────────────────────────
+    human_state = {"entropy": 40, "resource": 50, "stability": 60, "risk_score": 10}
+    if analyze_human:
+        try:
+            human_state = analyze_human(data.get("context", {})) or human_state
+        except Exception:
+            pass
 
-    routed = _route_bias(route, user_input)
-    effective_input = _voice_client_bias(data, routed)
+    # ── Intent ───────────────────────────────────────────────────
+    intent = {"intent": "general", "confidence": 0.5}
+    if analyze_intent:
+        try:
+            intent = analyze_intent(user_input) or intent
+        except Exception:
+            pass
 
-    # Survivor engine context
+    # ── Risk ─────────────────────────────────────────────────────
+    risk_ctx = ""
+    if assess_risk:
+        try:
+            r = assess_risk(user_input)
+            if isinstance(r, dict) and r.get("level"):
+                risk_ctx = f"[Risk: {r['level']}]"
+                if r.get("level") in ("HIGH", "CRITICAL") and route not in ("vega",):
+                    route = "collapse"
+        except Exception:
+            pass
+
+    # ── Collapse prediction ──────────────────────────────────────
+    collapse_ctx = ""
+    if predict_collapse:
+        try:
+            c = predict_collapse(user_input)
+            if isinstance(c, dict) and c.get("probability", 0) > 0.6:
+                collapse_ctx = f"[Collapse probability: {c['probability']:.0%}]"
+        except Exception:
+            pass
+
+    # ── ปฏิจสมุปบาท context ──────────────────────────────────────
+    paticca_ctx = _paticcasamuppada_context(user_input)
+
+    # ── Survivor engine ──────────────────────────────────────────
     survivor_ctx = ""
     if orchestrator:
         try:
@@ -373,26 +462,40 @@ async def run_kernel(request: Request, data: dict):
                 human_context=data.get("context", {})
             )
             survivor_ctx = sr.get("survivor_context", "")
-            if not sr.get("can_decide", True) and route not in ("crisis", "vega"):
+            if not sr.get("can_decide", True) and route not in ("vega",):
                 route = sr.get("route", route)
         except Exception:
             pass
+    elif survivor_analyze:
+        try:
+            sr = survivor_analyze(user_input, data.get("context", {}))
+            survivor_ctx = sr.get("context", "") if isinstance(sr, dict) else ""
+        except Exception:
+            pass
 
-    # History
-    history = data.get("history") or []
-    history_text = _build_history_text(history)
-    if history_text:
-        effective_input = history_text + effective_input
+    # ── Build effective input ────────────────────────────────────
+    routed = _route_bias(route, user_input)
+    history_text = _build_history_text(data.get("history") or [])
+
+    extra_ctx_parts = [p for p in [paticca_ctx, risk_ctx, collapse_ctx] if p]
+    extra_ctx = " ".join(extra_ctx_parts)
+
+    effective_input = history_text
     if survivor_ctx:
-        effective_input = survivor_ctx + "\n\n" + effective_input
+        effective_input += survivor_ctx + "\n\n"
+    effective_input += routed
+    if extra_ctx:
+        effective_input += f"\n\n{extra_ctx}"
 
     payload = {**data, "input": effective_input}
 
+    # ── Run decision ─────────────────────────────────────────────
     if full_run_decision:
         result = full_run_decision(payload)
     elif engine:
         result = engine.run(payload)
     else:
+        reply = "[KING DIADEM — Offline]\n— Fail Less. Harm Less. Restore Choice. —"
         if llm:
             try:
                 reply = llm.generate_with_governance(
@@ -400,27 +503,43 @@ async def run_kernel(request: Request, data: dict):
                     additional_context=(
                         f"entropy={human_state.get('entropy')}, "
                         f"stability={human_state.get('stability')}, "
-                        f"voice_mode={data.get('voice_mode')!r}"
+                        f"voice_mode={vm}"
                     ),
-                    history=history,
+                    history=data.get("history") or [],
                     route=route,
-                    voice_mode=data.get("voice_mode", "lyla"),
+                    voice_mode=vm,
                 )
             except Exception as e:
                 reply = f"[Gemini Error: {e}]"
-        else:
-            reply = "[KING DIADEM — Offline]\n— Fail Less. Harm Less. Restore Choice. —"
 
         result = {
             "observer": "KING DIADEM",
             "status": "SUCCESS",
-            "route": intent.get("intent", "general") if isinstance(intent, dict) else "general",
+            "route": intent.get("intent", route) if isinstance(intent, dict) else route,
             "ai_response": reply,
             "governance": {"intent": intent, "human_state": human_state},
+            "persona": "VEGA" if vm == "vega" else "LYLA",
         }
 
-    result["route"] = result.get("route") or route
+    result["route"]   = result.get("route") or route
+    result["persona"] = "VEGA" if vm == "vega" else "LYLA"
+    result["voice_mode"] = vm
 
+    # ── Consensus (ถ้ามี) ────────────────────────────────────────
+    if build_consensus and result.get("ai_response"):
+        try:
+            cs = build_consensus({
+                "text": user_input,
+                "response": result["ai_response"],
+                "route": route,
+                "human_state": human_state,
+            })
+            if isinstance(cs, dict) and cs.get("consensus"):
+                result["consensus"] = cs["consensus"]
+        except Exception:
+            pass
+
+    # ── Logging ──────────────────────────────────────────────────
     if log_decision and result.get("ai_response"):
         try:
             log_decision(email, user_input, result.get("route", "general"),
@@ -453,20 +572,44 @@ async def run_kernel(request: Request, data: dict):
 async def simulate_future(data: dict):
     user_input = data.get("input", "")
     paths = data.get("paths") or []
+    route = data.get("route") or "vega"
+    vm    = _resolve_voice_mode(data, route)
+
     extra = ""
     if paths:
         extra = "\nทางเลือกที่ผู้ใช้ระบุ:\n" + "\n".join(f"- {p}" for p in paths if str(p).strip())
+
+    # ใช้ simulation_engine ถ้ามี
+    sim_result = None
+    if simulate:
+        try:
+            sim_result = simulate(user_input, paths or [])
+        except Exception:
+            pass
+
     if not llm:
         return {"status": "OFFLINE", "message": "LLM not found"}
+
+    paticca = _paticcasamuppada_context(user_input)
+
     try:
         raw = llm.generate_with_governance(
-            prompt=f"จำลองอนาคต 30/90/365 วัน: {user_input}",
-            additional_context="mode=simulation, analyze paths and risks" + extra,
+            prompt=f"จำลองอนาคต 30/90/365 วัน:\n{user_input}{extra}\n\n{paticca}",
+            additional_context="mode=simulation, วิเคราะห์ลูกโซ่เหตุปัจจัยและความเสี่ยง",
+            route=route,
+            voice_mode=vm,
         )
     except Exception as e:
         raw = f"Simulation error: {e}"
+
     observation = lyla.observe(user_input) if lyla else {"stability": "NOMINAL"}
-    return {"status": "SUCCESS", "simulation": raw, "lyla_observation": observation}
+    return {
+        "status":           "SUCCESS",
+        "simulation":       raw,
+        "lyla_observation": observation,
+        "engine_result":    sim_result,
+        "persona":          "VEGA" if vm == "vega" else "LYLA",
+    }
 
 
 # ── IMAGE ANALYSIS ────────────────────────────────────────────────
@@ -475,26 +618,24 @@ async def analyze_image(file: UploadFile = File(...)):
     if not llm:
         return {"status": "OFFLINE", "message": "LLM not found"}
     try:
-        from google import genai
-        from google.genai import types
+        from google import genai as g
+        from google.genai import types as t
         content = await file.read()
-        client = genai.Client(
-            api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY2")
-        )
+        client  = g.Client(api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY2"))
         response = client.models.generate_content(
             model="gemini-2.0-flash",
-            contents=[types.Content(role="user", parts=[
-                types.Part.from_bytes(data=content, mime_type=file.content_type or "image/jpeg"),
-                types.Part.from_text(text=(
+            contents=[t.Content(role="user", parts=[
+                t.Part.from_bytes(data=content, mime_type=file.content_type or "image/jpeg"),
+                t.Part.from_text(text=(
                     "วิเคราะห์ภาพนี้:\n"
                     "1. สิ่งที่เห็นคืออะไร\n"
                     "2. มีความเสี่ยงหรือ drift ที่ซ่อนอยู่ไหม\n"
                     "3. ทางเลือกที่แนะนำ ≤3 ทาง\n"
-                    "ตอบตรงๆ ไม่ตัดสิน"
+                    "ตอบตรงๆ ไม่ตัดสิน\n\nลงท้ายด้วย — LYLA ◈"
                 )),
             ])],
         )
-        return {"status": "SUCCESS", "analysis": response.text, "filename": file.filename}
+        return {"status": "SUCCESS", "analysis": response.text, "filename": file.filename, "persona": "LYLA"}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
@@ -508,7 +649,7 @@ async def upload_image_alias(file: UploadFile = File(...)):
 @app.post("/payment/create-checkout")
 async def create_checkout(request: Request):
     payload = await request.json()
-    plan = payload.get("plan", "basic")
+    plan  = payload.get("plan", "basic")
     email = (
         payload.get("email")
         or payload.get("api_key")
