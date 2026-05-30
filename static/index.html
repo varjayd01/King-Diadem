@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#050208">
+<meta name="theme-color" content="#06060e">
 <link rel="manifest" href="/static/manifest.json">
 <link rel="icon" href="/static/logo.png" type="image/png">
 <title>KING DIADEM — DriftZero OS</title>
@@ -11,29 +11,41 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 :root{
   --gold:#e8c078;--gold-hot:#ffd98a;--teal:#2dd4bf;--violet:#7c6cff;
-  --bg:#0d0d0f;--bg2:#141417;--bg3:#1a1a1e;
+  --bg:#06060e;--bg2:#0c0c18;--bg3:#12111e;
   --border:rgba(255,255,255,0.07);--border-s:rgba(255,255,255,0.04);
-  --text:#c9cdd4;--text-bright:#eef0f4;--text-dim:rgba(180,185,195,0.45);
-  --accent:#2dd4bf;--accent2:#e8c078;
+  --text:#c9cdd4;--text-bright:#eef0f4;--text-dim:rgba(180,185,195,0.42);
+  --accent:#2dd4bf;--r:12px;--r-s:8px;
   --safe-bottom:env(safe-area-inset-bottom,0px);
   --safe-top:env(safe-area-inset-top,0px);
-  --r:12px;--r-s:8px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:var(--text);
   font-family:'DM Sans',system-ui,sans-serif;overflow-x:hidden;font-size:14px;line-height:1.6;}
 
-#galaxy{position:fixed;inset:0;z-index:0;pointer-events:none;display:block;width:100%;height:100%;}
-.nebula{display:none;}
-.scanline{display:none;}
+/* ── GALAXY CANVAS — full screen behind everything ── */
+#galaxy{
+  position:fixed;inset:0;z-index:0;
+  display:block;width:100%;height:100%;
+  pointer-events:auto; /* allows drag/scroll on canvas */
+}
+/* block canvas pointer events when modal/input is focused */
+#galaxy.ui-focus{pointer-events:none;}
+
+/* ── AI overlay canvases ── */
+#orbit,#brain{position:fixed;inset:0;z-index:1;pointer-events:none;display:block;width:100%;height:100%;}
+
+.nebula,.scanline{display:none;}
+
+/* ── APP LAYER ── */
 #app{position:relative;z-index:10;display:flex;flex-direction:row;height:100dvh;max-height:100dvh;width:100%;align-items:stretch;}
 #main-wrap{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;}
+
 /* ── Rail ── */
-#rail-scrim{display:none;position:fixed;inset:0;z-index:11;background:rgba(0,0,0,.6);cursor:pointer;}
+#rail-scrim{display:none;position:fixed;inset:0;z-index:11;background:rgba(0,0,0,.65);cursor:pointer;}
 #rail-scrim.on{display:block;}
 #rail{width:min(260px,82vw);flex-shrink:0;display:flex;flex-direction:column;gap:2px;
   padding:calc(12px + var(--safe-top)) 12px 16px;border-right:1px solid var(--border);
-  background:rgba(14,14,18,0.88);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);z-index:12;overflow:hidden;}
+  background:rgba(8,7,20,.88);backdrop-filter:blur(22px);z-index:12;overflow:hidden;}
 .rail-brand{display:flex;align-items:center;gap:10px;padding:4px 4px 14px;border-bottom:1px solid var(--border-s);margin-bottom:4px;}
 .rail-brand-logo{width:30px;height:30px;object-fit:contain;flex-shrink:0;opacity:.9;}
 .rail-brand .logo-text{font-size:15px;font-weight:600;letter-spacing:.04em;color:var(--text-bright);}
@@ -43,7 +55,6 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
   color:var(--text);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.04em;
   transition:background .15s,border-color .15s;}
 .rail-new:hover{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);}
-.rail-new:active{background:rgba(255,255,255,.04);}
 .rail-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.12em;color:var(--text-dim);
   margin:14px 4px 6px;text-transform:uppercase;}
 .rail-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:var(--r-s);
@@ -74,7 +85,7 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
 .btn-rail-out{width:100%;padding:9px 10px;border-radius:var(--r-s);border:1px solid rgba(255,100,100,.2);
   background:transparent;color:rgba(255,150,150,.7);font-size:11px;cursor:pointer;transition:background .15s;}
 .btn-rail-out:hover{background:rgba(255,80,80,.08);}
-.icon-btn{display:none;border:1px solid var(--border);background:var(--bg3);
+.icon-btn{display:none;border:1px solid var(--border);background:rgba(12,12,24,.7);
   color:var(--text-bright);border-radius:var(--r-s);width:38px;height:38px;cursor:pointer;font-size:18px;
   transition:background .15s;}
 .icon-btn:active{background:rgba(255,255,255,.08);}
@@ -85,10 +96,11 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
   .icon-btn{display:inline-flex;align-items:center;justify-content:center;}
 }
 @media(min-width:900px){#tabbar{display:none;}}
+
 /* ── Topbar ── */
 #topbar{flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:8px;
-  padding:calc(10px + var(--safe-top)) 16px 10px;border-bottom:1px solid rgba(255,255,255,.06);
-  background:rgba(8,8,12,0.72);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);}
+  padding:calc(10px + var(--safe-top)) 16px 10px;border-bottom:1px solid var(--border-s);
+  background:rgba(6,6,14,.72);backdrop-filter:blur(22px);}
 .topbar-left{display:flex;align-items:center;gap:10px;min-width:0;}
 .logo-text{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;letter-spacing:.06em;color:var(--text-bright);}
 .logo-sub{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;color:var(--text-dim);}
@@ -102,63 +114,63 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
 .tone-pill.crisis{border-color:rgba(239,68,68,.3);color:rgba(239,68,68,.7);}
 .tone-pill.vega{border-color:rgba(232,192,120,.3);color:rgba(232,192,120,.7);}
 .tone-pill.lyla{border-color:rgba(45,212,191,.3);color:rgba(45,212,191,.7);}
+
 /* ── Views ── */
 #main-scroll{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;background:transparent;}
 .view{display:none;flex:1;min-height:0;flex-direction:column;background:transparent;}
 .view.active{display:flex;}
-#chat-scroll{flex:1;min-height:0;overflow-y:auto;padding:32px 24px 16px;-webkit-overflow-scrolling:touch;background:transparent;}
+#chat-scroll{flex:1;min-height:0;overflow-y:auto;padding:32px 24px 16px;-webkit-overflow-scrolling:touch;}
+#view-chat{background:rgba(5,4,14,0.50);}
+
 /* ── Welcome ── */
 #welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center;padding:40px 20px;}
-.welcome-card{max-width:min(100%,26rem);padding:28px 28px 24px;background:rgba(10,10,16,0.6);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.08);border-radius:20px;}
+.welcome-card{max-width:min(100%,26rem);padding:28px 28px 24px;
+  background:rgba(8,7,20,.45);backdrop-filter:blur(18px);
+  border:1px solid rgba(255,255,255,.06);border-radius:18px;}
 .welcome-logo{width:48px;height:48px;object-fit:contain;opacity:.85;margin-bottom:4px;}
 .welcome-title{font-family:'DM Sans',sans-serif;font-size:clamp(22px,5vw,28px);letter-spacing:.04em;font-weight:600;color:var(--text-bright);}
 .welcome-sub{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.18em;color:var(--text-dim);text-transform:uppercase;}
 .welcome-desc{font-size:14px;line-height:1.8;color:var(--text);max-width:26ch;margin:0 auto;}
 .welcome-hint{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
 .hint-chip{font-size:12px;padding:8px 16px;border-radius:999px;cursor:pointer;
-  border:1px solid var(--border);background:var(--bg3);
+  border:1px solid var(--border);background:rgba(12,12,24,.6);backdrop-filter:blur(8px);
   color:var(--text);transition:background .15s,border-color .15s,color .15s;}
 .hint-chip:hover{border-color:rgba(45,212,191,.3);color:var(--text-bright);background:rgba(45,212,191,.06);}
 .hint-chip:active{background:rgba(45,212,191,.04);}
-/* ── Messages ── */
-/* messages — no bubble, Claude/Gemini style */
+
+/* ── Messages — Gemini style ── */
 .msg{display:flex;gap:14px;align-items:flex-start;margin-bottom:28px;animation:msgIn .22s ease;
   max-width:720px;margin-left:auto;margin-right:auto;width:100%;}
 @keyframes msgIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 .msg.user{flex-direction:row-reverse;}
 .msg-avatar{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
   font-size:8px;font-family:'DM Mono',monospace;font-weight:500;margin-top:2px;}
-.msg.user .msg-avatar{background:rgba(232,192,120,.15);color:rgba(232,192,120,.8);display:none;}
+.msg.user .msg-avatar{display:none;}
 .msg.system .msg-avatar{background:rgba(45,212,191,.1);border:1px solid rgba(45,212,191,.15);}
 .msg-logo{width:100%;height:100%;object-fit:contain;padding:4px;opacity:.75;}
 .msg-body{flex:1;min-width:0;}
 .msg-sender{display:none;}
-/* user message — plain right-aligned text */
 .msg.user .msg-body{display:flex;justify-content:flex-end;}
 .msg.user .msg-text{
   font-size:14px;line-height:1.75;color:var(--text-bright);
-  background:rgba(255,255,255,.08);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  border-radius:18px 18px 4px 18px;
-  padding:10px 16px;
-  max-width:min(82%,480px);
-  white-space:pre-wrap;word-break:break-word;
-  border:1px solid rgba(255,255,255,.08);}
-/* ai message — plain left text, no box */
+  background:rgba(255,255,255,.06);backdrop-filter:blur(8px);
+  border-radius:18px 18px 4px 18px;padding:10px 16px;
+  max-width:min(82%,480px);white-space:pre-wrap;word-break:break-word;border:none;}
 .msg.system .msg-text{
-  font-size:14px;line-height:1.8;color:var(--text-bright);
-  padding:0;background:none;border:none;
-  white-space:pre-wrap;word-break:break-word;text-shadow:0 1px 8px rgba(0,0,0,0.8);}
+  font-size:14px;line-height:1.8;color:var(--text);
+  padding:0;background:none;border:none;white-space:pre-wrap;word-break:break-word;}
 .thinking{display:flex;gap:5px;padding:4px 0 4px 2px;align-items:center;}
 .thinking span{width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.5;animation:tpulse 1.2s ease-in-out infinite;}
 .thinking span:nth-child(2){animation-delay:.18s}.thinking span:nth-child(3){animation-delay:.36s}
 @keyframes tpulse{0%,100%{opacity:.2;transform:scale(.85)}50%{opacity:.7;transform:scale(1)}}
 .route-tag{font-family:'DM Mono',monospace;font-size:9px;margin-top:10px;padding:3px 0;
-  color:var(--text-dim);display:inline-flex;align-items:center;gap:6px;border:none;letter-spacing:.06em;}
+  color:var(--text-dim);display:inline-flex;align-items:center;gap:6px;letter-spacing:.06em;}
 .route-tag::before{content:'';display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--teal);opacity:.6;}
+
 /* ── Tools / Gov ── */
 .tools-pad,.gov-pad{padding:20px;overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch;max-width:680px;margin:0 auto;width:100%;}
-.section{margin-bottom:12px;border:1px solid var(--border-s);border-radius:var(--r);background:var(--bg2);overflow:hidden;}
+.section{margin-bottom:12px;border:1px solid var(--border-s);border-radius:var(--r);
+  background:rgba(10,9,22,.65);backdrop-filter:blur(14px);overflow:hidden;}
 .sec-head{padding:10px 14px;border-bottom:1px solid var(--border-s);font-family:'DM Mono',monospace;font-size:9px;
   letter-spacing:.1em;color:var(--text-dim);text-transform:uppercase;}
 .sec-body{padding:14px;}
@@ -172,9 +184,7 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
 .wl-label{font-size:9px;font-family:'DM Mono',monospace;color:var(--text-dim);letter-spacing:.08em;margin:8px 0 4px;}
 .wl-meter{height:3px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden;}
 .wl-fill{height:100%;transition:width .5s ease;}
-.wl-fill.safe{background:var(--teal);}
-.wl-fill.warn{background:#f59e0b;}
-.wl-fill.crit{background:#ef4444;}
+.wl-fill.safe{background:var(--teal);}.wl-fill.warn{background:#f59e0b;}.wl-fill.crit{background:#ef4444;}
 .lyla-item{display:flex;justify-content:space-between;font-size:12px;margin:8px 0;align-items:center;}
 .lyla-key{font-family:'DM Mono',monospace;color:var(--text-dim);font-size:9px;text-transform:uppercase;letter-spacing:.08em;}
 .lyla-val{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;}
@@ -196,9 +206,11 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
 .plan-row label{display:flex;align-items:center;gap:8px;font-size:13px;margin:8px 0;color:var(--text);}
 .photo-out{min-height:80px;padding:12px;border-radius:var(--r-s);border:1px solid var(--border-s);background:var(--bg3);
   font-size:12px;font-family:'DM Mono',monospace;white-space:pre-wrap;word-break:break-word;line-height:1.6;margin-top:8px;color:var(--text);}
+
 /* ── Input dock ── */
-#input-dock{flex-shrink:0;border-top:1px solid var(--border-s);background:rgba(8,8,12,0.80);
-  padding:12px 20px calc(12px + var(--safe-bottom));backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);position:relative;z-index:20;}
+#input-dock{flex-shrink:0;border-top:1px solid var(--border-s);
+  background:rgba(6,6,14,.82);backdrop-filter:blur(22px);
+  padding:12px 20px calc(12px + var(--safe-bottom));position:relative;z-index:20;}
 .ctx-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;margin-bottom:10px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
 .ctx-scroll::-webkit-scrollbar{display:none;}
 .ctx-tag{flex-shrink:0;font-family:'DM Mono',monospace;font-size:10px;padding:6px 14px;border-radius:999px;cursor:pointer;white-space:nowrap;
@@ -208,9 +220,9 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
 .ctx-tag.active{border-color:rgba(45,212,191,.35);color:var(--teal);background:rgba(45,212,191,.07);}
 .input-row{display:flex;gap:8px;align-items:flex-end;max-width:760px;margin:0 auto;}
 #main-input{flex:1;min-height:48px;max-height:120px;padding:13px 16px;border-radius:var(--r);
-  border:1px solid var(--border);background:var(--bg2);color:var(--text-bright);
+  border:1px solid var(--border);background:rgba(14,13,28,.75);color:var(--text-bright);
   font-size:14px;font-family:'DM Sans',inherit;line-height:1.5;resize:none;outline:none;
-  transition:border-color .2s;}
+  transition:border-color .2s;backdrop-filter:blur(8px);}
 #main-input:focus{border-color:rgba(45,212,191,.3);}
 #main-input::placeholder{color:var(--text-dim);}
 #run-btn{flex-shrink:0;min-width:64px;min-height:48px;padding:0 18px;border-radius:var(--r);cursor:pointer;
@@ -220,9 +232,10 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
 #run-btn:hover:not(:disabled){background:rgba(45,212,191,.16);border-color:rgba(45,212,191,.45);}
 #run-btn:active:not(:disabled){background:rgba(45,212,191,.1);}
 #run-btn:disabled{opacity:.35;cursor:not-allowed;}
+
 /* ── Tabbar ── */
-#tabbar{flex-shrink:0;display:flex;border-top:1px solid var(--border-s);background:rgba(8,8,12,0.90);
-  padding-bottom:var(--safe-bottom);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);position:relative;z-index:20;}
+#tabbar{flex-shrink:0;display:flex;border-top:1px solid var(--border-s);
+  background:rgba(6,6,14,.92);padding-bottom:var(--safe-bottom);position:relative;z-index:20;}
 .tab-btn{flex:1;padding:13px 4px;border:none;background:transparent;color:var(--text-dim);
   font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.06em;cursor:pointer;transition:color .15s,background .15s;}
 .tab-btn:hover{color:var(--text);background:rgba(255,255,255,.03);}
@@ -230,19 +243,35 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
 .tab-btn .ti{display:block;font-size:17px;margin-bottom:3px;}
 #bottom-note{flex-shrink:0;text-align:center;font-family:'DM Mono',monospace;font-size:8px;color:var(--text-dim);
   padding:4px 8px 6px;letter-spacing:.06em;}
+
 /* ── Error toast ── */
 #err-toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:999;
   font-family:'DM Mono',monospace;font-size:11px;padding:10px 18px;border-radius:var(--r);
-  background:rgba(30,10,10,.95);border:1px solid rgba(239,68,68,.25);color:rgba(239,68,68,.8);
-  max-width:min(90vw,440px);text-align:center;display:none;animation:fadeUp .25s ease;
-  backdrop-filter:blur(12px);}
+  background:rgba(25,8,8,.95);border:1px solid rgba(239,68,68,.25);color:rgba(239,68,68,.8);
+  max-width:min(90vw,440px);text-align:center;display:none;animation:fadeUp .25s ease;backdrop-filter:blur(12px);}
 @keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(6px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+
+/* ── AI persona badge ── */
+.msg-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.10em;
+  margin-top:10px;padding:3px 9px 3px 7px;border-radius:999px;
+  border:1px solid;opacity:.75;
+}
+.msg-badge.lyla{color:rgba(45,212,191,.9);border-color:rgba(45,212,191,.25);background:rgba(45,212,191,.06);}
+.msg-badge.vega{color:rgba(232,192,120,.9);border-color:rgba(232,192,120,.25);background:rgba(232,192,120,.06);}
+.msg-badge.crisis{color:rgba(239,68,68,.9);border-color:rgba(239,68,68,.25);background:rgba(239,68,68,.06);}
 </style>
 </head>
 <body>
+
+<!-- ── Layer 0: Galaxy (3D cosmos, drag to rotate) ── -->
 <canvas id="galaxy"></canvas>
-<div class="nebula"></div>
-<div class="scanline"></div>
+
+<!-- ── Layer 1: AI overlays (brain nodes + orbit particles) ── -->
+<canvas id="orbit"></canvas>
+<canvas id="brain"></canvas>
+
 <div id="err-toast"></div>
 
 <div id="app">
@@ -293,14 +322,13 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
         <span class="sys-badge off" id="b-eng">ENG</span>
         <span class="sys-badge off" id="b-lyla">LYLA</span>
         <span class="sys-badge off" id="b-stripe">$</span>
-        <span id="credits-pill" style="font-size:9px;color:rgba(232,192,120,.5);font-family:'Share Tech Mono',monospace;">—</span>
+        <span id="credits-pill" style="font-size:9px;color:rgba(232,192,120,.5);font-family:'DM Mono',monospace;">—</span>
         <span class="tone-pill lyla" id="tone-pill">LYLA</span>
         <div id="sys-time">--:--</div>
       </div>
     </header>
 
     <div id="main-scroll">
-      <!-- CHAT -->
       <div id="view-chat" class="view active">
         <div id="chat-scroll">
           <div id="welcome">
@@ -308,19 +336,21 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
               <img src="/static/logo.png" alt="" class="welcome-logo" width="72" height="72">
               <div class="welcome-title">KING DIADEM</div>
               <div class="welcome-sub">LYLA KERNEL · GOVERNANCE OS</div>
-              <p class="welcome-desc">ระบบไม่คิดแทนคุณ — ช่วยให้เห็นทางเลือกชัดขึ้น<br>การตัดสินใจสุดท้ายเป็นของคุณเสมอ</p>
+              <p class="welcome-desc">ระบบไม่คิดแทนคุณ<br>คืนทางเลือกให้มนุษย์ทุกคน</p>
             </div>
             <div class="welcome-hint">
               <span class="hint-chip" onclick="useHint(this)">ฉันตกงาน ไม่รู้จะทำอะไร</span>
               <span class="hint-chip" onclick="useHint(this)">ธุรกิจกำลังล้มเหลว</span>
               <span class="hint-chip" onclick="useHint(this)">ต้องตัดสินใจสำคัญ</span>
               <span class="hint-chip" onclick="useHint(this)">ทรัพยากรกำลังหมด</span>
+              <span class="hint-chip" onclick="useHint(this)">หนี้สินท่วมหัว</span>
+              <span class="hint-chip" onclick="useHint(this)">ความสัมพันธ์กำลังพัง</span>
+              <span class="hint-chip" onclick="useHint(this)">ไม่รู้จะเริ่มต้นจากไหน</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- TOOLS -->
       <div id="view-tools" class="view">
         <div class="tools-pad">
           <div class="section" id="section-simulate">
@@ -359,7 +389,6 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
         </div>
       </div>
 
-      <!-- GOV -->
       <div id="view-gov" class="view">
         <div class="gov-pad">
           <div class="section">
@@ -379,7 +408,7 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
               <div class="wl-label">ENTROPY</div><div class="wl-meter"><div class="wl-fill safe" id="wl-entropy" style="width:40%"></div></div>
               <div class="wl-label">STABILITY</div><div class="wl-meter"><div class="wl-fill safe" id="wl-stability" style="width:60%"></div></div>
               <div class="wl-label">RESOURCE</div><div class="wl-meter"><div class="wl-fill safe" id="wl-resource" style="width:50%"></div></div>
-              <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:'Share Tech Mono',monospace;font-size:10px;color:rgba(184,212,232,.4);">
+              <div style="display:flex;justify-content:space-between;margin-top:8px;font-family:'DM Mono',monospace;font-size:10px;color:var(--text-dim);">
                 <span id="wl-entropy-val">40</span><span id="wl-stability-val">60</span><span id="wl-resource-val">50</span>
               </div>
             </div>
@@ -417,7 +446,10 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
       </div>
       <div class="input-row">
         <textarea id="main-input" rows="1" placeholder="พิมพ์สถานการณ์… (Enter ส่ง · Shift+Enter ขึ้นบรรทัด)"
-          oninput="autoResize(this)" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();run();}"></textarea>
+          oninput="autoResize(this)"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();run();}"
+          onfocus="document.getElementById('galaxy').classList.add('ui-focus')"
+          onblur="document.getElementById('galaxy').classList.remove('ui-focus')"></textarea>
         <button type="button" id="run-btn" onclick="run()">ส่ง</button>
       </div>
     </div>
@@ -431,10 +463,43 @@ html,body{width:100%;height:100%;min-height:100dvh;background:var(--bg);color:va
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════
+     CORE — window.KD state bus
+     All JS files share this single state object
+     ══════════════════════════════════════════════════════════= -->
 <script>
-window.KD={byId:function(id){return document.getElementById(id);}};
-window.KD_pulse=function(){};
+window.KD = {
+  state: {
+    consensus: { confidence: 50, final_action: 'observe' },
+    risk:      { risk_score: 0 },
+    council:   { votes: [], score: 0 },
+    output:    { action: 'general', reason: '' }
+  },
+  byId: function(id){ return document.getElementById(id); },
+  resizeCanvas: function(canvas){
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    return canvas.getContext('2d');
+  }
+};
+window.KD_pulse = function(route){ /* galaxy_scene.js exports real impl */ };
 </script>
+
+<!-- ── Galaxy (3D cosmos — drag to rotate, scroll to zoom) ── -->
+<script src="/static/galaxy_scene.js"></script>
+
+<!-- ── AI overlays (connect to window.KD.state) ── -->
+<script src="/static/ai_orbit.js"></script>
+<script src="/static/ai_brain.js"></script>
+
+<!-- ── Galaxy council + decision trace ── -->
+<script src="/static/galaxy_council.js"></script>
+<script src="/static/galaxy_decision.js"></script>
+
+<!-- ── App.js (tone detection) ── -->
+<script src="/static/app.js"></script>
+
+<!-- ── Main logic ── -->
 <script>
 /* ── Conversation history ── */
 var _KD_HIST={};
@@ -450,7 +515,6 @@ function showErr(msg,ms){
   clearTimeout(_errT);_errT=setTimeout(function(){el.style.display='none';},ms||5000);
 }
 
-/* ── readJson with friendly errors ── */
 async function readJson(res){
   var ct=(res.headers.get('content-type')||'').toLowerCase();
   var txt=await res.text();
@@ -461,13 +525,11 @@ async function readJson(res){
   try{return JSON.parse(txt);}catch(e){throw new Error('ตอบไม่ใช่ JSON');}
 }
 
-/* ── Retry fetch (handles Gemini 503) ── */
 async function fetchRetry(url,opts,retries,delayMs){
   retries=retries||3; delayMs=delayMs||1200;
   for(var i=0;i<retries;i++){
     try{
       var r=await fetch(url,opts);
-      /* 503 from Gemini — retry */
       if(r.status===503&&i<retries-1){
         var txt=await r.text();
         if(txt.toLowerCase().includes('unavailable')||txt.toLowerCase().includes('demand')){
@@ -475,7 +537,6 @@ async function fetchRetry(url,opts,retries,delayMs){
           await new Promise(function(res){setTimeout(res,delayMs*Math.pow(2,i));});
           continue;
         }
-        /* 503 but not Gemini overload — reconstruct response */
         return new Response(txt,{status:503,headers:{'content-type':'application/json'}});
       }
       return r;
@@ -510,12 +571,15 @@ function buildWelcomeHtml(){
   return '<div id="welcome"><div class="welcome-card">'+
     '<img src="/static/logo.png" alt="" class="welcome-logo" width="72" height="72">'+
     '<div class="welcome-title">KING DIADEM</div><div class="welcome-sub">LYLA KERNEL · GOVERNANCE OS</div>'+
-    '<p class="welcome-desc">ระบบไม่คิดแทนคุณ — ช่วยให้เห็นทางเลือกชัดขึ้น<br>การตัดสินใจสุดท้ายเป็นของคุณเสมอ</p></div>'+
+    '<p class="welcome-desc">ระบบไม่คิดแทนคุณ<br>คืนทางเลือกให้มนุษย์ทุกคน</p></div>'+
     '<div class="welcome-hint">'+
     '<span class="hint-chip" onclick="useHint(this)">ฉันตกงาน ไม่รู้จะทำอะไร</span>'+
     '<span class="hint-chip" onclick="useHint(this)">ธุรกิจกำลังล้มเหลว</span>'+
     '<span class="hint-chip" onclick="useHint(this)">ต้องตัดสินใจสำคัญ</span>'+
-    '<span class="hint-chip" onclick="useHint(this)">ทรัพยากรกำลังหมด</span></div></div>';
+    '<span class="hint-chip" onclick="useHint(this)">ทรัพยากรกำลังหมด</span>'+
+    '<span class="hint-chip" onclick="useHint(this)">หนี้สินท่วมหัว</span>'+
+    '<span class="hint-chip" onclick="useHint(this)">ความสัมพันธ์กำลังพัง</span>'+
+    '<span class="hint-chip" onclick="useHint(this)">ไม่รู้จะเริ่มต้นจากไหน</span></div></div>';
 }
 function getSessionStore(){
   try{var raw=localStorage.getItem(SESSION_KEY);if(raw){var o=JSON.parse(raw);if(o&&Array.isArray(o.items)&&o.active){if(typeof o.savedAt!=='number')o.savedAt=0;return o;}}}catch(_){}
@@ -561,16 +625,13 @@ function initSessionsFromStorage(){
   var cur=s.items.find(function(x){return x.id===s.active;});
   if(cur&&cur.html&&cur.html.trim())area.innerHTML=cur.html;renderSessionList();
 }
-
-/* ── UI helpers ── */
 function openRailMobile(){document.getElementById('rail')?.classList.add('open');document.getElementById('rail-scrim')?.classList.add('on');}
 function closeRailMobile(){document.getElementById('rail')?.classList.remove('open');document.getElementById('rail-scrim')?.classList.remove('on');}
 function scrollToTool(id){var el=document.getElementById(id),pad=document.querySelector('#view-tools .tools-pad');if(!el||!pad)return;pad.scrollTo({top:Math.max(0,el.offsetTop-pad.offsetTop-10),behavior:'smooth'});}
 async function doLogout(){try{await fetch('/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(_){}location.reload();}
 
-var R='general',activeTab='chat';
+var R='general';
 function setTab(tab){
-  activeTab=tab;
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.toggle('active',b.dataset.tab===tab);});
   document.querySelectorAll('.rail-btn.rail-tab').forEach(function(b){b.classList.toggle('active',b.dataset.tab===tab);});
   document.querySelectorAll('.view').forEach(function(v){v.classList.toggle('active',v.id==='view-'+tab);});
@@ -614,10 +675,8 @@ addEventListener('beforeunload',function(){
 async function checkHealth(){
   try{
     var d=await readJson(await fetch('/health'));
-    sB('b-ai',d.llm_loaded,'AI','AI');
-    sB('b-eng',d.engine_loaded,'ENG','ENG');
-    sB('b-lyla',d.lyla_loaded,'LYLA','LYLA');
-    sB('b-stripe',d.stripe_loaded,'$','$');
+    sB('b-ai',d.llm_loaded,'AI','AI');sB('b-eng',d.engine_loaded,'ENG','ENG');
+    sB('b-lyla',d.lyla_loaded,'LYLA','LYLA');sB('b-stripe',d.stripe_loaded,'$','$');
   }catch(e){['b-ai','b-eng','b-lyla','b-stripe'].forEach(function(id){var el=document.getElementById(id);if(el){el.className='sys-badge off';el.textContent='?';}});}
 }
 function sB(id,ok,a,b){var el=document.getElementById(id);if(!el)return;el.textContent=ok?a:b;el.className='sys-badge '+(ok?'ok':'off');}
@@ -633,8 +692,17 @@ function addMsg(type,text,meta){
   var div=document.createElement('div');div.className='msg '+type;
   var av=type==='user'?'<div class="msg-avatar">YOU</div>':'<div class="msg-avatar"><img class="msg-logo" src="/static/logo.png" alt=""></div>';
   var html=escH(text).replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+  /* persona badge — read from data-persona attr injected by run() */
+  var badgeHtml='';
+  if(type==='system'&&meta){
+    var isVega=meta.indexOf('VEGA')!==-1&&meta.indexOf('SAFETY')===-1;
+    var isCrisis=meta.indexOf('SAFETY')!==-1||meta.indexOf('CRISIS')!==-1;
+    if(isCrisis) badgeHtml='<span class="msg-badge crisis">◆ VEGA · SAFETY</span>';
+    else if(isVega) badgeHtml='<span class="msg-badge vega">◆ VEGA</span>';
+    else badgeHtml='<span class="msg-badge lyla">◈ LYLA</span>';
+  }
   div.innerHTML=av+'<div class="msg-body"><div class="msg-sender">'+(type==='user'?'YOU':'KING DIADEM')+'</div>'+
-    '<div class="msg-text">'+html+'</div>'+(meta?'<div class="route-tag">'+escH(meta)+'</div>':'')+'</div>';
+    '<div class="msg-text">'+html+'</div>'+badgeHtml+(meta?'<div class="route-tag">'+escH(meta)+'</div>':'')+'</div>';
   area.appendChild(div);area.scrollTop=area.scrollHeight;persistActiveChatHtml();
 }
 function addThinking(){
@@ -662,7 +730,7 @@ function uM(id,val,inv){
   f.className='wl-fill '+(inv?(p>72?'crit':p>48?'warn':'safe'):(p<28?'crit':p<48?'warn':'safe'));
 }
 
-/* ── run() with retry ── */
+/* ── run() — heart of the system ── */
 async function run(){
   var inp=document.getElementById('main-input'),text=(inp.value||'').trim();if(!text)return;
   var sid=_hSid();
@@ -675,7 +743,6 @@ async function run(){
   var histSnap=_hGet(sid).slice();
   _hPush(sid,'user',text);
   try{
-    /* ★ fetchRetry แก้ 503 Gemini ★ */
     var res=await fetchRetry('/run',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({input:text,route:R,voice_mode:mode,voice_hint:voiceHint,
@@ -683,36 +750,44 @@ async function run(){
     },3,1200);
     var data=await readJson(res);
     removeThinking();
-    if(data.error){
-      addMsg('system','ข้อผิดพลาด: '+data.error,'ERROR');
-      showErr(data.error,6000);
-      return;
-    }
+    if(data.error){addMsg('system','ข้อผิดพลาด: '+data.error,'ERROR');showErr(data.error,6000);return;}
     var reply=data.ai_response||data.message||JSON.stringify(data,null,2);
     var risk=data.risk_score!=null?' · RISK '+Math.round(data.risk_score):'';
     var prefix=mode==='crisis'?'[VEGA · SAFETY]':mode==='vega'?'[VEGA]':'[LYLA]';
     _hPush(sid,'assistant',reply);
     addMsg('system',prefix+'\n\n'+reply,'ROUTE '+(data.route||R).toUpperCase()+risk+' · '+mode.toUpperCase());
     updateLyla(data);refreshMe();
-    /* pulse galaxy */
-    if(window.KD_pulse)window.KD_pulse(data.route||R);
-    try{
-      var intent=data.governance&&data.governance.intent?data.governance.intent:{};
-      var pat=data.pattern||{};
-      window.dispatchEvent(new CustomEvent('KD:response',{detail:{
-        output:{action:data.route||R,reason:voiceHint,confidence:intent.confidence,risk:data.risk_score},
-        consensus:{final_action:data.route||R,confidence:intent.confidence},
-        risk:{risk_score:data.risk_score},
-        council:{votes:[
-          {member:'LYLA',role:'waterline',action:String(data.route||'observe'),score:Math.round(data.risk_score||0)},
-          {member:'VEGA',role:mode==='crisis'?'safety':'empathy',action:mode,score:Math.round(pat.entropy||40)}
-        ],score:data.risk_score}
-      }}));
-    }catch(_){}
+
+    /* ── Update shared KD state (feeds ai_orbit, ai_brain, galaxy) ── */
+    var intent=data.governance&&data.governance.intent?data.governance.intent:{};
+    var pat=data.pattern||{};
+    var councilData={
+      votes:[
+        {member:'LYLA',role:'waterline',action:String(data.route||'observe'),score:Math.round(data.risk_score||0)},
+        {member:'VEGA',role:mode==='crisis'?'safety':'empathy',action:mode,score:Math.round(pat.entropy||40)}
+      ],
+      score:data.risk_score
+    };
+    window.KD.state = {
+      consensus: {confidence: intent.confidence||50, final_action: data.route||R},
+      risk:      {risk_score: data.risk_score||0},
+      council:   councilData,
+      output:    {action: data.route||R, reason: voiceHint}
+    };
+
+    /* pulse galaxy on every response */
+    if(window.KD_pulse) window.KD_pulse(data.route||R);
+
+    /* fire KD:response for galaxy_council + galaxy_decision */
+    window.dispatchEvent(new CustomEvent('KD:response',{detail:{
+      output:   window.KD.state.output,
+      consensus:window.KD.state.consensus,
+      risk:     window.KD.state.risk,
+      council:  councilData
+    }}));
+
   }catch(e){
-    removeThinking();
-    addMsg('system','เครือข่าย: '+e,'ERROR');
-    showErr('เครือข่าย: '+e,6000);
+    removeThinking();addMsg('system','เครือข่าย: '+e,'ERROR');showErr('เครือข่าย: '+e,6000);
   }finally{btn.disabled=false;persistActiveChatHtml();}
 }
 
@@ -739,7 +814,7 @@ async function stripeCheckout(){
   try{
     var r=await fetch('/payment/create-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan:plan,email:email,api_key:email})});
     var d=await readJson(r);
-    if(d.url)location.href=d.url;else{showErr(d.error||'Stripe ไม่สำเร็จ',5000);}
+    if(d.url)location.href=d.url;else showErr(d.error||'Stripe ไม่สำเร็จ',5000);
   }catch(e){showErr('Stripe: '+e,5000);}
 }
 async function uploadImage(){
@@ -755,6 +830,5 @@ async function uploadImage(){
 }
 if('serviceWorker' in navigator){navigator.serviceWorker.register('/static/service-worker.js').catch(function(){});}
 </script>
-<script src="/static/galaxy_scene.js"></script>
 </body>
 </html>
