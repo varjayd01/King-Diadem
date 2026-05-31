@@ -1,25 +1,34 @@
-# =========================
-# ⚠️ RISK ENGINE (Adapter Ready)
-# =========================
+# ENGINE/risk_engine.py
+# KING DIADEM — Risk Engine
+# Public API: assess(pattern) ← DecisionEngine + app.py
 
-def analyze_risk(state):
-    entropy = float(state.get("entropy", 0))
-    resource = float(state.get("resource", 100))
-    stability = float(state.get("stability", 50))
-    drift = float(state.get("drift", 0))
-    choices = int(state.get("choices", 1) or 1)
 
-    # 🔥 CORE RISK FORMULA
+def _safe_float(val, default=0.0) -> float:
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return default
+
+
+def analyze_risk(state: dict) -> dict:
+    """
+    สูตร risk = entropy*0.45 + (100-resource)*0.35 + (100-stability)*0.20 + drift*0.10
+    """
+    entropy   = _safe_float(state.get("entropy",   40))
+    resource  = _safe_float(state.get("resource",  50))
+    stability = _safe_float(state.get("stability", 50))
+    drift     = _safe_float(state.get("drift",      0))
+    choices   = max(1, int(state.get("choices", 1) or 1))
+
     risk_score = (
-        entropy * 0.45
-        + (100 - resource) * 0.35
+        entropy   * 0.45
+        + (100 - resource)  * 0.35
         + (100 - stability) * 0.20
-        + drift * 0.10
+        + drift             * 0.10
     )
+    risk_score = round(max(0.0, min(100.0, risk_score)), 2)
 
-    risk_score = round(max(0, min(100, risk_score)), 2)
-
-    # 🔥 LEVEL
+    # ── Level ──────────────────────────────────────────────────
     if resource <= 5 or stability <= 5:
         level = "CRITICAL"
     elif risk_score >= 85:
@@ -31,35 +40,23 @@ def analyze_risk(state):
     else:
         level = "LOW"
 
-    decision_level = _map_to_decision(level)
-
     return {
-        "risk_score": risk_score,
-        "level": level,
-        "decision_level": decision_level,
+        "risk_score":        risk_score,
+        "level":             level,
+        "decision_level":    "HIGH" if level in ("CRITICAL", "HIGH") else
+                             "MEDIUM" if level == "MEDIUM" else "LOW",
         "remaining_choices": max(1, choices),
-        "stability": stability,
-        "resource": resource,
-        "entropy": entropy,
-        "drift": drift,
+        "stability":         stability,
+        "resource":          resource,
+        "entropy":           entropy,
+        "drift":             drift,
     }
 
 
-def _map_to_decision(level):
-    if level in ["CRITICAL", "HIGH"]:
-        return "HIGH"
-    if level == "MEDIUM":
-        return "MEDIUM"
-    return "LOW"
-
-
-# =========================
-# 🔥 ADAPTER (สำคัญ)
-# =========================
-# ให้ DecisionEngine เรียกได้
-
-def assess(pattern: dict):
+# ── Public adapter ─────────────────────────────────────────────────
+def assess(pattern: dict) -> dict:
+    """app.py และ DecisionEngine เรียกตัวนี้"""
     try:
         return analyze_risk(pattern)
     except Exception as e:
-        return {"error": f"risk_engine fail: {str(e)}"}
+        return {"error": f"risk_engine fail: {e}"}
