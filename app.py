@@ -1,11 +1,11 @@
 # =========================
-# 👑 KING DIADEM — app.py v3.0
+# 👑 KING DIADEM — app.py v4.0
 # LYLA (หญิง/ค่ะ) · VEGA (ชาย/ครับ) · ปฏิจสมุปบาท · โยนิโสมนสิการ · สุญยตา
 # Fail less. Harm less. Restore more.
 # =========================
 
-from fastapi import FastAPI, Request, File, UploadFile, Header
-from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, HTMLResponse
+from fastapi import FastAPI, Request, File, UploadFile
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 import os, json, stripe
@@ -14,7 +14,8 @@ from urllib.parse import quote, unquote
 # ── ENGINE ────────────────────────────────────────────────────────
 try:
     from ENGINE.decision_engine import DecisionEngine, run_decision as full_run_decision
-except Exception:
+except Exception as e:
+    print(f"⚠ DecisionEngine: {e}")
     DecisionEngine = None
     full_run_decision = None
 
@@ -24,40 +25,64 @@ except Exception:
     analyze_human = None
 
 try:
-    from ENGINE.paticcasamuppada_engine import analyze_chain
-except Exception:
+    # UDOK v2.0: analyze() คือ adapter, suffering_infrastructure คือ core
+    from ENGINE.paticcasamuppada_engine import analyze as analyze_chain
+except Exception as e:
+    print(f"⚠ paticcasamuppada: {e}")
     analyze_chain = None
 
 try:
     from ENGINE.collapse_predictor import predict_collapse
-except Exception:
+except Exception as e:
+    print(f"⚠ collapse_predictor: {e}")
     predict_collapse = None
 
 try:
+    # consensus_engine.py export: build_consensus (public API) + consensus_engine (core)
     from ENGINE.consensus_engine import build_consensus
-except Exception:
+except Exception as e:
+    print(f"⚠ consensus_engine: {e}")
     build_consensus = None
 
 try:
+    # simulation_engine.py export: simulate (public API) + simulate_future (core)
     from ENGINE.simulation_engine import simulate
-except Exception:
+except Exception as e:
+    print(f"⚠ simulation_engine: {e}")
     simulate = None
 
 try:
-    from ENGINE.risk_engine import assess_risk
-except Exception:
+    # risk_engine.py มี assess() ✓
+    from ENGINE.risk_engine import assess as assess_risk
+except Exception as e:
+    print(f"⚠ risk_engine: {e}")
     assess_risk = None
 
 try:
-    from ENGINE.realhuman_survivorengine import analyze as survivor_analyze
-except Exception:
+    from ENGINE.realhuman_survivorengine import (
+        RealHumanSurvivorEngine,
+        parse_state_from_context,
+    )
+    _survivor_engine = RealHumanSurvivorEngine()
+
+    def survivor_analyze(text, context):
+        state = parse_state_from_context(context or {})
+        out = _survivor_engine.run(state)
+        return {
+            "context":    out.context_for_lyla,
+            "can_decide": out.can_decide,
+            "status":     out.status,
+            "route":      "survival" if not out.can_decide else "general",
+        }
+except Exception as e:
+    print(f"⚠ survivor_engine: {e}")
     survivor_analyze = None
 
 try:
     from AI.intent_engine import analyze_intent
     from AI.freedom_signal import record_question, freedom_index, record_choice, record_crisis
 except Exception as e:
-    print(f"⚠ AI MODULE ERROR: {e}")
+    print(f"⚠ AI MODULE: {e}")
     analyze_intent = record_question = freedom_index = None
     record_choice = record_crisis = None
 
@@ -67,15 +92,15 @@ try:
     from core.lyla_kernel import LylaKernel
     lyla = LylaKernel()
     llm  = GeminiLLM(model="gemini-2.0-flash")
-    print("✅ LYLA & Gemini Loaded")
+    print("✅ LYLA & Gemini loaded")
 except Exception as e:
-    print(f"⚠ LLM/LYLA ERROR: {e}")
+    print(f"⚠ LLM/LYLA: {e}")
     llm = lyla = None
 
 try:
     from core.system_orchestrator import get_orchestrator
     orchestrator = get_orchestrator()
-    print("✅ System Orchestrator Loaded")
+    print("✅ Orchestrator loaded")
 except Exception as e:
     print(f"⚠ Orchestrator: {e}")
     orchestrator = None
@@ -89,7 +114,7 @@ try:
     init_db()
     print("✅ Database initialized")
 except Exception as e:
-    print(f"⚠ DB ERROR: {e}")
+    print(f"⚠ DB: {e}")
     init_db = log_decision = get_credits = add_credits = None
     ensure_user = save_chat_state = load_chat_state = None
 
@@ -98,9 +123,9 @@ try:
     from AI.planetary_dashboard import planetary_status
     from AI.civilization_learning import record_learning, get_learning
     from AI.civilization_engine import add_node, get_nodes
-    print("✅ Civilization Engine Loaded")
+    print("✅ Civilization loaded")
 except Exception as e:
-    print(f"⚠ CIVILIZATION ERROR: {e}")
+    print(f"⚠ CIVILIZATION: {e}")
     planetary_status = get_learning = get_nodes = None
     record_learning = add_node = None
 
@@ -115,9 +140,9 @@ try:
         server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
         client_kwargs={"scope": "openid email profile"},
     )
-    print("✅ Google OAuth Loaded")
+    print("✅ Google OAuth loaded")
 except Exception as e:
-    print(f"⚠ OAuth ERROR: {e}")
+    print(f"⚠ OAuth: {e}")
     oauth = None
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
@@ -147,18 +172,19 @@ def favicon():
 @app.get("/health")
 def health():
     return {
-        "status": "alive 👑",
-        "llm_loaded": llm is not None,
-        "engine_loaded": engine is not None,
-        "lyla_loaded": lyla is not None,
-        "paticcasamuppada": analyze_chain is not None,
+        "status":             "alive 👑",
+        "llm_loaded":         llm is not None,
+        "engine_loaded":      engine is not None,
+        "lyla_loaded":        lyla is not None,
+        "paticcasamuppada":   analyze_chain is not None,
         "collapse_predictor": predict_collapse is not None,
-        "consensus_engine": build_consensus is not None,
-        "simulation_engine": simulate is not None,
-        "risk_engine": assess_risk is not None,
-        "stripe_loaded": bool(os.getenv("STRIPE_SECRET_KEY")),
-        "freedom_score": freedom_index() if freedom_index else 0,
-        "db_initialized": init_db is not None,
+        "consensus_engine":   build_consensus is not None,
+        "simulation_engine":  simulate is not None,
+        "risk_engine":        assess_risk is not None,
+        "survivor_engine":    survivor_analyze is not None,
+        "stripe_loaded":      bool(os.getenv("STRIPE_SECRET_KEY")),
+        "freedom_score":      freedom_index() if freedom_index else 0,
+        "db_initialized":     init_db is not None,
     }
 
 
@@ -178,27 +204,25 @@ async def dashboard():
     except Exception:
         nodes = []
     return {
-        "observer": "KING DIADEM",
-        "planetary": status,
+        "observer":    "KING DIADEM",
+        "planetary":   status,
         "supply_chain": {
-            "global_food_security": "DECLINING",
-            "energy_drift_daily": 0.1,
-            "water_stress_index": 72.4,
-            "choice_collapse_risk": "MODERATE",
-            "lyla_signal": "Systems losing 0.1% choice daily",
+            "global_food_security":   "DECLINING",
+            "energy_drift_daily":     0.1,
+            "water_stress_index":     72.4,
+            "choice_collapse_risk":   "MODERATE",
+            "lyla_signal":            "Systems losing 0.1% choice daily",
             "intervention_threshold": "Choice < 30%",
         },
         "recent_learning": learning[-10:] if learning else [],
-        "active_nodes": nodes[-10:] if nodes else [],
-        "freedom_index": freedom_index() if freedom_index else 50,
+        "active_nodes":    nodes[-10:]    if nodes    else [],
+        "freedom_index":   freedom_index() if freedom_index else 50,
     }
 
 
 # ── GOOGLE OAUTH ──────────────────────────────────────────────────
 def _cookie_ascii(value: str) -> str:
-    if value is None:
-        return ""
-    return quote(str(value), safe="")
+    return quote(str(value or ""), safe="")
 
 
 @app.get("/login/google")
@@ -223,9 +247,8 @@ async def google_callback(request: Request):
         name  = user.get("name", email)
         if ensure_user:
             ensure_user(email)
-        if get_credits and add_credits:
-            if get_credits(email) == 0:
-                add_credits(email, 10)
+        if get_credits and add_credits and get_credits(email) == 0:
+            add_credits(email, 10)
         try:
             sess = getattr(request, "session", None)
             if sess is not None:
@@ -344,38 +367,32 @@ def _route_bias(route: str, text: str) -> str:
 
 
 def _resolve_voice_mode(data: dict, route: str) -> str:
-    """
-    กำหนด voice_mode ที่ชัดเจน:
-    - route=vega หรือ user เลือก vega → VEGA (ชาย/ครับ)
-    - route=crisis หรือ detect crisis → CRISIS
-    - default → LYLA (หญิง/ค่ะ)
-    """
     vm = str(data.get("voice_mode") or "").lower().strip()
-    if vm == "crisis":
-        return "crisis"
-    if vm == "vega" or route == "vega":
-        return "vega"
-    if vm == "lyla" or not vm:
-        return "lyla"
+    if vm == "crisis":                   return "crisis"
+    if vm == "vega" or route == "vega":  return "vega"
     return "lyla"
 
 
 def _paticcasamuppada_context(text: str) -> str:
-    """
-    ปฏิจสมุปบาท — วิเคราะห์ลูกโซ่เหตุปัจจัย
-    ถ้า engine ไม่ available ใช้ prompt hint แทน
-    """
+    """ปฏิจสมุปบาท UDOK v2.0 — วิเคราะห์ลูกโซ่เหตุปัจจัย"""
     if analyze_chain:
         try:
-            chain = analyze_chain(text)
+            chain = analyze_chain({"input": text})
             if isinstance(chain, dict):
-                root = chain.get("root_cause", "")
-                downstream = chain.get("downstream", "")
-                if root:
-                    return f"[ปฏิจสมุปบาท — ต้นเหตุ: {root} | ผลที่จะตามมา: {downstream}]"
+                root    = chain.get("root_cause", "")
+                summary = chain.get("summary", "")
+                nirvana = chain.get("nirvana_mode", False)
+                uap     = chain.get("uap", {})
+                parts = []
+                if root:    parts.append(f"ต้นเหตุ: {root}")
+                if nirvana: parts.append("chain ดับที่เวทนา — ระบบสงบ")
+                elif summary: parts.append(summary)
+                if uap.get("should_pause"):
+                    parts.append("UAP: ควรหยุดก่อนตัดสินใจ")
+                if parts:
+                    return f"[ปฏิจสมุปบาท — {' | '.join(parts)}]"
         except Exception:
             pass
-    # fallback — แค่ hint ให้ LLM รู้ว่าต้องวิเคราะห์ chain
     return "[โยนิโสมนสิการ: วิเคราะห์ต้นเหตุและลูกโซ่ผลกระทบ]"
 
 
@@ -405,9 +422,9 @@ async def run_kernel(request: Request, data: dict):
     if not user_input:
         return {"error": "Input is required"}
 
-    email  = unquote(request.cookies.get("kd_email") or "anonymous")
-    route  = data.get("route") or "general"
-    vm     = _resolve_voice_mode(data, route)
+    email = unquote(request.cookies.get("kd_email") or "anonymous")
+    route = data.get("route") or "general"
+    vm    = _resolve_voice_mode(data, route)
 
     if record_question:
         record_question()
@@ -432,7 +449,7 @@ async def run_kernel(request: Request, data: dict):
     risk_ctx = ""
     if assess_risk:
         try:
-            r = assess_risk(user_input)
+            r = assess_risk(human_state)
             if isinstance(r, dict) and r.get("level"):
                 risk_ctx = f"[Risk: {r['level']}]"
                 if r.get("level") in ("HIGH", "CRITICAL") and route not in ("vega",):
@@ -444,7 +461,8 @@ async def run_kernel(request: Request, data: dict):
     collapse_ctx = ""
     if predict_collapse:
         try:
-            c = predict_collapse(user_input)
+            risk_score = human_state.get("risk_score", human_state.get("entropy", 40))
+            c = predict_collapse(risk_score)
             if isinstance(c, dict) and c.get("probability", 0) > 0.6:
                 collapse_ctx = f"[Collapse probability: {c['probability']:.0%}]"
         except Exception:
@@ -469,12 +487,14 @@ async def run_kernel(request: Request, data: dict):
     elif survivor_analyze:
         try:
             sr = survivor_analyze(user_input, data.get("context", {}))
-            survivor_ctx = sr.get("context", "") if isinstance(sr, dict) else ""
+            survivor_ctx = sr.get("context", "")
+            if not sr.get("can_decide", True) and route not in ("vega",):
+                route = sr.get("route", route)
         except Exception:
             pass
 
     # ── Build effective input ────────────────────────────────────
-    routed = _route_bias(route, user_input)
+    routed       = _route_bias(route, user_input)
     history_text = _build_history_text(data.get("history") or [])
 
     extra_ctx_parts = [p for p in [paticca_ctx, risk_ctx, collapse_ctx] if p]
@@ -513,25 +533,25 @@ async def run_kernel(request: Request, data: dict):
                 reply = f"[Gemini Error: {e}]"
 
         result = {
-            "observer": "KING DIADEM",
-            "status": "SUCCESS",
-            "route": intent.get("intent", route) if isinstance(intent, dict) else route,
+            "observer":    "KING DIADEM",
+            "status":      "SUCCESS",
+            "route":       intent.get("intent", route) if isinstance(intent, dict) else route,
             "ai_response": reply,
-            "governance": {"intent": intent, "human_state": human_state},
-            "persona": "VEGA" if vm == "vega" else "LYLA",
+            "governance":  {"intent": intent, "human_state": human_state},
+            "persona":     "VEGA" if vm == "vega" else "LYLA",
         }
 
-    result["route"]   = result.get("route") or route
-    result["persona"] = "VEGA" if vm == "vega" else "LYLA"
+    result["route"]      = result.get("route") or route
+    result["persona"]    = "VEGA" if vm == "vega" else "LYLA"
     result["voice_mode"] = vm
 
-    # ── Consensus (ถ้ามี) ────────────────────────────────────────
+    # ── Consensus ────────────────────────────────────────────────
     if build_consensus and result.get("ai_response"):
         try:
             cs = build_consensus({
-                "text": user_input,
-                "response": result["ai_response"],
-                "route": route,
+                "text":        user_input,
+                "response":    result["ai_response"],
+                "route":       route,
                 "human_state": human_state,
             })
             if isinstance(cs, dict) and cs.get("consensus"):
@@ -553,7 +573,7 @@ async def run_kernel(request: Request, data: dict):
                 question=user_input,
                 decision=result.get("route", "general"),
                 planet_context={
-                    "entropy": human_state.get("entropy"),
+                    "entropy":   human_state.get("entropy"),
                     "stability": human_state.get("stability"),
                 },
                 success=None,
@@ -569,17 +589,16 @@ async def run_kernel(request: Request, data: dict):
 
 # ── SIMULATE ──────────────────────────────────────────────────────
 @app.post("/simulate")
-async def simulate_future(data: dict):
+async def simulate_endpoint(data: dict):
     user_input = data.get("input", "")
-    paths = data.get("paths") or []
-    route = data.get("route") or "vega"
-    vm    = _resolve_voice_mode(data, route)
+    paths  = data.get("paths") or []
+    route  = data.get("route") or "vega"
+    vm     = _resolve_voice_mode(data, route)
 
     extra = ""
     if paths:
         extra = "\nทางเลือกที่ผู้ใช้ระบุ:\n" + "\n".join(f"- {p}" for p in paths if str(p).strip())
 
-    # ใช้ simulation_engine ถ้ามี
     sim_result = None
     if simulate:
         try:
@@ -691,7 +710,7 @@ async def cancel():
 
 
 @app.get("/credits")
-async def credits(request: Request):
+async def credits_check(request: Request):
     email = unquote(request.cookies.get("kd_email") or "anonymous")
     c = get_credits(email) if get_credits else 0
     return {"email": email, "credits": c}
