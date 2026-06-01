@@ -1,58 +1,47 @@
+# AI/persona_engine.py — KING DIADEM
+# LYLA Persona Engine v2.0
+# โทน: อบอุ่น สงบ ชัดเจน มีน้ำหนัก — ไม่ใช่ chatbot
+# ปฏิจสมุปบาท: อ่าน intent จากเหตุปัจจัย ไม่ใช่ pattern matching ล้วนๆ
+
 import re
 
 
 class PersonaEngine:
-    """
-    KING DIADEM — PersonaEngine
-    ตรวจ intent + style จากข้อความ
-    เชื่อมกับ LYLA Kernel waterline signal
-    Fail less. Harm less. Restore more.
-    """
 
-    # ── INTENT KEYWORDS ─────────────────────────────────────────
+    # ── INTENT ──────────────────────────────────────────────────
     INTENT_MAP = [
         ("crisis", [
-            # TH
             "ฆ่า", "ตาย", "ไม่อยากอยู่", "จบแล้ว", "หมดแล้ว", "สิ้นหวัง",
-            "ทนไม่ไหว", "ทรมาน", "หายไป", "หมดหวัง", "ไม่มีทางออก",
-            # EN
-            r"\bkill\b", r"\bdie\b", r"\bsuicide\b", r"\bhopeless\b",
-            r"\bcan't go on\b", r"\bend it\b",
+            "ทนไม่ไหว", "ทรมาน", "หมดหวัง", "ไม่มีทางออก",
+            r"\bsuicide\b", r"\bhopeless\b", r"\bcan't go on\b", r"\bend it\b",
+            r"\bkill myself\b", r"\bwant to die\b",
         ]),
         ("survival", [
-            # TH
             "ตกงาน", "ไม่มีเงิน", "หนี้", "ค่าเช่า", "กินข้าวไม่ได้",
-            "ทรัพยากรหมด", "อยู่ไม่ได้", "รอดยาก", "ฉุกเฉิน", "พังหมด",
-            # EN
-            r"\bsurvive\b", r"\bdanger\b", r"\bescape\b", r"\bno money\b",
-            r"\bbankrupt\b", r"\bevicted\b",
+            "ทรัพยากรหมด", "รอดยาก", "ฉุกเฉิน", "พังหมด",
+            r"\bno money\b", r"\bbankrupt\b", r"\bevicted\b", r"\bsurvive\b",
         ]),
         ("business", [
-            # TH
             "ธุรกิจ", "บริษัท", "ตลาด", "หุ้น", "ลงทุน", "กำไร", "ขาดทุน",
-            "เงินทุน", "พนักงาน", "ลูกค้า", "ยอดขาย", "startup",
-            # EN
-            r"\bmoney\b", r"\bmarket\b", r"\bbusiness\b", r"\binvest\b",
-            r"\brevenue\b", r"\bprofit\b",
+            "เงินทุน", "ลูกค้า", "ยอดขาย", "startup",
+            r"\bmarket\b", r"\brevenue\b", r"\bprofit\b", r"\binvest\b",
         ]),
         ("life", [
-            # TH
-            "ความสัมพันธ์", "แฟน", "ครอบครัว", "เพื่อน", "ชีวิต",
+            "ความสัมพันธ์", "แฟน", "ครอบครัว", "เพื่อน",
             "อนาคต", "ความฝัน", "ตัวตน", "เครียด", "เหนื่อย",
-            # EN
-            r"\blife\b", r"\brelationship\b", r"\bfamily\b", r"\bfriend\b",
+            r"\brelationship\b", r"\bfamily\b", r"\bfriend\b",
         ]),
     ]
 
-    # ── STYLE KEYWORDS ──────────────────────────────────────────
+    # ── STYLE ────────────────────────────────────────────────────
     STYLE_MAP = [
         ("playful",  ["เริ่ด", "โคตร", "มึง", "กู", "ว้าว", "555", "lol", "haha"]),
         ("formal",   ["ครับ", "ค่ะ", "กรุณา", "ขอบคุณ", "เรียน"]),
         ("urgent",   ["ด่วน", "ตอนนี้", "ทันที", "เร่งด่วน", "asap", "urgent"]),
-        ("confused", ["ไม่รู้", "ไม่แน่ใจ", "งง", "confused", "stuck", "ไม่เข้าใจ"]),
+        ("confused",  ["ไม่รู้", "ไม่แน่ใจ", "งง", "confused", "stuck", "ไม่เข้าใจ"]),
     ]
 
-    # ── WATERLINE SIGNAL ────────────────────────────────────────
+    # ── WATERLINE ────────────────────────────────────────────────
     WATERLINE_MAP = {
         "crisis":   "BREACHED",
         "survival": "AT_RISK",
@@ -62,11 +51,21 @@ class PersonaEngine:
     }
 
     CHOICE_FLOOR_MAP = {
-        "crisis":   0,   # Choice → 0: Intervene ทันที
-        "survival": 1,   # Choice ≥ 1: Monitor
+        "crisis":   0,
+        "survival": 1,
         "business": 2,
         "life":     1,
         "general":  3,
+    }
+
+    # ── TONE TEMPLATES ───────────────────────────────────────────
+    # โทนที่ LYLA/VEGA ใช้ตาม intent — ไม่ใช่ template แต่เป็น hint ให้ LLM
+    TONE_HINT = {
+        "crisis":   "รับรู้ก่อน ไม่รีบ ไม่ push — คืนทางออกที่เล็กที่สุดก่อน",
+        "survival": "ระบุทรัพยากรจริง — อย่า dump ข้อมูล — ทำได้วันนี้อะไรบ้าง",
+        "business": "วิเคราะห์จากเหตุปัจจัย — เปิดทางเลือก ≤3 — ไม่ฟันธง",
+        "life":     "รับรู้ก่อน 1 ประโยค — ถามกลับได้แค่หนึ่งคำถาม",
+        "general":  "ตอบตรง กระชับ — ไม่ dump — ถ้าถามสั้น ตอบสั้น",
     }
 
     # ────────────────────────────────────────────────────────────
@@ -89,27 +88,27 @@ class PersonaEngine:
 
     def observe(self, text: str) -> dict:
         """
-        Full LYLA-aligned observation
-        คืน waterline + choice_floor + action signal
+        Full observation — คืน waterline + tone hint + action signal
+        ใช้เป็น context ให้ LLM ไม่ใช่ hardcode คำตอบ
         """
         intent = self.detect_intent(text)
         style  = self.detect_style(text)
         wl     = self.WATERLINE_MAP.get(intent, "NOMINAL")
         floor  = self.CHOICE_FLOOR_MAP.get(intent, 2)
+        tone   = self.TONE_HINT.get(intent, self.TONE_HINT["general"])
 
-        # ── ACTION SIGNAL ──
         if intent == "crisis":
             action = "INTERVENE"
-            note   = "Choice collapse risk. Stop-the-Line activated. คืนทางออกก่อนทุกอย่าง"
+            note   = "Choice collapse risk — Stop-the-Line — คืนทางออกก่อนทุกอย่าง — แนะนำ 1323"
         elif intent == "survival":
             action = "STABILIZE"
-            note   = "Waterline at risk. ระบุทรัพยากรที่มีจริงก่อน optimize"
+            note   = "Waterline at risk — ระบุทรัพยากรจริงก่อน optimize"
         elif wl == "DECLINING":
             action = "MONITOR"
-            note   = "Drift accumulating. Measure before act."
+            note   = "Drift สะสม — รับรู้ก่อน วิเคราะห์ทีหลัง"
         else:
             action = "OBSERVE"
-            note   = "No critical signal. Silence = alignment preserved."
+            note   = "No critical signal — ตอบตรง ไม่เกินที่ถาม"
 
         return {
             "intent":       intent,
@@ -117,6 +116,38 @@ class PersonaEngine:
             "waterline":    wl,
             "choice_floor": floor,
             "action":       action,
+            "tone_hint":    tone,
             "note":         note,
             "law":          "Fail less. Harm less. Restore more.",
         }
+
+    def build_context_note(self, text: str) -> str:
+        """
+        คืน string สำหรับแนบเข้า additional_context ใน generate_with_governance
+        ทำให้ LLM รู้ว่า intent คืออะไร และควรโทนแบบไหน
+        """
+        obs = self.observe(text)
+        parts = [
+            f"[PERSONA] intent={obs['intent']} style={obs['style']}",
+            f"waterline={obs['waterline']} action={obs['action']}",
+            f"tone: {obs['tone_hint']}",
+        ]
+        if obs["intent"] == "crisis":
+            parts.append("CRISIS: รับรู้ก่อน ไม่ตัดสิน แนะนำ 1323 ถ้าจำเป็น")
+        return " | ".join(parts)
+
+
+# ── Singleton ─────────────────────────────────────────────────────
+_engine = PersonaEngine()
+
+def observe(text: str) -> dict:
+    return _engine.observe(text)
+
+def build_context_note(text: str) -> str:
+    return _engine.build_context_note(text)
+
+def detect_intent(text: str) -> str:
+    return _engine.detect_intent(text)
+
+def detect_style(text: str) -> str:
+    return _engine.detect_style(text)
