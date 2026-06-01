@@ -1,83 +1,36 @@
-"""
-KING DIADEM
-Strategic Engine
-
-Core rule:
-Preserve life.
-Avoid harm.
-Seek cooperation before conflict.
-"""
-
+# AI/strategic_engine.py — KING DIADEM
+# กฎ: Preserve life. Avoid harm. Seek cooperation before conflict.
 
 SAFETY_RULE = """
 All strategies must preserve life and avoid harm.
-
-Forbidden:
-- Violence
-- War
-- Harm to people
-- Harm to animals
-- Destruction of property
-- Environmental damage
-
-Preferred:
-- Cooperation
-- Stability
-- Survival
-- Restoration
+Forbidden: Violence, War, Harm to people, Harm to animals,
+           Destruction of property, Environmental damage
+Preferred:  Cooperation, Stability, Survival, Restoration
 """
 
-
-def strategic_analysis(location, food, money, danger):
-
+def strategic_analysis(location: str, food: float, money: float, danger: float) -> dict:
     risk = (danger * 2) - food
-
     options = []
 
-    # survival layer
-
     if food <= 1:
-        options.append(
-            "Secure food through safe and legal sources such as local markets or community support"
-        )
-
+        options.append("หาอาหารจากแหล่งที่ปลอดภัยและถูกกฎหมาย เช่น ตลาดท้องถิ่นหรือชุมชน")
     if money <= 100:
-        options.append(
-            "Search for short term income opportunities or cooperative work"
-        )
-
-    # safety layer
-
+        options.append("มองหางานระยะสั้นหรือความร่วมมือในชุมชน")
     if danger >= 7:
-        options.append(
-            "Reduce exposure to danger and relocate to a safer environment"
-        )
-
-    # stability layer
-
+        options.append("ลดการเผชิญอันตราย ย้ายไปสภาพแวดล้อมที่ปลอดภัยกว่า")
     if risk < 5:
-        options.append(
-            "Expand opportunity carefully while maintaining safety"
-        )
+        options.append("ขยายโอกาสอย่างระมัดระวัง รักษาความปลอดภัยไว้ก่อน")
 
-    # cooperation layer
-
-    options.append(
-        "Seek cooperation with local people or networks before escalating any conflict"
-    )
-
-    options.append(
-        "Prioritize solutions that protect people, animals, property and environment"
-    )
+    options.append("หาความร่วมมือกับคนท้องถิ่นก่อนที่จะเพิ่มความขัดแย้ง")
+    options.append("ให้ความสำคัญกับทางออกที่ปกป้องคน สัตว์ ทรัพย์สิน และสิ่งแวดล้อม")
 
     if not options:
-        options.append(
-            "Maintain stability, observe the situation and avoid unnecessary risk"
-        )
+        options.append("รักษาเสถียรภาพ สังเกตสถานการณ์ และหลีกเลี่ยงความเสี่ยงที่ไม่จำเป็น")
 
     return {
-        "risk_score": risk,
-        "location": location,
+        "risk_score":          round(risk, 2),
+        "location":            location,
         "recommended_actions": options,
-        "principle": "Survival without harm"
+        "principle":           "Survival without harm",
+        "safety_rule":         "Preserve life. Avoid harm. Cooperation first.",
     }
