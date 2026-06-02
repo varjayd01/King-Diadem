@@ -1,22 +1,7 @@
-learning_memory=[]
-
-def record_learning(question,decision,planet_context,success=None):
-
-    entry={
-
-        "question":question,
-
-        "decision":decision,
-
-        "planet":planet_context,
-
-        "success":success
-
-    }
-
-    learning_memory.append(entry)
-
-
-def get_learning():
-
-    return learning_memory[-50:]
+# AI/civilization_learning.py
+_learning = []
+def record_learning(question="", decision="", planet_context=None, success=None):
+    _learning.append({"question": question, "decision": decision,
+                       "context": planet_context or {}, "success": success})
+def get_learning() -> list:
+    return _learning
