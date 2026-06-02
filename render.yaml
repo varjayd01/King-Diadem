@@ -1,16 +1,12 @@
 services:
   - type: web
-    name: king-diadem
-    runtime: python
-    plan: starter # หรือ free ตามที่พี่เลือกในระบบ
-    region: singapore # เลือก region ที่ใกล้ไทยที่สุดเพื่อความเร็วของแสง
-
-    # คำสั่งติดตั้งเครื่องมือ
+    name: King-Diadem
+    env: python
     buildCommand: pip install -r requirements.txt
-
-    # คำสั่งรันระบบ (สำคัญมาก: ต้องใช้ uvicorn ชี้ไปที่ไฟล์ app.py และตัวแปร app)
-    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
-
+    startCommand: gunicorn app:app -k uvicorn.workers.UvicornWorker --timeout 300 --workers 1 --keep-alive 5
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
     envVars:
       - key: GEMINI_API_KEY
         sync: false
@@ -30,5 +26,4 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-      - key: PYTHON_VERSION
-        value: 3.10.0 # ระบุเวอร์ชั่นเพื่อให้นิ่งตลอดกาล
+    
