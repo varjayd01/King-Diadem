@@ -6,8 +6,7 @@ services:
     startCommand: gunicorn app:app -k uvicorn.workers.UvicornWorker --timeout 300 --workers 1 --keep-alive 5
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
-    envVars:
+        value: "3.11.0"
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_API_KEY2
@@ -26,4 +25,3 @@ services:
         sync: false
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
-    
