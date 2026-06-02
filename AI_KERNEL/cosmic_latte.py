@@ -1,25 +1,9 @@
-COSMIC_AXES = {
-
-1:"Black Hole — choice collapse",
-
-2:"Dark Energy — silent system failure",
-
-3:"Zero Kelvin — minimum survivability",
-
-4:"Universe — authority nullification",
-
-5:"Titan Force — intervention only when frozen",
-
-6:"Summer Triangle — success through silence",
-
-7:"Cosmic Latte — non ownership",
-
-8:"Creator Shadow — system without founder",
-
-9:"Cycle Termination — choice preserved"
-
-}
-
-def cosmic_reference():
-
-    return COSMIC_AXES
+# AI_KERNEL/cosmic_latte.py — สุญยตา context
+def get_context(text: str) -> str:
+    """คืน context สุญยตาถ้าพบ pattern ที่เกี่ยวข้อง"""
+    t = str(text).lower()
+    if any(w in t for w in ["ยึด","ปล่อยไม่ได้","ติด","เกาะ","cling"]):
+        return "สุญยตา: ไม่มีสิ่งใดถาวร — ปล่อยได้คือเริ่มต้นได้"
+    if any(w in t for w in ["กลัว","ไม่แน่","uncertain","fear"]):
+        return "สุญยตา: ความไม่แน่นอนคือธรรมชาติ ไม่ใช่ศัตรู"
+    return ""
