@@ -1,3 +1,6 @@
+# DATABASE/db.py — KING DIADEM v2.0
+# credits table ใช้ upsert ไม่ใช่ insert ซ้ำ
+
 import sqlite3, os
 
 DB_PATH = os.getenv("DB_PATH", "data/king_diadem.db")
@@ -17,8 +20,7 @@ def init_db():
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
         CREATE TABLE IF NOT EXISTS credits (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_email TEXT NOT NULL,
+            user_email TEXT PRIMARY KEY,
             amount INTEGER DEFAULT 0,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
@@ -46,62 +48,90 @@ def init_db():
     """)
     conn.commit()
     conn.close()
-
-def log_decision(user_email, input_text, route, response):
-    conn = get_conn()
-    conn.execute("INSERT INTO decision_log (user_email,input,route,response) VALUES (?,?,?,?)",
-                 (user_email, input_text, route, response))
-    conn.commit()
-    conn.close()
-
-def get_credits(user_email):
-    conn = get_conn()
-    row = conn.execute("SELECT amount FROM credits WHERE user_email=? ORDER BY updated_at DESC LIMIT 1",
-                       (user_email,)).fetchone()
-    conn.close()
-    return row["amount"] if row else 0
-
-def add_credits(user_email, amount):
-    conn = get_conn()
-    conn.execute("INSERT INTO credits (user_email,amount) VALUES (?,?)", (user_email, amount))
-    conn.commit()
-    conn.close()
+    print("✅ DB initialized")
 
 def ensure_user(email: str):
-    if not email or email == "anonymous":
+    if not email or email in ("anonymous", "guest"):
         return
     conn = get_conn()
-    conn.execute("INSERT OR IGNORE INTO users (email) VALUES (?)", (email,))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("INSERT OR IGNORE INTO users (email) VALUES (?)", (email,))
+        conn.execute(
+            "INSERT OR IGNORE INTO credits (user_email, amount) VALUES (?, 10)",
+            (email,)
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
+def get_credits(user_email: str) -> int:
+    conn = get_conn()
+    try:
+        row = conn.execute(
+            "SELECT amount FROM credits WHERE user_email=?", (user_email,)
+        ).fetchone()
+        return int(row["amount"]) if row else 0
+    finally:
+        conn.close()
+
+def add_credits(user_email: str, amount: int):
+    ensure_user(user_email)
+    conn = get_conn()
+    try:
+        conn.execute(
+            """INSERT INTO credits (user_email, amount) VALUES (?, ?)
+               ON CONFLICT(user_email) DO UPDATE SET
+                 amount = amount + excluded.amount,
+                 updated_at = CURRENT_TIMESTAMP""",
+            (user_email, amount)
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+def log_decision(user_email: str, input_text: str, route: str, response: str):
+    conn = get_conn()
+    try:
+        conn.execute(
+            "INSERT INTO decision_log (user_email,input,route,response) VALUES (?,?,?,?)",
+            (user_email, str(input_text)[:2000], route, str(response)[:4000])
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 def save_chat_state(user_email: str, payload_json: str):
     conn = get_conn()
-    conn.execute(
-        """INSERT INTO user_chat_state (user_email, payload, updated_at)
-           VALUES (?,?,CURRENT_TIMESTAMP)
-           ON CONFLICT(user_email) DO UPDATE SET
-             payload=excluded.payload, updated_at=CURRENT_TIMESTAMP""",
-        (user_email, payload_json),
-    )
-    conn.commit()
-    conn.close()
-
+    try:
+        conn.execute(
+            """INSERT INTO user_chat_state (user_email, payload, updated_at)
+               VALUES (?,?,CURRENT_TIMESTAMP)
+               ON CONFLICT(user_email) DO UPDATE SET
+                 payload=excluded.payload, updated_at=CURRENT_TIMESTAMP""",
+            (user_email, payload_json),
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
 def load_chat_state(user_email: str):
     conn = get_conn()
-    row = conn.execute(
-        "SELECT payload FROM user_chat_state WHERE user_email=?",
-        (user_email,),
-    ).fetchone()
-    conn.close()
-    return row["payload"] if row else None
+    try:
+        row = conn.execute(
+            "SELECT payload FROM user_chat_state WHERE user_email=?",
+            (user_email,),
+        ).fetchone()
+        return row["payload"] if row else None
+    finally:
+        conn.close()
 
-
-def record_payment(user_email, amount_usd, session_id):
+def record_payment(user_email: str, amount_usd: float, session_id: str):
     conn = get_conn()
-    conn.execute("INSERT INTO payments (user_email,amount_usd,stripe_session_id,status) VALUES (?,?,?,'completed')",
-                 (user_email, amount_usd, session_id))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            "INSERT INTO payments (user_email,amount_usd,stripe_session_id,status) VALUES (?,?,?,'completed')",
+            (user_email, amount_usd, session_id)
+        )
+        conn.commit()
+    finally:
+        conn.close()
