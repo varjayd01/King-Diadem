@@ -640,7 +640,7 @@ function initSessionsFromStorage(){
 function openRailMobile(){document.getElementById('rail')?.classList.add('open');document.getElementById('rail-scrim')?.classList.add('on');}
 function closeRailMobile(){document.getElementById('rail')?.classList.remove('open');document.getElementById('rail-scrim')?.classList.remove('on');}
 function scrollToTool(id){var el=document.getElementById(id),pad=document.querySelector('#view-tools .tools-pad');if(!el||!pad)return;pad.scrollTo({top:Math.max(0,el.offsetTop-pad.offsetTop-10),behavior:'smooth'});}
-async function doLogout(){try{await fetch('/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(_){}location.reload();}
+async function doLogout(){try{await fetch('/logout',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(_){}localStorage.removeItem('kd_sessions_v1');location.reload();}
 
 var R='general',activeTab='chat';
 function setTab(tab){
