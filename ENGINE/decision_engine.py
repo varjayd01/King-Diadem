@@ -1,23 +1,22 @@
 # ENGINE/decision_engine.py
 # KING DIADEM — Decision Engine · กลางทุกสรรพสิ่ง
-# v5.0 — เชื่อม engine_router + UDOK v2.0 paticcasamuppada
-# ตรรกะ: paticca อ่านเวทนา → router ตัดสิน route → LLM ตอบ
+# v5.1 — Singleton LLM (ไม่แย่ง quota) + get_llm()
 
 import json
 import re
 
 from ENGINE.pattern_engine import analyze_pattern
-from core.llm_gemini import GeminiLLM
+from core.llm_gemini import get_llm          # ← เปลี่ยนจาก GeminiLLM → get_llm
 from core.emptiness_guard import emptiness_guard
 
 
 class DecisionEngine:
 
     def __init__(self):
-        # ── LLM ──────────────────────────────────────────────
+        # ── LLM — ใช้ singleton เดียวกับทั้งระบบ ─────────────
         try:
-            self.llm = GeminiLLM(model="gemini-2.5-flash")
-            print("✅ DecisionEngine: GeminiLLM loaded")
+            self.llm = get_llm()             # ← ไม่สร้าง instance ใหม่
+            print("✅ DecisionEngine: GeminiLLM loaded (singleton)")
         except Exception as e:
             print(f"❌ DecisionEngine: GeminiLLM failed - {e}")
             self.llm = None
@@ -31,7 +30,6 @@ class DecisionEngine:
             self.lyla = None
 
         # ── UDOK v2.0 — paticcasamuppada ─────────────────────
-        # ใช้ analyze() ใหม่ที่คืน kill_zone + UAP + nirvana_mode
         try:
             from ENGINE.paticcasamuppada_engine import analyze as paticca_analyze
             self.paticca = paticca_analyze
@@ -69,8 +67,7 @@ class DecisionEngine:
                 "message":  "ไม่พบ input",
             }
 
-        # ── STEP 0: Emotion State (cross-turn tracking) ───────
-        # session_id จาก data หรือใช้ default
+        # ── STEP 0: Emotion State ────────────────────────────
         session_id = str(data.get("session_id") or data.get("user_email") or "default")
         emotion_ctx = "EMOTION:NEUTRAL"
         try:
@@ -81,11 +78,11 @@ class DecisionEngine:
         except Exception:
             pass
 
-        # ── STEP 1: Pattern Analysis ──────────────────────────
+        # ── STEP 1: Pattern Analysis ─────────────────────────
         pattern = analyze_pattern(data)
         route   = pattern.get("route", "general")
 
-        # ── STEP 2: Emptiness Guard ───────────────────────────
+        # ── STEP 2: Emptiness Guard ──────────────────────────
         guarded = emptiness_guard(pattern)
 
         if guarded.get("blocked") and guarded.get("reason") in (
@@ -121,7 +118,7 @@ class DecisionEngine:
 
         persona = "VEGA" if voice_mode == "vega" else "LYLA"
 
-        # ── STEP 4: Core Loop ─────────────────────────────────
+        # ── STEP 4: Core Loop ────────────────────────────────
         core_result = None
         if self.core_loop:
             try:
@@ -137,8 +134,6 @@ class DecisionEngine:
                 pass
 
         # ── STEP 5: UDOK v2.0 — paticcasamuppada ─────────────
-        # คืน: root_cause, feeling_tone, kill_zone, uap,
-        #       nirvana_mode, collapse_chain, summary
         paticca_result = None
         if self.paticca:
             try:
@@ -146,19 +141,14 @@ class DecisionEngine:
             except Exception:
                 pass
 
-        # ถ้า nirvana_mode (chain ดับที่เวทนา) → ลด route ลงเป็น stable
         if paticca_result:
             if paticca_result.get("nirvana_mode") and route not in ("collapse", "crisis", "vega"):
                 route = "stable" if route != "survival" else route
-
-            # ถ้า UAP บอกหยุด + craving สูง → อย่า push ตัดสินใจทันที
             uap = paticca_result.get("uap", {})
             if uap.get("should_pause") and route == "general":
                 route = "uncertain"
 
-        # ── STEP 6: Engine Router ─────────────────────────────
-        # router รับ pattern + paticca context → คืน route, action,
-        # consensus, simulation, strategy, survival
+        # ── STEP 6: Engine Router ────────────────────────────
         router_result = None
         if self.router:
             try:
@@ -166,23 +156,19 @@ class DecisionEngine:
                     **pattern,
                     "input":      user_input,
                     "voice_mode": voice_mode,
-                    "route_hint": route,          # hint จาก step ก่อน
-                    "paticca":    paticca_result, # ส่ง paticca ให้ router ใช้
+                    "route_hint": route,
+                    "paticca":    paticca_result,
                 }
                 router_result = self.router(router_payload)
-
-                # router อาจ override route ถ้า collapse/risk ชัดเจน
                 if router_result and router_result.get("route") not in (None, "error"):
-                    # ยกเว้น vega/crisis — persona สำคัญกว่า
                     if voice_mode not in ("vega", "crisis"):
                         route = router_result["route"]
             except Exception as e:
                 router_result = {"error": f"router fail: {e}"}
         else:
-            # fallback: ใช้ _run_route เดิม
             router_result = self._run_route(route, pattern)
 
-        # ── STEP 7: LLM (Gemini) ──────────────────────────────
+        # ── STEP 7: LLM ──────────────────────────────────────
         ai_response = None
         if self.llm:
             try:
@@ -201,13 +187,13 @@ class DecisionEngine:
                     feeling = paticca_result.get("feeling_tone", "")
                     nirvana = paticca_result.get("nirvana_mode", False)
                     kz_out  = paticca_result.get("kill_zone", {}).get("outcome", "")
-                    uap_note = paticca_result.get("uap", {}).get("audit_note", "")
+                    uap_note= paticca_result.get("uap", {}).get("audit_note", "")
 
-                    if root:    context_parts.append(f"ปฏิจสมุปบาท root: {root}")
-                    if feeling: context_parts.append(f"เวทนา: {feeling}")
-                    if nirvana: context_parts.append("nirvana_mode: chain ดับที่เวทนา")
-                    elif kz_out:context_parts.append(f"kill_zone: {kz_out}")
-                    if uap_note:context_parts.append(f"UAP: {uap_note}")
+                    if root:     context_parts.append(f"ปฏิจสมุปบาท root: {root}")
+                    if feeling:  context_parts.append(f"เวทนา: {feeling}")
+                    if nirvana:  context_parts.append("nirvana_mode: chain ดับที่เวทนา")
+                    elif kz_out: context_parts.append(f"kill_zone: {kz_out}")
+                    if uap_note: context_parts.append(f"UAP: {uap_note}")
 
                 if router_result:
                     action = router_result.get("action", "")
@@ -225,7 +211,7 @@ class DecisionEngine:
             except Exception as e:
                 ai_response = f"[Gemini unavailable: {e}]"
 
-        # ── STEP 8: LYLA Observation ──────────────────────────
+        # ── STEP 8: LYLA Observation ─────────────────────────
         lyla_note = None
         if self.lyla:
             try:
@@ -233,7 +219,6 @@ class DecisionEngine:
             except Exception:
                 pass
 
-        # ── OUTPUT ────────────────────────────────────────────
         return {
             "observer":   "KING DIADEM — Decision Engine · กลางทุกสรรพสิ่ง",
             "status":     "SUCCESS",
@@ -248,21 +233,15 @@ class DecisionEngine:
                 "confidence": pattern.get("confidence"),
                 "warnings":   pattern.get("warnings", []),
             },
-            # paticca — UDOK v2.0 (เวทนา, kill_zone, UAP, nirvana)
             "collapse_chain":  paticca_result,
-            # router — consensus, simulation, strategy, survival
             "engine_result":   router_result,
-            # LLM
             "ai_response":     ai_response,
-            # core + lyla
             "core_loop":       core_result,
             "lyla":            lyla_note,
-            # guard
             "risk_score":      guarded.get("risk_score", 0),
             "emotional_flag":  guarded.get("emotional_flag", False),
         }
 
-    # ── Fallback route (ถ้า engine_router ไม่โหลด) ───────────
     def _run_route(self, route: str, pattern: dict) -> dict:
         try:
             if route == "survival":
@@ -357,21 +336,18 @@ def run_decision(data) -> dict:
             "message":  "ไม่พบ input",
         }
 
-    # Eternal snapshot
     merged["_eternal_snapshot"] = eternal_snapshot_for_decision({
         "entropy":   float(merged.get("entropy",   40)),
         "resource":  float(merged.get("resource",  50)),
         "stability": float(merged.get("stability", 60)),
     })
 
-    # Self-learning patterns
     try:
         from ENGINE.self_learning import analyze_patterns
         merged["_learning_patterns"] = analyze_patterns()
     except Exception:
         merged["_learning_patterns"] = None
 
-    # Human engine
     try:
         from ENGINE.human_engine import analyze_human
         merged["_human_engine"] = analyze_human(
@@ -385,8 +361,7 @@ def run_decision(data) -> dict:
 
 def decide(input=None, intent=None, risk=None, **kwargs) -> dict:
     chunks = []
-    if input  is not None:
-        chunks.append(str(input))
+    if input  is not None: chunks.append(str(input))
     if intent is not None:
         chunks.append("บริบท: " + (
             json.dumps(intent, ensure_ascii=False)
