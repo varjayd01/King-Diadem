@@ -71,6 +71,32 @@ _INTENTS: list[dict[str, Any]] = [
             r"มีทางไหนบ้าง", r"ทำอะไรได้บ้าง",
         ],
     },
+    {
+        "name":    "joy",
+        "weight":  1.0,
+        "patterns": [
+            r"มีความสุข", r"ดีใจมาก", r"ตื่นเต้น", r"สนุกมาก",
+            r"เยี่ยมเลย", r"ยินดี", r"happy", r"excited", r"wonderful", r"great news",
+        ],
+    },
+    {
+        "name":    "love",
+        "weight":  1.0,
+        "patterns": [
+            r"แฟนใหม่", r"ตกหลุมรัก", r"ชอบคนนี้", r"มีความรู้สึก",
+            r"สารภาพรัก", r"รักแล้ว", r"in love", r"\bcrush\b",
+            r"confession", r"dating", r"คนที่ชอบ",
+        ],
+    },
+    {
+        "name":    "work_win",
+        "weight":  1.0,
+        "patterns": [
+            r"ได้งานแล้ว", r"ผ่านแล้ว", r"สำเร็จแล้ว", r"ทำสำเร็จ",
+            r"เสร็จแล้ว", r"got the job", r"\bmilestone\b",
+            r"landed", r"accepted", r"achieved", r"promotion",
+        ],
+    },
 ]
 
 # ── Causal amplifiers: คำเหล่านี้เพิ่ม weight ของ intent ที่ match ──
