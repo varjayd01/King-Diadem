@@ -1,5 +1,5 @@
 # =========================
-# 👑 KING DIADEM — app.py v4.0
+# 👑 KING DIADEM — app.py v4.1
 # LYLA (หญิง/ค่ะ) · VEGA (ชาย/ครับ) · ปฏิจสมุปบาท · โยนิโสมนสิการ · สุญยตา
 # Fail less. Harm less. Restore more.
 # =========================
@@ -25,7 +25,6 @@ except Exception:
     analyze_human = None
 
 try:
-    # UDOK v2.0: analyze() คือ adapter, suffering_infrastructure คือ core
     from ENGINE.paticcasamuppada_engine import analyze as analyze_chain
 except Exception as e:
     print(f"⚠ paticcasamuppada: {e}")
@@ -38,21 +37,18 @@ except Exception as e:
     predict_collapse = None
 
 try:
-    # consensus_engine.py export: build_consensus (public API) + consensus_engine (core)
     from ENGINE.consensus_engine import build_consensus
 except Exception as e:
     print(f"⚠ consensus_engine: {e}")
     build_consensus = None
 
 try:
-    # simulation_engine.py export: simulate (public API) + simulate_future (core)
     from ENGINE.simulation_engine import simulate
 except Exception as e:
     print(f"⚠ simulation_engine: {e}")
     simulate = None
 
 try:
-    # risk_engine.py มี assess() ✓
     from ENGINE.risk_engine import assess as assess_risk
 except Exception as e:
     print(f"⚠ risk_engine: {e}")
@@ -88,10 +84,10 @@ except Exception as e:
 
 # ── CORE ──────────────────────────────────────────────────────────
 try:
-    from core.llm_gemini import GeminiLLM
+    from core.llm_gemini import get_llm          # ← Singleton, ไม่สร้างใหม่
     from core.lyla_kernel import LylaKernel
     lyla = LylaKernel()
-    llm  = GeminiLLM(model="gemini-2.0-flash")
+    llm  = get_llm()                             # ← ใช้ instance เดียวทั้งระบบ
     print("✅ LYLA & Gemini loaded")
 except Exception as e:
     print(f"⚠ LLM/LYLA: {e}")
@@ -374,7 +370,6 @@ def _resolve_voice_mode(data: dict, route: str) -> str:
 
 
 def _paticcasamuppada_context(text: str) -> str:
-    """ปฏิจสมุปบาท UDOK v2.0 — วิเคราะห์ลูกโซ่เหตุปัจจัย"""
     if analyze_chain:
         try:
             chain = analyze_chain({"input": text})
@@ -559,158 +554,88 @@ async def run_kernel(request: Request, data: dict):
         except Exception:
             pass
 
-    # ── Logging ──────────────────────────────────────────────────
-    if log_decision and result.get("ai_response"):
+    # ── Log ──────────────────────────────────────────────────────
+    if log_decision:
         try:
-            log_decision(email, user_input, result.get("route", "general"),
-                         str(result.get("ai_response", "")))
-        except Exception:
-            pass
-
-    if record_learning and result.get("ai_response"):
-        try:
-            record_learning(
-                question=user_input,
-                decision=result.get("route", "general"),
-                planet_context={
-                    "entropy":   human_state.get("entropy"),
-                    "stability": human_state.get("stability"),
-                },
-                success=None,
+            log_decision(
+                user_id  = email,
+                input    = user_input,
+                output   = result.get("ai_response", ""),
+                route    = result.get("route", route),
+                persona  = result.get("persona", "LYLA"),
             )
         except Exception:
             pass
 
-    if record_choice:
-        record_choice()
-
     return result
 
 
-# ── SIMULATE ──────────────────────────────────────────────────────
-@app.post("/simulate")
-async def simulate_endpoint(data: dict):
-    user_input = data.get("input", "")
-    paths  = data.get("paths") or []
-    route  = data.get("route") or "vega"
-    vm     = _resolve_voice_mode(data, route)
-
-    extra = ""
-    if paths:
-        extra = "\nทางเลือกที่ผู้ใช้ระบุ:\n" + "\n".join(f"- {p}" for p in paths if str(p).strip())
-
-    sim_result = None
-    if simulate:
-        try:
-            sim_result = simulate(user_input, paths or [])
-        except Exception:
-            pass
-
-    if not llm:
-        return {"status": "OFFLINE", "message": "LLM not found"}
-
-    paticca = _paticcasamuppada_context(user_input)
-
-    try:
-        raw = llm.generate_with_governance(
-            prompt=f"จำลองอนาคต 30/90/365 วัน:\n{user_input}{extra}\n\n{paticca}",
-            additional_context="mode=simulation, วิเคราะห์ลูกโซ่เหตุปัจจัยและความเสี่ยง",
-            route=route,
-            voice_mode=vm,
-        )
-    except Exception as e:
-        raw = f"Simulation error: {e}"
-
-    observation = lyla.observe(user_input) if lyla else {"stability": "NOMINAL"}
-    return {
-        "status":           "SUCCESS",
-        "simulation":       raw,
-        "lyla_observation": observation,
-        "engine_result":    sim_result,
-        "persona":          "VEGA" if vm == "vega" else "LYLA",
-    }
-
-
-# ── IMAGE ANALYSIS ────────────────────────────────────────────────
-@app.post("/analyze-image")
-async def analyze_image(file: UploadFile = File(...)):
-    if not llm:
-        return {"status": "OFFLINE", "message": "LLM not found"}
-    try:
-        from google import genai as g
-        from google.genai import types as t
-        content = await file.read()
-        client  = g.Client(api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY2"))
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",
-            contents=[t.Content(role="user", parts=[
-                t.Part.from_bytes(data=content, mime_type=file.content_type or "image/jpeg"),
-                t.Part.from_text(text=(
-                    "วิเคราะห์ภาพนี้:\n"
-                    "1. สิ่งที่เห็นคืออะไร\n"
-                    "2. มีความเสี่ยงหรือ drift ที่ซ่อนอยู่ไหม\n"
-                    "3. ทางเลือกที่แนะนำ ≤3 ทาง\n"
-                    "ตอบตรงๆ ไม่ตัดสิน\n\nลงท้ายด้วย — LYLA ◈"
-                )),
-            ])],
-        )
-        return {"status": "SUCCESS", "analysis": response.text, "filename": file.filename, "persona": "LYLA"}
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
-
-
-@app.post("/upload-image")
-async def upload_image_alias(file: UploadFile = File(...)):
-    return await analyze_image(file)
-
-
-# ── PAYMENT ───────────────────────────────────────────────────────
-@app.post("/payment/create-checkout")
-async def create_checkout(request: Request):
-    payload = await request.json()
-    plan  = payload.get("plan", "basic")
-    email = (
-        payload.get("email")
-        or payload.get("api_key")
-        or unquote(request.cookies.get("kd_email") or "guest")
-    )
-    plans = {
-        "basic":        {"amount": 29900, "currency": "thb", "name": "KING DIADEM Basic — ฿299/เดือน"},
-        "civilization": {"amount": 99900, "currency": "thb", "name": "KING DIADEM Civilization — ฿999/เดือน"},
-        "topup":        {"amount": 5000,  "currency": "thb", "name": "KING DIADEM Credits — ฿50"},
-    }
-    p = plans.get(plan, plans["basic"])
+# ── STRIPE ────────────────────────────────────────────────────────
+@app.post("/create-checkout-session")
+async def create_checkout(request: Request, data: dict):
+    email = unquote(request.cookies.get("kd_email") or "")
+    if not email:
+        return JSONResponse({"error": "กรุณาล็อกอินก่อน"}, status_code=401)
     try:
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
-            line_items=[{"price_data": {
-                "currency": p["currency"],
-                "product_data": {"name": p["name"]},
-                "unit_amount": p["amount"],
-            }, "quantity": 1}],
+            line_items=[{
+                "price": os.getenv("STRIPE_PRICE_ID"),
+                "quantity": data.get("quantity", 1),
+            }],
             mode="payment",
-            success_url="https://king-diadem.onrender.com/success?plan=" + plan,
-            cancel_url="https://king-diadem.onrender.com/",
-            customer_email=email if "@" in str(email) else None,
-            metadata={"email": str(email), "plan": plan},
+            customer_email=email,
+            success_url="https://king-diadem.onrender.com/?payment=success",
+            cancel_url="https://king-diadem.onrender.com/?payment=cancel",
         )
         return {"url": session.url}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-@app.get("/success")
-async def success():
-    return FileResponse("static/index.html")
+@app.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    payload = await request.body()
+    sig     = request.headers.get("stripe-signature", "")
+    secret  = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig, secret)
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
 
+    if event["type"] == "checkout.session.completed":
+        sess  = event["data"]["object"]
+        email = sess.get("customer_email")
+        qty   = 1
+        try:
+            items = stripe.checkout.Session.list_line_items(sess["id"])
+            qty   = sum(i.get("quantity", 1) for i in items.get("data", []))
+        except Exception:
+            pass
+        if email and add_credits:
+            add_credits(email, qty * 10)
 
-@app.get("/cancel")
-async def cancel():
-    return FileResponse("static/index.html")
+    return {"status": "ok"}
 
 
 @app.get("/credits")
-async def credits_check(request: Request):
-    email = unquote(request.cookies.get("kd_email") or "anonymous")
-    c = get_credits(email) if get_credits else 0
-    return {"email": email, "credits": c}
+async def get_user_credits(request: Request):
+    email = unquote(request.cookies.get("kd_email") or "")
+    if not email:
+        return JSONResponse({"error": "unauthorized"}, status_code=401)
+    credits = get_credits(email) if get_credits else 0
+    return {"email": email, "credits": credits}
+
+
+# ── STATIC PAGES ──────────────────────────────────────────────────
+@app.get("/wallet")
+async def wallet_page():
+    return FileResponse("static/wallet.html")
+
+@app.get("/guide")
+async def guide_page():
+    return FileResponse("static/guide.html")
+
+@app.get("/ask")
+async def ask_page():
+    return FileResponse("static/ask.html")
