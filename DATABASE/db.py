@@ -89,6 +89,26 @@ def add_credits(user_email: str, amount: int):
     finally:
         conn.close()
 
+def deduct_credits(user_email: str, amount: int) -> bool:
+    """หักเครดิต — คืน False ถ้าไม่พอ"""
+    conn = get_conn()
+    try:
+        row = conn.execute(
+            "SELECT amount FROM credits WHERE user_email=?", (user_email,)
+        ).fetchone()
+        current = int(row["amount"]) if row else 0
+        if current < amount:
+            return False
+        conn.execute(
+            """UPDATE credits SET amount = amount - ?, updated_at = CURRENT_TIMESTAMP
+               WHERE user_email = ?""",
+            (amount, user_email)
+        )
+        conn.commit()
+        return True
+    finally:
+        conn.close()
+
 def log_decision(user_email: str, input_text: str, route: str, response: str):
     conn = get_conn()
     try:
@@ -133,5 +153,18 @@ def record_payment(user_email: str, amount_usd: float, session_id: str):
             (user_email, amount_usd, session_id)
         )
         conn.commit()
+    finally:
+        conn.close()
+
+def get_decision_history(user_email: str, limit: int = 20) -> list:
+    conn = get_conn()
+    try:
+        rows = conn.execute(
+            """SELECT input, route, response, created_at
+               FROM decision_log WHERE user_email=?
+               ORDER BY created_at DESC LIMIT ?""",
+            (user_email, limit)
+        ).fetchall()
+        return [dict(r) for r in rows]
     finally:
         conn.close()
