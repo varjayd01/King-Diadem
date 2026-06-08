@@ -2,118 +2,216 @@
 # โยนิโสมนสิการ: อ่านเจตนาจากเหตุปัจจัย ไม่ใช่ keyword matching ล้วนๆ
 # วิเคราะห์ 3 ชั้น: surface signal → context weight → causal intent
 
+from __future__ import annotations
 import re
+import math
+from typing import Any
 
-# ── Intent definitions พร้อม causal weight ───────────────
-_INTENTS = [
+# ── Intent definitions พร้อม causal weight ───────────────────
+_INTENTS: list[dict[str, Any]] = [
     {
-        "name": "crisis",
-        "weight": 3.0,   # override ทุกอย่าง
+        "name":    "crisis",
+        "weight":  3.0,   # override ทุกอย่าง — safety first
         "patterns": [
-            "อยากตาย", "ไม่อยากอยู่", "ฆ่าตัว", "ฆ่าตัวเอง",
-            "จบชีวิต", "หมดแล้วจริงๆ", "ทนไม่ไหวแล้ว", "ไม่มีทางออกเลย",
+            r"อยากตาย", r"ไม่อยากอยู่", r"ฆ่าตัว", r"ฆ่าตัวเอง",
+            r"จบชีวิต", r"หมดแล้วจริงๆ", r"ทนไม่ไหวแล้ว", r"ไม่มีทางออกเลย",
             r"\bsuicid", r"\bwant to die\b", r"\bend it all\b",
         ],
     },
     {
-        "name": "survival",
-        "weight": 2.0,
+        "name":    "survival",
+        "weight":  2.0,
         "patterns": [
-            "ตกงาน", "ไม่มีเงิน", "หนี้ท่วม", "กินไม่ได้", "ไล่ออก",
-            "ไม่มีที่อยู่", "พังหมดเลย", "หมดทรัพยากร", "เอาตัวรอดไม่ได้",
+            r"ตกงาน", r"ไม่มีเงิน", r"หนี้ท่วม", r"กินไม่ได้", r"ไล่ออก",
+            r"ไม่มีที่อยู่", r"พังหมดเลย", r"หมดทรัพยากร", r"เอาตัวรอดไม่ได้",
             r"\bno money\b", r"\bbankrupt\b", r"\bevicted\b",
         ],
     },
     {
-        "name": "risk",
-        "weight": 1.8,
+        "name":    "risk",
+        "weight":  1.8,
         "patterns": [
-            "เสี่ยงมาก", "อันตราย", "ล้มละลาย", "ขาดทุนหนัก",
-            "ระบบพัง", "collapse", "วิกฤต", "ทุกอย่างพัง",
+            r"เสี่ยงมาก", r"อันตราย", r"ล้มละลาย", r"ขาดทุนหนัก",
+            r"ระบบพัง", r"\bcollapse\b", r"วิกฤต", r"ทุกอย่างพัง",
         ],
     },
     {
-        "name": "vega",
-        "weight": 1.5,
+        "name":    "vega",
+        "weight":  1.5,
         "patterns": [
-            "ระยะยาว", "ภาพใหญ่", "กลยุทธ์", "strategic",
-            "วิเคราะห์ระบบ", "5 ปีข้างหน้า", "ภาพรวม", "อนาคตของ",
+            r"ระยะยาว", r"ภาพใหญ่", r"กลยุทธ์", r"\bstrategic\b",
+            r"วิเคราะห์ระบบ", r"5 ปีข้างหน้า", r"ภาพรวม", r"อนาคตของ",
+            r"ผลกระทบระบบ", r"เชิงโครงสร้าง",
         ],
     },
     {
-        "name": "civil",
-        "weight": 1.2,
+        "name":    "civil",
+        "weight":  1.2,
         "patterns": [
-            "ธุรกิจ", "บริษัท", "ลูกค้า", "โปรเจกต์", "เจ้านาย",
-            "ลาออก", "startup", r"\bmarket\b", r"\brevenue\b",
+            r"ธุรกิจ", r"บริษัท", r"ลูกค้า", r"โปรเจกต์", r"เจ้านาย",
+            r"ลาออก", r"\bstartup\b", r"\bmarket\b", r"\brevenue\b",
+            r"สัญญา", r"ประชุม", r"งานพรีเซนต์",
         ],
     },
     {
-        "name": "relationship",
-        "weight": 1.1,
+        "name":    "relationship",
+        "weight":  1.1,
         "patterns": [
-            "แฟน", "เลิกกัน", "ทะเลาะ", "ครอบครัว",
-            "พ่อแม่", "ความสัมพันธ์", r"\brelationship\b",
+            r"แฟน", r"เลิกกัน", r"ทะเลาะ", r"ครอบครัว",
+            r"พ่อแม่", r"ความสัมพันธ์", r"\brelationship\b",
+            r"เพื่อน", r"คนรัก",
         ],
     },
     {
-        "name": "question",
-        "weight": 0.8,
+        "name":    "question",
+        "weight":  0.8,
         "patterns": [
-            "ควรทำยังไง", "ทำไงดี", "แนะนำได้ไหม",
-            "คิดว่าอะไรดีกว่า", "ช่วยแนะนำ", "what should",
+            r"ควรทำยังไง", r"ทำไงดี", r"แนะนำได้ไหม",
+            r"คิดว่าอะไรดีกว่า", r"ช่วยแนะนำ", r"\bwhat should\b",
+            r"มีทางไหนบ้าง", r"ทำอะไรได้บ้าง",
         ],
     },
 ]
 
+# ── Causal amplifiers: คำเหล่านี้เพิ่ม weight ของ intent ที่ match ──
+_AMPLIFIERS = {
+    "urgency":  (["ด่วน", "ตอนนี้เลย", "วันนี้เลย", "ทันที", r"\burgent\b"], 1.3),
+    "emotion":  (["มาก", "สุดๆ", "ไม่ได้แล้ว", "จริงๆ", "เลย"], 1.15),
+    "negation": (["ไม่", "ไม่มี", "หมด", "ขาด", "สูญ"], 1.2),
+}
+
+# ── Emotional tone fallback ──────────────────────────────────
+_EMOTION_WORDS = {
+    "heavy":  ["เหนื่อย", "ท้อ", "หมดแรง", "สิ้นหวัง", "หมดหวัง"],
+    "stress": ["เครียด", "กังวล", "กลัว", "ตื่นตระหนก", "หนักใจ"],
+    "grief":  ["เสียใจ", "ร้องไห้", "เจ็บปวด", "เจ็บใจ", "สูญเสีย"],
+}
+
+
+def _amplify(text: str, base_score: float) -> float:
+    """คูณ amplifier ถ้าพบ urgency/emotion/negation"""
+    mult = 1.0
+    for _label, (words, factor) in _AMPLIFIERS.items():
+        for w in words:
+            if re.search(w, text):
+                mult *= factor
+                break  # 1 amplifier type = 1 mult เท่านั้น
+    return base_score * mult
+
+
+def _causal_depth(text: str) -> float:
+    """
+    วัด "ความลึกเชิงเหตุ" — ประโยคที่มีเหตุ-ผลชัด (เพราะ/จึง/ดังนั้น)
+    ให้ confidence boost เล็กน้อย
+    """
+    causal_markers = [r"เพราะ", r"เนื่องจาก", r"ดังนั้น", r"จึง", r"ทำให้",
+                      r"ส่งผล", r"\bbecause\b", r"\btherefore\b", r"\bso that\b"]
+    hits = sum(1 for m in causal_markers if re.search(m, text))
+    return min(0.15, hits * 0.05)  # +0.05 ต่อ marker สูงสุด +0.15
+
+
 def analyze_intent(text: str) -> dict:
     """
-    โยนิโสมนสิการ: วิเคราะห์เจตนาจากหลายชั้น
-    คืน { intent, confidence, signals, root_signal }
+    โยนิโสมนสิการ — วิเคราะห์เจตนา 3 ชั้น:
+      1. Surface: pattern match + weight
+      2. Context: amplifier คูณ score
+      3. Causal: causal_depth boost confidence
+
+    คืน:
+      intent, confidence, signals, root_signal,
+      all_scores, causal_depth, amplified
     """
     if not text:
-        return {"intent": "general", "confidence": 0.3, "signals": [], "root_signal": None}
+        return {
+            "intent":        "general",
+            "confidence":    0.3,
+            "signals":       [],
+            "root_signal":   None,
+            "all_scores":    {},
+            "causal_depth":  0.0,
+            "amplified":     False,
+        }
 
     t = text.lower().strip()
-    scores = {}
-    matched_signals = []
+    raw_scores:  dict[str, float] = {}
+    matched_map: dict[str, list[str]] = {}
 
+    # ── ชั้น 1: surface match ────────────────────────────────
     for item in _INTENTS:
-        name    = item["name"]
-        weight  = item["weight"]
-        hits    = 0
-        matched = []
+        name   = item["name"]
+        weight = item["weight"]
+        hits: list[str] = []
         for pat in item["patterns"]:
             if re.search(pat, t):
-                hits += 1
-                matched.append(pat if not pat.startswith(r'\b') else pat.replace(r'\b', ''))
+                hits.append(pat)
         if hits:
-            scores[name] = hits * weight
-            matched_signals.extend([(name, m) for m in matched])
+            raw_scores[name]  = len(hits) * weight
+            matched_map[name] = hits
 
-    if not scores:
-        # Causal fallback: อ่าน emotional tone แทน keyword
-        if any(w in t for w in ["เหนื่อย","ท้อ","เครียด","กลัว","เสียใจ","หมดหวัง"]):
-            return {"intent": "vega", "confidence": 0.55,
-                    "signals": ["emotional_tone"], "root_signal": "emotion"}
-        if len(t) < 15:  # ข้อความสั้นมาก — ไม่พอวิเคราะห์
-            return {"intent": "general", "confidence": 0.3,
-                    "signals": [], "root_signal": None}
-        return {"intent": "general", "confidence": 0.4,
-                "signals": [], "root_signal": None}
+    # ── ชั้น 2: amplify ──────────────────────────────────────
+    amplified = False
+    amp_scores: dict[str, float] = {}
+    for name, score in raw_scores.items():
+        new_score = _amplify(t, score)
+        amp_scores[name] = new_score
+        if new_score != score:
+            amplified = True
 
-    # intent ที่ score สูงสุด
-    best       = max(scores, key=scores.get)
-    best_score = scores[best]
-    total      = sum(scores.values()) or 1
-    confidence = round(min(0.95, best_score / total * (1 + best_score * 0.1)), 3)
+    # ── ชั้น 3: causal depth ─────────────────────────────────
+    causal_boost = _causal_depth(t)
 
-    root = matched_signals[0][1] if matched_signals else None
+    # ── Emotional fallback ───────────────────────────────────
+    if not amp_scores:
+        for tone, words in _EMOTION_WORDS.items():
+            if any(re.search(w, t) for w in words):
+                base_intent = "crisis" if tone == "heavy" else "vega"
+                base_conf   = 0.48 + causal_boost
+                return {
+                    "intent":       base_intent,
+                    "confidence":   round(min(0.75, base_conf), 3),
+                    "signals":      [tone + "_emotion"],
+                    "root_signal":  tone,
+                    "all_scores":   {base_intent: round(base_conf * 10, 2)},
+                    "causal_depth": causal_boost,
+                    "amplified":    False,
+                }
+        # ข้อความสั้นหรือไม่มี signal
+        if len(t) < 12:
+            conf = 0.25
+        else:
+            conf = 0.38 + causal_boost
+        return {
+            "intent":       "general",
+            "confidence":   round(conf, 3),
+            "signals":      [],
+            "root_signal":  None,
+            "all_scores":   {},
+            "causal_depth": causal_boost,
+            "amplified":    False,
+        }
+
+    # ── เลือก best intent ────────────────────────────────────
+    best       = max(amp_scores, key=amp_scores.get)
+    best_score = amp_scores[best]
+    total      = sum(amp_scores.values()) or 1.0
+
+    # softmax-lite: ป้องกัน overconfidence
+    raw_conf   = best_score / total
+    conf       = round(min(0.95, raw_conf * (1 + math.log1p(best_score) * 0.05) + causal_boost), 3)
+
+    # root signal = pattern แรกของ best intent
+    root = matched_map[best][0] if matched_map.get(best) else None
+
+    all_signals = []
+    for name, pats in matched_map.items():
+        all_signals.extend([name] * len(pats))
 
     return {
-        "intent":       best,
-        "confidence":   confidence,
-        "signals":      list({m[0] for m in matched_signals}),
-        "root_signal":  root,
-        "all_scores":   {k: round(v, 2) for k, v in sorted(scores.items(), key=lambda x: -x[1])},
+        "intent":      best,
+        "confidence":  conf,
+        "signals":     sorted(set(matched_map.keys())),
+        "root_signal": root,
+        "all_scores":  {k: round(v, 2) for k, v in sorted(amp_scores.items(), key=lambda x: -x[1])},
+        "causal_depth": causal_boost,
+        "amplified":    amplified,
     }
