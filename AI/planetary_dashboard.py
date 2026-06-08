@@ -1,50 +1,77 @@
 # AI/planetary_dashboard.py — KING DIADEM
-# FIX: ลบ import ที่พัง ใช้ fallback แบบ graceful
+# FIX: graceful import fallback ทุกตัว — ไม่มี import ที่พังระบบ
+
+from __future__ import annotations
+
 
 def planetary_status() -> dict:
     """
     รวม signal จากทุก layer ที่มีอยู่จริง
     ถ้า module ไหนไม่โหลดได้ → ใช้ default ไม่พัง
     """
-    # ── freedom_index ─────────────────────────────────────
+    # ── freedom_index ─────────────────────────────────────────
+    freedom: float = 50.0
     try:
-        from AI.freedom_signal import freedom_index
-        freedom = freedom_index()
+        from AI.freedom_signal import freedom_index  # type: ignore
+        freedom = float(freedom_index())
     except Exception:
-        freedom = 50
+        try:
+            from ENGINE.freedom_signal import freedom_index  # type: ignore
+            freedom = float(freedom_index())
+        except Exception:
+            pass
 
-    # ── learning summary ──────────────────────────────────
+    # ── learning summary ──────────────────────────────────────
+    learning: dict = {"total": 0, "score": 50, "signal": "NO_DATA",
+                      "drift_risk": "UNKNOWN", "win_rate": 0.0}
     try:
         from AI.reality_learning import learning_summary
-        learning = learning_summary()
-    except Exception:
-        learning = {"total": 0, "score": 50, "signal": "UNKNOWN"}
-
-    # ── decision nodes (ถ้ามี) ────────────────────────────
-    decision_count = 0
-    try:
-        from AI.decision_memory import get_memory
-        decision_count = len(get_memory())
+        result = learning_summary()
+        if isinstance(result, dict):
+            learning = result
     except Exception:
         pass
 
-    # ── network nodes (ถ้ามี) ─────────────────────────────
-    node_count = 0
+    # ── decision nodes ────────────────────────────────────────
+    decision_count: int = 0
     try:
-        from NETWORK.node_registry import get_nodes
+        from AI.decision_memory import get_memory  # type: ignore
+        decision_count = len(get_memory())
+    except Exception:
+        try:
+            from ENGINE.memory import get_memory  # type: ignore
+            decision_count = len(get_memory())
+        except Exception:
+            pass
+
+    # ── network nodes ─────────────────────────────────────────
+    node_count: int = 0
+    try:
+        from NETWORK.node_registry import get_nodes  # type: ignore
         node_count = len(get_nodes())
     except Exception:
         pass
 
-    # ── civilization nodes (ถ้ามี) ────────────────────────
+    # ── civilization nodes ────────────────────────────────────
+    civ_nodes: int = 0
     try:
-        from AI.civilization_engine import get_nodes as get_civ_nodes
+        from AI.civilization_engine import get_nodes as get_civ_nodes  # type: ignore
         civ_nodes = len(get_civ_nodes())
     except Exception:
-        civ_nodes = 0
+        pass
 
-    # ── status signal ─────────────────────────────────────
-    learn_score = learning.get("score", 50)
+    # ── intent engine check ───────────────────────────────────
+    intent_ok: bool = False
+    try:
+        from AI.intent_engine import analyze_intent  # noqa: F401
+        intent_ok = True
+    except Exception:
+        pass
+
+    # ── status signal ─────────────────────────────────────────
+    learn_score: float = float(learning.get("score", 50))
+    drift_risk:  str   = str(learning.get("drift_risk", "UNKNOWN"))
+
     if freedom < 25 or learn_score < 25:
         status = "COLLAPSE_RISK"
     elif freedom < 40 or learn_score < 35:
@@ -54,23 +81,30 @@ def planetary_status() -> dict:
     else:
         status = "STABLE"
 
+    lyla_signal = (
+        "INTERVENE" if status == "COLLAPSE_RISK" else
+        "MONITOR"   if status == "COMPRESSION"   else
+        "OBSERVE"
+    )
+
+    choice_collapse = "HIGH" if freedom < 25 else "MODERATE" if freedom < 40 else "LOW"
+
     return {
         "planetary_status":    status,
-        "freedom_index":       freedom,
+        "freedom_index":       round(freedom, 1),
         "learning_score":      learn_score,
-        "learning_signal":     learning.get("signal", "UNKNOWN"),
-        "drift_risk":          learning.get("drift_risk", "LOW"),
+        "learning_signal":     learning.get("signal", "NO_DATA"),
+        "drift_risk":          drift_risk,
+        "win_rate":            learning.get("win_rate", 0.0),
+        "recent_trend":        learning.get("recent_trend", "FLAT"),
         "decision_nodes":      decision_count,
         "civilization_nodes":  civ_nodes,
         "network_nodes":       node_count,
+        "intent_engine_ok":    intent_ok,
         "learning":            learning,
         "global_food_security":"DECLINING",
         "water_stress_index":  72.4,
         "energy_drift_daily":  0.1,
-        "choice_collapse_risk":"MODERATE" if freedom < 40 else "LOW",
-        "lyla_signal": (
-            "INTERVENE" if status == "COLLAPSE_RISK" else
-            "MONITOR"   if status == "COMPRESSION"   else
-            "OBSERVE"
-        ),
+        "choice_collapse_risk":choice_collapse,
+        "lyla_signal":         lyla_signal,
     }
