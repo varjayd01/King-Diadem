@@ -69,6 +69,18 @@ class DecisionEngine:
                 "message":  "ไม่พบ input",
             }
 
+        # ── STEP 0: Emotion State (cross-turn tracking) ───────
+        # session_id จาก data หรือใช้ default
+        session_id = str(data.get("session_id") or data.get("user_email") or "default")
+        emotion_ctx = "EMOTION:NEUTRAL"
+        try:
+            from ENGINE.emotion_state import get_emotion_state
+            es = get_emotion_state(session_id)
+            es.update(user_input)
+            emotion_ctx = es.context_note()
+        except Exception:
+            pass
+
         # ── STEP 1: Pattern Analysis ──────────────────────────
         pattern = analyze_pattern(data)
         route   = pattern.get("route", "general")
@@ -208,6 +220,7 @@ class DecisionEngine:
                     history            = data.get("history", []),
                     route              = route,
                     voice_mode         = voice_mode,
+                    emotion_state      = emotion_ctx,
                 )
             except Exception as e:
                 ai_response = f"[Gemini unavailable: {e}]"
