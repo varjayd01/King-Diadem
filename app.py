@@ -639,3 +639,47 @@ async def guide_page():
 @app.get("/ask")
 async def ask_page():
     return FileResponse("static/ask.html")
+# เพิ่มใน app.py หลัง @app.get("/credits")
+
+@app.post("/analyze-image")
+async def analyze_image(request: Request, file: UploadFile = File(...)):
+    """วิเคราะห์ภาพด้วย LYLA — governance scan"""
+    if not llm:
+        return JSONResponse({"error": "LLM ไม่พร้อม"}, status_code=503)
+    try:
+        data = await file.read()
+        import base64
+        b64 = base64.b64encode(data).decode()
+        mime = file.content_type or "image/jpeg"
+
+        # ส่งไป Gemini พร้อม prompt
+        from google.genai import types as gtypes
+        contents = [
+            gtypes.Content(role="user", parts=[
+                gtypes.Part.from_bytes(data=data, mime_type=mime),
+                gtypes.Part.from_text(text=(
+                    "วิเคราะห์ภาพนี้ในมุม KING DIADEM Governance:\n"
+                    "1. มีความเสี่ยงอะไรที่เห็นได้\n"
+                    "2. ทางเลือกที่มีอยู่คืออะไร\n"
+                    "3. สัญญาณ waterline / drift ที่เห็น\n"
+                    "ตอบเป็นภาษาไทย กระชับ ตรงประเด็น\n— LYLA ◈"
+                ))
+            ])
+        ]
+
+        from core.llm_gemini import get_llm
+        _llm = get_llm()
+        from google.genai import types as t2
+        cfg = t2.GenerateContentConfig(
+            system_instruction="คุณคือ LYLA governance scanner วิเคราะห์ภาพแล้วรายงาน risk/choice/waterline",
+            temperature=0.5,
+            max_output_tokens=800,
+        )
+        resp = _llm.client.models.generate_content(
+            model=_llm.model,
+            contents=contents,
+            config=cfg
+        )
+        return {"result": (resp.text or "").strip(), "filename": file.filename}
+    except Exception as e:
+        return JSONResponse({"error": str(e)}, status_code=500)
