@@ -1,12 +1,13 @@
 # ENGINE/decision_engine.py
 # KING DIADEM — Decision Engine · กลางทุกสรรพสิ่ง
-# v5.1 — Singleton LLM (ไม่แย่ง quota) + get_llm()
+# v5.2 — threading timeout 1.5s on eternal_snapshot (แก้ 502)
 
 import json
 import re
+import threading
 
 from ENGINE.pattern_engine import analyze_pattern
-from core.llm_gemini import get_llm          # ← เปลี่ยนจาก GeminiLLM → get_llm
+from core.llm_gemini import get_llm          # ← singleton
 from core.emptiness_guard import emptiness_guard
 
 
@@ -15,7 +16,7 @@ class DecisionEngine:
     def __init__(self):
         # ── LLM — ใช้ singleton เดียวกับทั้งระบบ ─────────────
         try:
-            self.llm = get_llm()             # ← ไม่สร้าง instance ใหม่
+            self.llm = get_llm()
             print("✅ DecisionEngine: GeminiLLM loaded (singleton)")
         except Exception as e:
             print(f"❌ DecisionEngine: GeminiLLM failed - {e}")
@@ -316,12 +317,43 @@ def _build_payload(data: dict) -> dict:
     return out
 
 
+# ══════════════════════════════════════════════════════════════
+# eternal_snapshot_for_decision — v5.2 FIX
+# threading timeout 1.5s → ป้องกัน eternal_runtime block → 502
+# ══════════════════════════════════════════════════════════════
 def eternal_snapshot_for_decision(state: dict) -> dict:
-    try:
-        from ENGINE.eternal_runtime import eternal_snapshot
-        return eternal_snapshot(state)
-    except Exception as e:
-        return {"error": str(e)}
+    """
+    เรียก eternal_snapshot พร้อม timeout 1.5s
+    ถ้าช้าเกิน → คืน fallback dict แทน (ไม่ block request)
+    """
+    result = {}
+    error  = {}
+
+    def _run():
+        try:
+            from ENGINE.eternal_runtime import eternal_snapshot
+            result["data"] = eternal_snapshot(state)
+        except Exception as e:
+            error["msg"] = str(e)
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    t.join(timeout=1.5)
+
+    if t.is_alive():
+        # timeout — คืน fallback ทันที ไม่รอ
+        print("⚠️  eternal_snapshot timeout (>1.5s) — using fallback")
+        return {
+            "status":  "TIMEOUT",
+            "entropy": state.get("entropy",   40),
+            "resource": state.get("resource", 50),
+            "stability": state.get("stability", 60),
+        }
+
+    if error:
+        return {"status": "ERROR", "error": error["msg"]}
+
+    return result.get("data", {"status": "EMPTY"})
 
 
 def run_decision(data) -> dict:
@@ -336,6 +368,7 @@ def run_decision(data) -> dict:
             "message":  "ไม่พบ input",
         }
 
+    # ← ตอนนี้ไม่ block แล้ว (timeout 1.5s)
     merged["_eternal_snapshot"] = eternal_snapshot_for_decision({
         "entropy":   float(merged.get("entropy",   40)),
         "resource":  float(merged.get("resource",  50)),
