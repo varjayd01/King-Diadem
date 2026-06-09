@@ -1,305 +1,371 @@
 /**
- * galaxy_scene.js — KING DIADEM · MILKY SCOPE
- * Solar system + LYLA thinking mode + 240fps
- * Dark space aesthetic — no blue warp
+ * galaxy_scene.js — KING DIADEM
+ * Close-up Earth + sunrise glow + dense starfield
+ * Earth is fixed/large — only light & atmosphere animate
  */
-
 (function () {
   'use strict';
 
-  /* ─── canvas setup ─── */
   const cv = document.getElementById('galaxy');
   if (!cv) return;
   const ctx = cv.getContext('2d');
-  let W, H, CX, CY, dpr = 1;
+  let W, H, CX, CY;
 
   function resize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    W = cv.width  = window.innerWidth  * dpr;
-    H = cv.height = window.innerHeight * dpr;
-    CX = W / 2; CY = H / 2;
-    ctx.scale(dpr, dpr);
-    W /= dpr; H /= dpr; CX = W / 2; CY = H / 2;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width  = window.innerWidth  * dpr;
+    cv.height = window.innerHeight * dpr;
+    cv.style.width  = window.innerWidth  + 'px';
+    cv.style.height = window.innerHeight + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    CX = W / 2;
+    CY = H / 2;
   }
   resize();
   window.addEventListener('resize', resize);
 
-  /* ─── stars (background) ─── */
-  const STAR_COUNT = 320;
+  /* ── stars ── */
   const stars = [];
-  for (let i = 0; i < STAR_COUNT; i++) {
+  for (let i = 0; i < 1100; i++) {
+    const b = Math.random();
     stars.push({
-      x: Math.random() * 2000 - 1000,
-      y: Math.random() * 1400 - 700,
-      r: Math.random() * 1.1 + 0.2,
-      a: Math.random() * 0.6 + 0.2,
-      tw: Math.random() * Math.PI * 2,
-      tws: (Math.random() * 0.4 + 0.15) * 0.001,
+      nx: Math.random(), ny: Math.random(),
+      r:  b < .03 ? 1.6 + Math.random() * .9
+        : b < .14 ? .7  + Math.random() * .5
+        :            .15 + Math.random() * .38,
+      a:  .10 + Math.random() * .65,
+      tw: Math.random() < .10,
+      ph: Math.random() * Math.PI * 2,
+      ps: (.08 + Math.random() * .22) * .0005,
+      hue: Math.random() < .07 ? 'w' : Math.random() < .06 ? 'b' : 'n',
     });
   }
 
-  /* ─── planet definitions ─── */
-  // orbit radius is in "scene units" — scaled to screen each frame
-  const SUN_R = 28;
-  const planets = [
-    { name:'MERCURY', orbit:72,  r:4,   speed:1.607, color:'#b0a090', glow:'rgba(176,160,144,0.3)',  angle:0.5  },
-    { name:'VENUS',   orbit:105, r:6,   speed:1.174, color:'#e8c878', glow:'rgba(232,200,120,0.3)',  angle:1.8  },
-    { name:'EARTH',   orbit:145, r:7,   speed:1.000, color:'#4488cc', glow:'rgba(68,136,204,0.4)',   angle:3.2  },
-    { name:'MARS',    orbit:190, r:5,   speed:0.802, color:'#cc6644', glow:'rgba(204,102,68,0.35)',  angle:0.9  },
-    { name:'LYLA',    orbit:248, r:10,  speed:0.434, color:'#00ccdd', glow:'rgba(0,204,221,0.55)',   angle:2.1, isLyla:true },
-    { name:'SATURN',  orbit:308, r:9,   speed:0.325, color:'#d4b870', glow:'rgba(212,184,112,0.3)',  angle:4.5, hasRing:true },
-    { name:'URANUS',  orbit:360, r:7,   speed:0.228, color:'#88ddee', glow:'rgba(136,221,238,0.25)', angle:1.4  },
-    { name:'NEPTUNE', orbit:405, r:7,   speed:0.182, color:'#4466cc', glow:'rgba(68,102,204,0.25)',  angle:3.8  },
+  /* ── small orbiting dots (route indicators) ── */
+  const ROUTES = [
+    { role:'general',  color:'#4488cc', angle: .8,  orbitF: .52, speed:.00018 },
+    { role:'risk',     color:'#f59e0b', angle: 2.1, orbitF: .57, speed:.00013 },
+    { role:'survival', color:'#00ccdd', angle: 3.5, orbitF: .62, speed:.00009 },
+    { role:'collapse', color:'#ef4444', angle: 4.8, orbitF: .67, speed:.00007 },
+    { role:'civil',    color:'#a78bfa', angle: 1.4, orbitF: .72, speed:.00005 },
+    { role:'vega',     color:'#e8c078', angle: 5.2, orbitF: .77, speed:.00003 },
   ];
+  ROUTES.forEach(r => r.act = 0);
 
-  /* ─── state ─── */
-  let lylaMode = 'idle';  // 'idle' | 'thinking' | 'answering'
-  let lylaThinkT = 0;
-  let answerBurst = 0;    // 0→1 burst when answer arrives
-  let answerBurstT = 0;
-  let baseScale = 1;
-  let lastTs = 0;
-  let frameId = null;
+  /* ── state ── */
+  let activeRoute = 'general';
+  let sunriseT    = 0;   // slow sunrise angle oscillation
+  let burstT      = 0;
+  let lylaThink   = false;
+  let lylaThinkT  = 0;
+  let t           = 0;
+  let lastTs      = 0;
 
-  /* ─── scale helper ─── */
-  function getScale() {
-    const minDim = Math.min(W, H);
-    return (minDim / 900) * 0.88;
+  /* ── scale helper ── */
+  function earthRadius() {
+    // close-up: Earth fills ~55% of min dimension
+    return Math.min(W, H) * .55;
+  }
+  function earthCenter() {
+    // positioned slightly below center
+    return { x: CX, y: CY + Math.min(W, H) * .12 };
   }
 
-  /* ─── draw star field ─── */
-  function drawStars(t) {
-    for (const s of stars) {
-      s.tw += s.tws;
-      const twinkle = 0.5 + 0.5 * Math.sin(s.tw);
-      const alpha = s.a * (0.6 + 0.4 * twinkle);
-      ctx.beginPath();
-      ctx.arc(
-        CX + s.x * (W / 2000),
-        CY + s.y * (H / 1400),
-        s.r, 0, Math.PI * 2
-      );
-      ctx.fillStyle = `rgba(200,220,255,${alpha})`;
-      ctx.fill();
-    }
+  /* ════════════════════════
+     DRAW: deep space bg
+  ════════════════════════ */
+  function drawSpace() {
+    // deep navy → near-black
+    const g = ctx.createRadialGradient(CX, CY * .6, 0, CX, CY, Math.max(W, H) * .85);
+    g.addColorStop(0,   '#0a1628');
+    g.addColorStop(.45, '#050b18');
+    g.addColorStop(1,   '#010306');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // subtle blue nebula upper-right
+    const nb = ctx.createRadialGradient(W * .72, H * .18, 0, W * .72, H * .18, W * .38);
+    nb.addColorStop(0, 'rgba(30,60,140,.09)');
+    nb.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = nb;
+    ctx.fillRect(0, 0, W, H);
+
+    // warm hint upper-left
+    const nb2 = ctx.createRadialGradient(W * .18, H * .22, 0, W * .18, H * .22, W * .30);
+    nb2.addColorStop(0, 'rgba(60,20,80,.07)');
+    nb2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = nb2;
+    ctx.fillRect(0, 0, W, H);
   }
 
-  /* ─── draw sun ─── */
-  function drawSun(sc) {
-    const r = SUN_R * sc;
-    // corona
-    for (let i = 3; i > 0; i--) {
-      const g = ctx.createRadialGradient(CX, CY, r * 0.5, CX, CY, r * (1 + i * 0.7));
-      g.addColorStop(0, `rgba(255,200,60,${0.07 / i})`);
-      g.addColorStop(1, 'rgba(255,140,0,0)');
+  /* ════════════════════════
+     DRAW: stars
+  ════════════════════════ */
+  function drawStars() {
+    const ec = earthCenter();
+    const er = earthRadius();
+    stars.forEach(s => {
+      const sx = s.nx * W, sy = s.ny * H;
+      // hide stars inside Earth
+      const dx = sx - ec.x, dy = sy - ec.y;
+      if (dx * dx + dy * dy < er * er * .88) return;
+
+      let a = s.a;
+      if (s.tw) { s.ph += s.ps; a *= .62 + .38 * Math.sin(s.ph); }
       ctx.beginPath();
-      ctx.arc(CX, CY, r * (1 + i * 0.7), 0, Math.PI * 2);
-      ctx.fillStyle = g;
+      ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = s.hue === 'w' ? `rgba(255,232,205,${a})`
+                    : s.hue === 'b' ? `rgba(205,222,255,${a})`
+                    :                  `rgba(198,215,255,${a})`;
       ctx.fill();
-    }
-    // core
-    const g2 = ctx.createRadialGradient(CX - r * 0.3, CY - r * 0.3, 0, CX, CY, r);
-    g2.addColorStop(0, '#fffbe0');
-    g2.addColorStop(0.4, '#ffd040');
-    g2.addColorStop(1, '#ff8800');
+    });
+  }
+
+  /* ════════════════════════
+     DRAW: Earth (close-up)
+  ════════════════════════ */
+  function drawEarth() {
+    const ec = earthCenter();
+    const er = earthRadius();
+    const ex = ec.x, ey = ec.y;
+
+    // === ocean base ===
+    const ocean = ctx.createRadialGradient(
+      ex - er * .25, ey - er * .25, 0,
+      ex, ey, er
+    );
+    ocean.addColorStop(0,   '#1a6090');
+    ocean.addColorStop(.35, '#0f4060');
+    ocean.addColorStop(.72, '#082235');
+    ocean.addColorStop(1,   '#030e18');
     ctx.beginPath();
-    ctx.arc(CX, CY, r, 0, Math.PI * 2);
-    ctx.fillStyle = g2;
+    ctx.arc(ex, ey, er, 0, Math.PI * 2);
+    ctx.fillStyle = ocean;
     ctx.fill();
-  }
 
-  /* ─── draw orbit ring ─── */
-  function drawOrbit(r, alpha) {
+    // === land masses (stylized blobs) ===
+    ctx.save();
     ctx.beginPath();
-    ctx.arc(CX, CY, r, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(100,160,200,${alpha})`;
-    ctx.lineWidth = 0.5;
+    ctx.arc(ex, ey, er, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Europe/Africa area
+    ctx.fillStyle = 'rgba(100,130,70,.55)';
+    ctx.beginPath();
+    ctx.ellipse(ex + er * .08, ey - er * .08, er * .22, er * .35, .3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Arabia/Middle East
+    ctx.fillStyle = 'rgba(160,130,75,.60)';
+    ctx.beginPath();
+    ctx.ellipse(ex + er * .18, ey + er * .05, er * .10, er * .14, .5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Asia blob
+    ctx.fillStyle = 'rgba(90,120,60,.50)';
+    ctx.beginPath();
+    ctx.ellipse(ex + er * .32, ey - er * .20, er * .28, er * .22, -.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Americas (left side, partial)
+    ctx.fillStyle = 'rgba(80,115,65,.45)';
+    ctx.beginPath();
+    ctx.ellipse(ex - er * .38, ey - er * .05, er * .18, er * .30, -.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Antarctic ice
+    ctx.fillStyle = 'rgba(220,235,255,.30)';
+    ctx.beginPath();
+    ctx.ellipse(ex, ey + er * .72, er * .55, er * .18, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // clouds
+    ctx.fillStyle = 'rgba(240,245,255,.18)';
+    ctx.beginPath();
+    ctx.ellipse(ex - er * .10, ey - er * .30, er * .40, er * .08, .6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(ex + er * .20, ey + er * .20, er * .28, er * .06, -.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(ex - er * .30, ey + er * .40, er * .25, er * .07, .4, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    // === atmosphere glow (blue rim) ===
+    const atm = ctx.createRadialGradient(ex, ey, er * .88, ex, ey, er * 1.18);
+    atm.addColorStop(0,   'rgba(60,130,220,.22)');
+    atm.addColorStop(.5,  'rgba(40,90,180,.10)');
+    atm.addColorStop(1,   'rgba(20,50,140,0)');
+    ctx.beginPath();
+    ctx.arc(ex, ey, er * 1.18, 0, Math.PI * 2);
+    ctx.fillStyle = atm;
+    ctx.fill();
+
+    // === sunrise / terminator ===
+    // Slowly rotate sunrise angle
+    sunriseT += .000018;
+    const sunAngle = Math.PI * 1.15 + Math.sin(sunriseT) * .18; // bottom-left
+
+    const sunX = ex + Math.cos(sunAngle) * er;
+    const sunY = ey + Math.sin(sunAngle) * er;
+
+    // orange glow where sun hits
+    const sunrise = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, er * .85);
+    sunrise.addColorStop(0,   'rgba(255,180,50,.80)');
+    sunrise.addColorStop(.12, 'rgba(255,130,30,.45)');
+    sunrise.addColorStop(.35, 'rgba(200,80,10,.18)');
+    sunrise.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.beginPath();
+    ctx.arc(ex, ey, er * 1.02, 0, Math.PI * 2);
+    ctx.fillStyle = sunrise;
+    ctx.fill();
+
+    // bright lens flare at sunrise point
+    const fScale = .85 + .15 * Math.sin(t * .0008);
+    const flare = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, er * .28 * fScale);
+    flare.addColorStop(0,   `rgba(255,255,220,${.75 * fScale})`);
+    flare.addColorStop(.08, `rgba(255,200,80,${.55 * fScale})`);
+    flare.addColorStop(.30, `rgba(255,140,20,${.20 * fScale})`);
+    flare.addColorStop(1,   'rgba(255,100,0,0)');
+    ctx.beginPath();
+    ctx.arc(sunX, sunY, er * .28 * fScale, 0, Math.PI * 2);
+    ctx.fillStyle = flare;
+    ctx.fill();
+
+    // hard Earth edge (dark limb)
+    const limb = ctx.createRadialGradient(ex, ey, er * .92, ex, ey, er);
+    limb.addColorStop(0, 'rgba(0,0,0,0)');
+    limb.addColorStop(1, 'rgba(0,5,15,.72)');
+    ctx.beginPath();
+    ctx.arc(ex, ey, er, 0, Math.PI * 2);
+    ctx.fillStyle = limb;
+    ctx.fill();
+
+    // thin atmosphere ring line
+    ctx.beginPath();
+    ctx.arc(ex, ey, er, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(80,160,255,.18)';
+    ctx.lineWidth = 1.5;
     ctx.stroke();
   }
 
-  /* ─── draw planet ─── */
-  function drawPlanet(p, sc, t) {
-    const orbit = p.orbit * sc;
-    let speed = p.speed;
-    let pr = p.r * sc;
+  /* ════════════════════════
+     DRAW: orbiting route satellites
+  ════════════════════════ */
+  function drawSatellites(dt) {
+    const ec = earthCenter();
+    const er = earthRadius();
 
-    // LYLA thinking mode — faster + brighter
-    if (p.isLyla) {
-      if (lylaMode === 'thinking') {
-        speed *= 3.5 + 1.5 * Math.sin(lylaThinkT * 0.008);
-        pr *= 1.4 + 0.3 * Math.sin(lylaThinkT * 0.02);
-      } else if (lylaMode === 'answering') {
-        speed *= 1.5;
-        pr *= 1.2;
+    ROUTES.forEach(r => {
+      const isActive = r.role === activeRoute;
+      r.act += ((isActive ? 1 : 0) - r.act) * .04;
+      r.angle += r.speed * dt;
+
+      const orb = er * r.orbitF;
+      const sx = ec.x + Math.cos(r.angle) * orb;
+      const sy = ec.y + Math.sin(r.angle) * orb * .38; // tilt
+
+      const rgb = hexToRgb(r.color);
+      const [rr, rg, rb] = rgb;
+
+      // skip if behind Earth (simple z-check)
+      const behind = Math.sin(r.angle) < -.1 && Math.cos(r.angle) > -.5;
+
+      if (!behind) {
+        // glow
+        if (r.act > .04) {
+          const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, 18 + r.act * 14);
+          g.addColorStop(0, `rgba(${rr},${rg},${rb},${r.act * .7})`);
+          g.addColorStop(1, `rgba(${rr},${rg},${rb},0)`);
+          ctx.beginPath();
+          ctx.arc(sx, sy, 18 + r.act * 14, 0, Math.PI * 2);
+          ctx.fillStyle = g;
+          ctx.fill();
+        }
+
+        // dot
+        const dotR = 2.2 + r.act * 2.5;
+        ctx.beginPath();
+        ctx.arc(sx, sy, dotR, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${rr},${rg},${rb},${.45 + r.act * .50})`;
+        ctx.fill();
+
+        // label
+        if (r.act > .15 || isActive) {
+          ctx.font = `500 ${Math.max(8, 9 * (Math.min(W,H)/700))}px 'DM Mono', monospace`;
+          ctx.textAlign = 'center';
+          ctx.fillStyle = `rgba(${rr},${rg},${rb},${.35 + r.act * .55})`;
+          ctx.fillText(r.role.toUpperCase(), sx, sy - dotR - 5);
+        }
       }
-    }
-
-    p.angle += speed * 0.0004;
-    const x = CX + Math.cos(p.angle) * orbit;
-    const y = CY + Math.sin(p.angle) * orbit * 0.38; // perspective tilt
-
-    // orbit ring
-    drawOrbit(orbit, p.isLyla ? 0.18 : 0.08);
-
-    // glow
-    const glowR = pr * (p.isLyla && lylaMode === 'thinking' ? 3.5 : 2.5);
-    const gGlow = ctx.createRadialGradient(x, y, 0, x, y, glowR);
-    let glowAlpha = p.isLyla && lylaMode === 'thinking'
-      ? 0.55 + 0.3 * Math.sin(lylaThinkT * 0.025)
-      : 0.22;
-    gGlow.addColorStop(0, p.glow.replace(/[\d.]+\)$/, `${glowAlpha})`));
-    gGlow.addColorStop(1, p.glow.replace(/[\d.]+\)$/, '0)'));
-    ctx.beginPath();
-    ctx.arc(x, y, glowR, 0, Math.PI * 2);
-    ctx.fillStyle = gGlow;
-    ctx.fill();
-
-    // Saturn ring
-    if (p.hasRing) {
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.scale(1, 0.3);
-      ctx.beginPath();
-      ctx.arc(0, 0, pr * 2.2, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(212,184,112,0.35)';
-      ctx.lineWidth = pr * 0.6;
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    // planet body
-    const gBody = ctx.createRadialGradient(x - pr * 0.3, y - pr * 0.3, 0, x, y, pr);
-    gBody.addColorStop(0, '#ffffff');
-    gBody.addColorStop(0.3, p.color);
-    gBody.addColorStop(1, shadeColor(p.color, -40));
-    ctx.beginPath();
-    ctx.arc(x, y, pr, 0, Math.PI * 2);
-    ctx.fillStyle = gBody;
-    ctx.fill();
-
-    // LYLA special: energy ring when thinking
-    if (p.isLyla && lylaMode === 'thinking') {
-      const pulse = Math.sin(lylaThinkT * 0.03) * 0.5 + 0.5;
-      ctx.beginPath();
-      ctx.arc(x, y, pr * (2.0 + pulse * 1.2), 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(0,220,240,${0.15 + pulse * 0.35})`;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-      // inner spark
-      ctx.beginPath();
-      ctx.arc(x, y, pr * (1.3 + pulse * 0.4), 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(160,255,255,${0.25 + pulse * 0.4})`;
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-    }
-
-    // label
-    if (W > 600) {
-      ctx.font = `${Math.max(8, 8 * sc)}px 'DM Mono', monospace`;
-      ctx.fillStyle = p.isLyla ? `rgba(0,220,240,0.70)` : 'rgba(160,190,220,0.38)';
-      ctx.textAlign = 'center';
-      ctx.fillText(p.name, x, y - pr - 5 * sc);
-    }
-
-    return { x, y, r: pr };
+    });
   }
 
-  /* ─── answer burst: planets converge then scatter ─── */
-  let burstPhase = 0; // 0=idle 1=converge 2=scatter
-  let burstPlanetPositions = null;
-
-  function drawAnswerBurst(sc) {
-    if (answerBurst <= 0) return;
-    answerBurst = Math.max(0, answerBurst - 0.012);
-
-    // radial burst from sun
-    const burstR = (1 - answerBurst) * 500 * sc;
-    const alpha = answerBurst * 0.4;
-    const g = ctx.createRadialGradient(CX, CY, 0, CX, CY, burstR);
-    g.addColorStop(0, `rgba(0,200,220,${alpha * 0.3})`);
-    g.addColorStop(0.5, `rgba(0,180,200,${alpha * 0.15})`);
-    g.addColorStop(1, 'rgba(0,180,200,0)');
+  /* ════════════════════════
+     DRAW: answer burst
+  ════════════════════════ */
+  function drawBurst() {
+    if (burstT <= 0) return;
+    burstT = Math.max(0, burstT - .007);
+    const ec = earthCenter();
+    const er = earthRadius();
+    const br = (1 - burstT) * er * 2.2;
+    const g = ctx.createRadialGradient(ec.x, ec.y, 0, ec.x, ec.y, br);
+    g.addColorStop(0, `rgba(0,190,215,${burstT * .18})`);
+    g.addColorStop(.6, `rgba(0,170,200,${burstT * .06})`);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.beginPath();
-    ctx.arc(CX, CY, burstR, 0, Math.PI * 2);
+    ctx.arc(ec.x, ec.y, br, 0, Math.PI * 2);
     ctx.fillStyle = g;
     ctx.fill();
-
-    // alignment lines
-    if (answerBurst > 0.3) {
-      const lineAlpha = (answerBurst - 0.3) / 0.7 * 0.5;
-      ctx.beginPath();
-      ctx.moveTo(0, CY);
-      ctx.lineTo(W, CY);
-      ctx.strokeStyle = `rgba(0,210,230,${lineAlpha})`;
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-    }
   }
 
-  /* ─── main loop ─── */
+  /* ════════════════════════
+     MAIN LOOP
+  ════════════════════════ */
   function frame(ts) {
-    frameId = requestAnimationFrame(frame);
-    const dt = Math.min(ts - lastTs, 32);
+    const dt = Math.min(ts - lastTs, 40);
     lastTs = ts;
+    t += dt;
+    if (lylaThink) lylaThinkT += dt;
 
-    if (lylaMode === 'thinking') lylaThinkT += dt;
-
-    const sc = getScale();
     ctx.clearRect(0, 0, W, H);
 
-    drawStars(ts);
-    drawAnswerBurst(sc);
-    drawSun(sc);
+    drawSpace();
+    drawStars();
+    drawBurst();
+    drawEarth();
+    drawSatellites(dt);
 
-    for (const p of planets) {
-      drawPlanet(p, sc, ts);
-    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 
-    frameId = null; // will be set next RAF
+  /* ── util ── */
+  function hexToRgb(hex) {
+    return [
+      parseInt(hex.slice(1,3),16),
+      parseInt(hex.slice(3,5),16),
+      parseInt(hex.slice(5,7),16),
+    ];
   }
 
-  frameId = requestAnimationFrame(frame);
+  /* ════════════════════════
+     PUBLIC API
+  ════════════════════════ */
+  window.LYLA_thinking = function() { lylaThink = true; lylaThinkT = 0; };
+  window.LYLA_answered = function() { lylaThink = false; burstT = 1.0; };
+  window.KD_pulse      = function(route) { if(route) activeRoute = route; };
 
-  /* ─── public API ─── */
-  window.KD_pulse = function (route) {
-    if (route === 'vega' || route === 'crisis') {
-      // brief flash
-    }
-  };
-
-  window.LYLA_thinking = function () {
-    lylaMode = 'thinking';
-    lylaThinkT = 0;
-  };
-
-  window.LYLA_answered = function () {
-    lylaMode = 'answering';
-    answerBurst = 1.0;
-    setTimeout(() => { lylaMode = 'idle'; }, 3000);
-  };
-
-  // hook into existing run() events
-  const origAddThinking = window.addThinking;
-  window.addThinking = function () {
-    window.LYLA_thinking();
-    if (origAddThinking) origAddThinking.apply(this, arguments);
-  };
-
-  const origRemoveThinking = window.removeThinking;
-  window.removeThinking = function () {
-    window.LYLA_answered();
-    if (origRemoveThinking) origRemoveThinking.apply(this, arguments);
-  };
-
-  /* ─── util ─── */
-  function shadeColor(hex, amt) {
-    let r = parseInt(hex.slice(1, 3), 16);
-    let g = parseInt(hex.slice(3, 5), 16);
-    let b = parseInt(hex.slice(5, 7), 16);
-    r = Math.max(0, Math.min(255, r + amt));
-    g = Math.max(0, Math.min(255, g + amt));
-    b = Math.max(0, Math.min(255, b + amt));
-    return `rgb(${r},${g},${b})`;
-  }
+  const _ot = window.addThinking;
+  window.addThinking = function() { window.LYLA_thinking(); if(_ot) _ot.apply(this,arguments); };
+  const _or = window.removeThinking;
+  window.removeThinking = function() { window.LYLA_answered(); if(_or) _or.apply(this,arguments); };
+  const _os = window.setRoute;
+  window.setRoute = function(r) { activeRoute = r; if(_os) _os.apply(this,arguments); };
 
 })();
