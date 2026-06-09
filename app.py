@@ -1,5 +1,5 @@
 # =========================
-# 👑 KING DIADEM — app.py v4.1
+# 👑 KING DIADEM — app.py v4.2
 # LYLA (หญิง/ค่ะ) · VEGA (ชาย/ครับ) · ปฏิจสมุปบาท · โยนิโสมนสิการ · สุญยตา
 # Fail less. Harm less. Restore more.
 # =========================
@@ -84,10 +84,10 @@ except Exception as e:
 
 # ── CORE ──────────────────────────────────────────────────────────
 try:
-    from core.llm_gemini import get_llm          # ← Singleton, ไม่สร้างใหม่
+    from core.llm_gemini import get_llm
     from core.lyla_kernel import LylaKernel
     lyla = LylaKernel()
-    llm  = get_llm()                             # ← ใช้ instance เดียวทั้งระบบ
+    llm  = get_llm()
     print("✅ LYLA & Gemini loaded")
 except Exception as e:
     print(f"⚠ LLM/LYLA: {e}")
@@ -100,6 +100,16 @@ try:
 except Exception as e:
     print(f"⚠ Orchestrator: {e}")
     orchestrator = None
+
+# ── GALAXY API ── ★ NEW ──────────────────────────────────────────
+try:
+    from galaxy_api import galaxy_bp, update_galaxy_state
+    _galaxy_update = update_galaxy_state
+    print("✅ Galaxy API loaded")
+except Exception as e:
+    print(f"⚠ Galaxy API: {e}")
+    galaxy_bp = None
+    _galaxy_update = lambda r: None
 
 # ── DATABASE ──────────────────────────────────────────────────────
 try:
@@ -152,6 +162,25 @@ app.add_middleware(
 engine = DecisionEngine() if DecisionEngine else None
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# ── REGISTER BLUEPRINTS ── ★ NEW ─────────────────────────────────
+if galaxy_bp:
+    from fastapi import APIRouter
+    # FastAPI ใช้ router ไม่ใช่ blueprint — wrap ให้อัตโนมัติ
+    try:
+        # ถ้า galaxy_api เขียนเป็น Flask Blueprint → convert
+        # ถ้าเขียนเป็น FastAPI Router → include ตรง
+        app.include_router(galaxy_bp)
+    except Exception:
+        # Flask Blueprint fallback: mount แยก
+        try:
+            from fastapi.middleware.wsgi import WSGIMiddleware
+            from flask import Flask as _Flask
+            _flask_sub = _Flask(__name__)
+            _flask_sub.register_blueprint(galaxy_bp)
+            app.mount("/api/galaxy", WSGIMiddleware(_flask_sub))
+        except Exception as _e:
+            print(f"⚠ Galaxy blueprint mount failed: {_e}")
+
 
 @app.get("/")
 @app.head("/")
@@ -178,6 +207,7 @@ def health():
         "simulation_engine":  simulate is not None,
         "risk_engine":        assess_risk is not None,
         "survivor_engine":    survivor_analyze is not None,
+        "galaxy_api":         galaxy_bp is not None,
         "stripe_loaded":      bool(os.getenv("STRIPE_SECRET_KEY")),
         "freedom_score":      freedom_index() if freedom_index else 0,
         "db_initialized":     init_db is not None,
@@ -346,6 +376,97 @@ async def post_chat_state(request: Request, data: dict):
     return await put_chat_state(request, data)
 
 
+# ── GALAXY STATE ENDPOINTS ── ★ NEW (FastAPI native) ─────────────
+import math, time, threading
+
+_gstate_lock = threading.Lock()
+_gstate = {
+    "active_route": "general",
+    "lyla_mode":    "idle",
+    "risk_score":   0.0,
+    "entropy":      40.0,
+    "stability":    60.0,
+    "resource":     50.0,
+    "last_updated": 0,
+}
+
+_PLANET_META = {
+    "general":  {"orbit": 95,  "period": 0.241},
+    "risk":     {"orbit": 138, "period": 0.615},
+    "survival": {"orbit": 145, "period": 1.000},
+    "collapse": {"orbit": 188, "period": 1.881},
+    "civil":    {"orbit": 238, "period": 11.86},
+    "vega":     {"orbit": 292, "period": 29.46},
+}
+
+def _planet_positions():
+    now, BASE = time.time(), 0.000055
+    nodes = []
+    for role, p in _PLANET_META.items():
+        angle = (now * BASE / p["period"] * 1000) % (2 * math.pi)
+        nodes.append({
+            "role":   role,
+            "angle":  round(angle, 4),
+            "orbit":  p["orbit"],
+            "active": role == _gstate["active_route"],
+        })
+    return nodes
+
+
+@app.get("/api/galaxy/nodes")
+def galaxy_nodes():
+    with _gstate_lock:
+        return {
+            "ok":           True,
+            "active_route": _gstate["active_route"],
+            "lyla_mode":    _gstate["lyla_mode"],
+            "risk_score":   _gstate["risk_score"],
+            "waterline": {
+                "entropy":   _gstate["entropy"],
+                "stability": _gstate["stability"],
+                "resource":  _gstate["resource"],
+            },
+            "nodes": _planet_positions(),
+            "ts":    int(time.time() * 1000),
+        }
+
+
+@app.post("/api/galaxy/signal")
+async def galaxy_signal(data: dict):
+    route = str(data.get("route", "general")).lower()
+    mode  = str(data.get("lyla_mode", "idle")).lower()
+    if route not in _PLANET_META:
+        return JSONResponse({"ok": False, "error": "unknown route"}, status_code=400)
+    with _gstate_lock:
+        _gstate["active_route"] = route
+        _gstate["lyla_mode"]    = mode
+        _gstate["last_updated"] = int(time.time() * 1000)
+    return {"ok": True, "active_route": route, "lyla_mode": mode}
+
+
+@app.get("/api/galaxy/state")
+def galaxy_state():
+    with _gstate_lock:
+        return {**_gstate, "nodes": _planet_positions()}
+
+
+def _sync_galaxy(result: dict):
+    """เรียกหลัง /run — sync waterline + route ให้ frontend"""
+    try:
+        with _gstate_lock:
+            _gstate["active_route"]  = result.get("route", "general")
+            _gstate["risk_score"]    = float(result.get("risk_score", 0))
+            _gstate["lyla_mode"]     = "burst" if result.get("ai_response") else "idle"
+            _gstate["last_updated"]  = int(time.time() * 1000)
+            pat = result.get("pattern", {})
+            if pat:
+                _gstate["entropy"]   = float(pat.get("entropy",   40))
+                _gstate["stability"] = float(pat.get("stability", 60))
+                _gstate["resource"]  = float(pat.get("resource",  50))
+    except Exception:
+        pass
+
+
 # ══════════════════════════════════════════════════════════════════
 # HELPERS
 # ══════════════════════════════════════════════════════════════════
@@ -408,7 +529,7 @@ def _build_history_text(history: list) -> str:
 
 
 # ══════════════════════════════════════════════════════════════════
-# DECISION ENGINE — /run และ /decision
+# /run  +  /decision
 # ══════════════════════════════════════════════════════════════════
 @app.post("/run")
 @app.post("/decision")
@@ -534,6 +655,8 @@ async def run_kernel(request: Request, data: dict):
             "ai_response": reply,
             "governance":  {"intent": intent, "human_state": human_state},
             "persona":     "VEGA" if vm == "vega" else "LYLA",
+            "pattern":     human_state,
+            "risk_score":  human_state.get("risk_score", 0),
         }
 
     result["route"]      = result.get("route") or route
@@ -554,6 +677,9 @@ async def run_kernel(request: Request, data: dict):
         except Exception:
             pass
 
+    # ── Sync galaxy ── ★ NEW ─────────────────────────────────────
+    _sync_galaxy(result)
+
     # ── Log ──────────────────────────────────────────────────────
     if log_decision:
         try:
@@ -568,6 +694,20 @@ async def run_kernel(request: Request, data: dict):
             pass
 
     return result
+
+
+# ── SIMULATE ─────────────────────────────────────────────────────
+@app.post("/simulate")
+async def run_simulate(data: dict):
+    user_input = data.get("input") or ""
+    paths      = data.get("paths") or []
+    if not simulate:
+        return {"simulation": "Simulation engine ไม่พร้อม", "paths": paths}
+    try:
+        result = simulate({"input": user_input, "paths": paths})
+        return result if isinstance(result, dict) else {"simulation": str(result)}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # ── STRIPE ────────────────────────────────────────────────────────
@@ -639,20 +779,17 @@ async def guide_page():
 @app.get("/ask")
 async def ask_page():
     return FileResponse("static/ask.html")
-# เพิ่มใน app.py หลัง @app.get("/credits")
 
+
+# ── ANALYZE IMAGE ─────────────────────────────────────────────────
 @app.post("/analyze-image")
 async def analyze_image(request: Request, file: UploadFile = File(...)):
-    """วิเคราะห์ภาพด้วย LYLA — governance scan"""
     if not llm:
         return JSONResponse({"error": "LLM ไม่พร้อม"}, status_code=503)
     try:
         data = await file.read()
-        import base64
-        b64 = base64.b64encode(data).decode()
         mime = file.content_type or "image/jpeg"
 
-        # ส่งไป Gemini พร้อม prompt
         from google.genai import types as gtypes
         contents = [
             gtypes.Content(role="user", parts=[
@@ -667,8 +804,8 @@ async def analyze_image(request: Request, file: UploadFile = File(...)):
             ])
         ]
 
-        from core.llm_gemini import get_llm
-        _llm = get_llm()
+        from core.llm_gemini import get_llm as _get_llm
+        _llm = _get_llm()
         from google.genai import types as t2
         cfg = t2.GenerateContentConfig(
             system_instruction="คุณคือ LYLA governance scanner วิเคราะห์ภาพแล้วรายงาน risk/choice/waterline",
@@ -680,6 +817,6 @@ async def analyze_image(request: Request, file: UploadFile = File(...)):
             contents=contents,
             config=cfg
         )
-        return {"result": (resp.text or "").strip(), "filename": file.filename}
+        return {"analysis": (resp.text or "").strip(), "filename": file.filename}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
