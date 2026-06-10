@@ -53,6 +53,8 @@ body{
   66%{transform:scale(.965) translate(12px,-8px);}
   100%{transform:scale(1.025) translate(-6px,14px);}
 }
+
+/* ★ FIX: galaxy canvas ต้องอยู่ใต้ app เสมอ z-index:0 */
 #galaxy{position:fixed;inset:0;z-index:0;pointer-events:none;display:block;width:100%;height:100%;}
 .scanline{display:none;}
 #vignette{position:fixed;inset:0;z-index:2;pointer-events:none;
@@ -185,7 +187,7 @@ body{
 #chat-scroll{flex:1;min-height:0;overflow-y:auto;padding:20px 16px calc(16px + var(--sab));-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:transparent;}
 @media(min-width:600px){#chat-scroll{padding:28px 24px calc(20px + var(--sab));}}
 
-/* ═══ WELCOME — cinematic ═══ */
+/* ═══ WELCOME ═══ */
 #welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:28px 16px 20px;min-height:100%;}
 
 .welcome-hero{
@@ -228,36 +230,6 @@ body{
   color:rgba(175,208,238,0.60);max-width:26rem;
 }
 
-/* Philosophy card — cinematic */
-.welcome-philosophy{
-  width:100%;max-width:min(100%,30rem);
-  padding:20px 22px;
-  background:linear-gradient(135deg,rgba(2,0,14,0.82),rgba(4,1,22,0.70));
-  border:1px solid rgba(255,200,80,0.11);
-  border-top:1px solid rgba(255,200,80,0.25);
-  border-radius:16px;
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
-  text-align:left;
-  animation:heroFadeIn 1.4s cubic-bezier(0.16,1,0.3,1) 0.2s both;
-}
-.philosophy-title{font-family:var(--font-mono);font-size:8.5px;letter-spacing:.18em;color:rgba(255,200,80,0.42);text-transform:uppercase;margin-bottom:14px;}
-.philosophy-item{display:flex;gap:10px;align-items:flex-start;margin-bottom:11px;padding-bottom:11px;border-bottom:1px solid rgba(255,255,255,0.045);}
-.philosophy-item:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
-.phi-icon{font-size:16px;flex-shrink:0;margin-top:1px;opacity:.80;}
-.phi-name{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;color:rgba(0,200,220,0.72);margin-bottom:2px;}
-.phi-desc{font-size:12px;line-height:1.65;color:rgba(165,198,228,0.56);}
-
-.philosophy-quote{
-  width:100%;max-width:min(100%,30rem);padding:18px 22px;
-  background:rgba(2,0,12,0.55);
-  border-left:2px solid rgba(255,200,80,0.38);
-  border-radius:0 12px 12px 0;
-  font-size:12px;line-height:1.88;
-  color:rgba(198,218,248,0.58);font-style:italic;
-  animation:heroFadeIn 1.4s cubic-bezier(0.16,1,0.3,1) 0.4s both;
-}
-.philosophy-quote-sig{font-family:var(--font-mono);font-size:9px;color:rgba(255,200,80,0.38);margin-top:8px;display:block;font-style:normal;}
-
 .welcome-hint{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;animation:heroFadeIn 1.4s ease 0.6s both;}
 .hint-chip{
   font-size:13px;padding:10px 16px;border-radius:999px;cursor:pointer;
@@ -267,6 +239,24 @@ body{
   min-height:44px;display:inline-flex;align-items:center;
 }
 .hint-chip:active,.hint-chip:hover{border-color:rgba(0,200,240,0.42);color:var(--teal);background:rgba(0,180,220,0.12);}
+
+/* ═══ PHILOSOPHY (VEGA only) ═══ */
+.philosophy-item{display:flex;gap:10px;align-items:flex-start;margin-bottom:11px;padding-bottom:11px;border-bottom:1px solid rgba(255,255,255,0.045);}
+.philosophy-item:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.phi-icon{font-size:16px;flex-shrink:0;margin-top:1px;opacity:.80;}
+.phi-name{font-family:var(--font-mono);font-size:10px;letter-spacing:.08em;color:rgba(0,200,220,0.72);margin-bottom:2px;}
+.phi-desc{font-size:12px;line-height:1.65;color:rgba(165,198,228,0.56);}
+
+.philosophy-quote{
+  padding:16px 18px;
+  background:rgba(2,0,12,0.55);
+  border-left:2px solid rgba(255,200,80,0.38);
+  border-radius:0 10px 10px 0;
+  font-size:12px;line-height:1.88;
+  color:rgba(198,218,248,0.58);font-style:italic;
+  margin-top:14px;
+}
+.philosophy-quote-sig{font-family:var(--font-mono);font-size:9px;color:rgba(255,200,80,0.38);margin-top:8px;display:block;font-style:normal;}
 
 /* ═══ MESSAGES ═══ */
 .msg{display:flex;gap:12px;align-items:flex-start;margin-bottom:22px;animation:msgIn .22s ease;max-width:min(100%,720px);margin-left:auto;margin-right:auto;width:100%;}
@@ -291,7 +281,6 @@ body{
 .msg-persona.vega{color:#ffcc55;opacity:.82;}
 .msg-persona.crisis{color:#ff6666;opacity:.82;}
 
-/* thinking dots */
 .thinking{display:flex;gap:5px;padding:6px 0 4px 2px;align-items:center;}
 .thinking span{width:7px;height:7px;border-radius:50%;background:var(--teal);opacity:.5;animation:tpulse 1.2s ease-in-out infinite;}
 .thinking span:nth-child(2){animation-delay:.18s}.thinking span:nth-child(3){animation-delay:.36s}
@@ -300,7 +289,7 @@ body{
 .route-tag{font-family:var(--font-mono);font-size:9px;margin-top:10px;padding:3px 0;color:rgba(0,200,220,0.42);display:inline-flex;align-items:center;gap:6px;border:none;letter-spacing:.06em;}
 .route-tag::before{content:'';display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--teal);opacity:.55;}
 
-/* ═══ NODE STATUS INDICATORS ═══ */
+/* ═══ NODE STATUS ═══ */
 .node-status-bar{
   display:flex;gap:6px;align-items:center;margin-top:8px;padding:8px 12px;
   background:rgba(0,0,0,0.25);border-radius:var(--r-s);
@@ -329,6 +318,12 @@ body{
 .sec-head{padding:10px 14px;border-bottom:1px solid rgba(0,180,220,0.08);font-family:var(--font-mono);font-size:9px;letter-spacing:.12em;color:var(--text-dim);text-transform:uppercase;display:flex;align-items:center;gap:8px;}
 .sec-head::before{content:'';width:3px;height:12px;border-radius:2px;background:rgba(0,200,220,0.45);flex-shrink:0;}
 .sec-body{padding:14px;}
+
+/* VEGA section header — gold accent */
+.section.vega-section{border-color:rgba(255,200,80,0.14);}
+.section.vega-section:hover{border-color:rgba(255,200,80,0.24);}
+.section.vega-section .sec-head{color:rgba(255,200,80,0.55);}
+.section.vega-section .sec-head::before{background:rgba(255,200,80,0.50);}
 
 .route-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 @media(min-width:420px){.route-grid{grid-template-columns:repeat(3,1fr);}}
@@ -432,15 +427,19 @@ body{
 #err-toast{position:fixed;bottom:calc(80px + var(--sab));left:50%;transform:translateX(-50%);z-index:999;font-family:var(--font-mono);font-size:12px;padding:12px 20px;border-radius:var(--r);background:rgba(18,1,1,0.97);border:1px solid rgba(239,68,68,.38);color:rgba(239,80,80,.88);max-width:min(92vw,450px);text-align:center;display:none;animation:fadeUp .25s ease;backdrop-filter:blur(18px);}
 @keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(9px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 
-/* ═══ INTRO — DARK SPACE ═══ */
+/* ═══ INTRO — pointer-events:none ตลอด + ไม่ปิด galaxy ═══
+   ★ FIX: ใช้ opacity animation แบบเดิม แต่ทำให้ z-index
+          ไม่ทับ #galaxy (z:0) โดยให้ intro อยู่ที่ z:100
+          และ remove ออกหลัง animation จบ                    */
 #intro-screen{
-  position:fixed;inset:0;z-index:9999;
+  position:fixed;inset:0;z-index:100;
   background:#000006;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  animation:introFadeOut 1s ease 3.8s forwards;
   pointer-events:none;overflow:hidden;
+  /* ★ FIX: fade out เร็วขึ้น 3.2s และ remove ด้วย JS หลังจบ */
+  animation:introFadeOut .8s ease 3.2s forwards;
 }
-@keyframes introFadeOut{0%{opacity:1;}100%{opacity:0;pointer-events:none;}}
+@keyframes introFadeOut{0%{opacity:1;}100%{opacity:0;}}
 #intro-canvas{position:absolute;inset:0;width:100%;height:100%;}
 .intro-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;}
 .intro-crown{
@@ -482,7 +481,7 @@ body{
 </head>
 <body>
 
-<!-- INTRO -->
+<!-- ★ FIX: intro อยู่ก่อน galaxy canvas เพื่อให้ z-index stack ถูก -->
 <div id="intro-screen" aria-hidden="true">
   <canvas id="intro-canvas"></canvas>
   <div class="intro-content">
@@ -497,6 +496,7 @@ body{
 
 <div id="space-bg" aria-hidden="true"></div>
 <div id="nebula-layer" aria-hidden="true"></div>
+<!-- ★ galaxy canvas z-index:0 — ไม่ถูกบัง intro หลัง fade -->
 <canvas id="galaxy"></canvas>
 <div class="scanline" aria-hidden="true"></div>
 <div id="vignette" aria-hidden="true"></div>
@@ -557,7 +557,8 @@ body{
     </header>
 
     <div id="main-scroll">
-      <!-- CHAT VIEW -->
+
+      <!-- ═══ CHAT VIEW ═══ -->
       <div id="view-chat" class="view active">
         <div id="chat-scroll">
           <div id="welcome">
@@ -572,21 +573,7 @@ body{
               <p class="welcome-tagline">ระบบใดที่ทำให้ทางเลือกของมนุษย์เท่ากับศูนย์ ระบบนั้นล้มเหลว<br>การตัดสินใจสุดท้ายเป็นของคุณเสมอ</p>
             </div>
 
-            <div class="welcome-philosophy">
-              <div class="philosophy-title">◈ Personal Horizon — มุมมองจักรวาล</div>
-              <div class="philosophy-item"><span class="phi-icon">👁️</span><div><div class="phi-name">Personal Horizon</div><div class="phi-desc">เราเห็นทุกอย่างล้อมรอบตัว เพราะตาเราอยู่ที่นี่</div></div></div>
-              <div class="philosophy-item"><span class="phi-icon">🌍</span><div><div class="phi-name">Orbiting Observer</div><div class="phi-desc">เราเป็นแค่ผู้โดยสารบนยานโลกที่วิ่งรอบดวงอาทิตย์</div></div></div>
-              <div class="philosophy-item"><span class="phi-icon">🌌</span><div><div class="phi-name">Uniform Distribution</div><div class="phi-desc">แสงดาวกระจายไปทั่วจักรวาล ไม่ได้เล็งมาที่โลกเราแค่ที่เดียว</div></div></div>
-              <div class="philosophy-item"><span class="phi-icon">📐</span><div><div class="phi-name">Geometry Illusion</div><div class="phi-desc">ภาพลวงตาทางเรขาคณิตที่ทำให้รู้สึกเหมือนเป็นจุดศูนย์กลาง</div></div></div>
-              <div class="philosophy-item"><span class="phi-icon">🛡️</span><div><div class="phi-name">Ego-less Universe</div><div class="phi-desc">จักรวาลไม่ได้หมุนรอบใคร แต่ทุกคนร่วมกันเป็นส่วนหนึ่งของทั้งจักรวาล</div></div></div>
-            </div>
-
-            <div class="philosophy-quote">
-              "การรู้สึกว่าเป็นศูนย์กลางคือสัญชาตญาณของการรับรู้ แต่การเข้าใจว่าเราเป็นเพียงจุดเล็กๆ ที่ได้รับแสงดาวนับพันล้านรอบจักรวาลสว่างท่ามกลางความกว้างใหญ่ คือปัญญาที่แท้จริงซึ่งช่วยให้เราเห็นความงดงามของผู้อื่นที่อาบแสงเดียวกับเรา"
-              <span class="philosophy-quote-sig">— KING DIADEM · DriftZero · 🛡️⚖️🌌</span>
-            </div>
-
-            <!-- KD Node status -->
+            <!-- ★ Personal Horizon ย้ายออกไป VEGA tab แล้ว — เหลือแค่ node status + hints -->
             <div class="node-status-bar" id="welcome-nodes">
               <span class="node-dot waterline">WATERLINE</span>
               <span class="node-dot vega">VEGA</span>
@@ -605,7 +592,7 @@ body{
         </div>
       </div>
 
-      <!-- TOOLS VIEW -->
+      <!-- ═══ TOOLS VIEW ═══ -->
       <div id="view-tools" class="view">
         <div class="tools-pad">
           <div class="section" id="section-simulate">
@@ -666,7 +653,7 @@ body{
         </div>
       </div>
 
-      <!-- GOV VIEW -->
+      <!-- ═══ GOV VIEW ═══ -->
       <div id="view-gov" class="view">
         <div class="gov-pad">
           <div class="section">
@@ -680,6 +667,7 @@ body{
               <button type="button" class="route-chip" data-r="vega" onclick="setRoute('vega')">VEGA</button>
             </div>
           </div>
+
           <div class="section">
             <div class="sec-head">WATERLINE METRICS</div>
             <div class="sec-body">
@@ -693,6 +681,7 @@ body{
               </div>
             </div>
           </div>
+
           <div class="section">
             <div class="sec-head">LYLA STATUS</div>
             <div class="sec-body">
@@ -703,6 +692,7 @@ body{
               <div class="lyla-item"><span class="lyla-key">CHOICES</span><span class="lyla-val safe" id="lyla-choices">≥1</span></div>
             </div>
           </div>
+
           <div class="section">
             <div class="sec-head">KD NODE COUNCIL</div>
             <div class="sec-body">
@@ -716,13 +706,61 @@ body{
               <div id="council" class="kd-diag">Waiting for council vote…</div>
             </div>
           </div>
+
+          <!-- ★ Personal Horizon — ย้ายมาอยู่ใน GOV view VEGA section ★ -->
+          <div class="section vega-section" id="section-vega-philosophy">
+            <div class="sec-head">◈ PERSONAL HORIZON — มุมมองจักรวาล</div>
+            <div class="sec-body">
+              <div class="philosophy-item">
+                <span class="phi-icon">👁️</span>
+                <div>
+                  <div class="phi-name">Personal Horizon</div>
+                  <div class="phi-desc">เราเห็นทุกอย่างล้อมรอบตัว เพราะตาเราอยู่ที่นี่</div>
+                </div>
+              </div>
+              <div class="philosophy-item">
+                <span class="phi-icon">🌍</span>
+                <div>
+                  <div class="phi-name">Orbiting Observer</div>
+                  <div class="phi-desc">เราเป็นแค่ผู้โดยสารบนยานโลกที่วิ่งรอบดวงอาทิตย์</div>
+                </div>
+              </div>
+              <div class="philosophy-item">
+                <span class="phi-icon">🌌</span>
+                <div>
+                  <div class="phi-name">Uniform Distribution</div>
+                  <div class="phi-desc">แสงดาวกระจายไปทั่วจักรวาล ไม่ได้เล็งมาที่โลกเราแค่ที่เดียว</div>
+                </div>
+              </div>
+              <div class="philosophy-item">
+                <span class="phi-icon">📐</span>
+                <div>
+                  <div class="phi-name">Geometry Illusion</div>
+                  <div class="phi-desc">ภาพลวงตาทางเรขาคณิตที่ทำให้รู้สึกเหมือนเป็นจุดศูนย์กลาง</div>
+                </div>
+              </div>
+              <div class="philosophy-item">
+                <span class="phi-icon">🛡️</span>
+                <div>
+                  <div class="phi-name">Ego-less Universe</div>
+                  <div class="phi-desc">จักรวาลไม่ได้หมุนรอบใคร แต่ทุกคนร่วมกันเป็นส่วนหนึ่งของทั้งจักรวาล</div>
+                </div>
+              </div>
+              <div class="philosophy-quote">
+                "การรู้สึกว่าเป็นศูนย์กลางคือสัญชาตญาณของการรับรู้ แต่การเข้าใจว่าเราเป็นเพียงจุดเล็กๆ ที่ได้รับแสงดาวนับพันล้านรอบจักรวาลสว่างท่ามกลางความกว้างใหญ่ คือปัญญาที่แท้จริงซึ่งช่วยให้เราเห็นความงดงามของผู้อื่นที่อาบแสงเดียวกับเรา"
+                <span class="philosophy-quote-sig">— KING DIADEM · DriftZero · 🛡️⚖️🌌</span>
+              </div>
+            </div>
+          </div>
+
           <div class="section">
             <div class="sec-head">GALAXY · DECISION TRACE</div>
             <div class="sec-body"><div id="summary" class="kd-diag">—</div></div>
           </div>
         </div>
       </div>
-    </div>
+
+    </div><!-- /main-scroll -->
 
     <div id="input-dock">
       <div class="ctx-scroll">
@@ -746,12 +784,25 @@ body{
       <button type="button" class="tab-btn" data-tab="gov" onclick="setTab('gov')"><span class="ti">◎</span>กำกับดูแล</button>
     </nav>
     <div id="bottom-note">FAIL LESS · HARM LESS · RESTORE CHOICE · KING DIADEM v15</div>
-  </div>
-</div>
+  </div><!-- /main-wrap -->
+</div><!-- /app -->
 
 <script>
 window.KD = { byId: function(id){ return document.getElementById(id); } };
 window.KD_pulse = function(){};
+
+/* ★ FIX: remove intro screen จาก DOM หลัง animation จบ
+   ป้องกัน invisible overlay บัง galaxy/touch events        */
+(function(){
+  var intro = document.getElementById('intro-screen');
+  if(!intro) return;
+  // หลัง 4 วินาที (3.2s delay + 0.8s animation) ลบออก
+  setTimeout(function(){
+    if(intro && intro.parentNode){
+      intro.parentNode.removeChild(intro);
+    }
+  }, 4100);
+})();
 </script>
 
 <script>
@@ -830,7 +881,7 @@ window.KD_pulse = function(){};
 
 <script>
 /* ═══════════════════════════════════════════════════
-   SESSION SYSTEM v4 — user-isolated, cloud-sync, delete
+   SESSION SYSTEM v4
    ═══════════════════════════════════════════════════ */
 var _KD_HIST={};
 var SESSION_KEY='kd_sessions_v4_guest';
@@ -886,7 +937,6 @@ async function fetchRetry(url,opts,retries,delayMs){
   }
 }
 
-/* session storage */
 var __cloudSaveT=null;
 function scheduleCloudChatSave(){ if(!window.__kdLoggedIn)return; clearTimeout(__cloudSaveT); __cloudSaveT=setTimeout(pushChatStateToServer,1800); }
 async function pushChatStateToServer(){
@@ -989,7 +1039,6 @@ function initSessionsFromStorage(){
   renderSessionList();
 }
 
-/* UI helpers */
 function openRailMobile(){document.getElementById('rail')?.classList.add('open');document.getElementById('rail-scrim')?.classList.add('on');document.body.style.overflow='hidden';}
 function closeRailMobile(){document.getElementById('rail')?.classList.remove('open');document.getElementById('rail-scrim')?.classList.remove('on');document.body.style.overflow='';}
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,132)+'px';}
@@ -1051,7 +1100,6 @@ function useHint(el){var inp=document.getElementById('main-input');inp.value=el.
 function hideWelcome(){var w=document.getElementById('welcome');if(w)w.remove();}
 function escH(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-/* ═══ INTENT DETECTION ═══ */
 window.detectConversationMode=function(text){
   var t=text.toLowerCase();
   if(/ฆ่า|ตาย|ฆ่าตัว|emergency|urgent|วิกฤต|หนีออก|ช่วยด่วน/.test(t))return'crisis';
@@ -1065,7 +1113,6 @@ window.buildVoiceHint=function(text,mode){
   return'พูดด้วยความเข้าใจ ให้ทางเลือกที่ชัดเจน';
 };
 
-/* ═══ MESSAGES ═══ */
 function addMsg(type,text,meta,persona){
   hideWelcome();
   var area=document.getElementById('chat-scroll');if(!area)return;
@@ -1107,8 +1154,6 @@ function updateLyla(data){
   var rv=document.getElementById('wl-resource-val');if(rv)rv.textContent=Math.round(r);
   var lc=document.getElementById('lyla-choices');if(lc)lc.textContent=(data.risk_score>75)?'LOW':'≥1';
   var ld=document.getElementById('lyla-drift');if(ld)ld.textContent=((e/100)*0.1).toFixed(2)+'%';
-
-  /* update council nodes */
   var council=document.getElementById('council');
   if(council&&data.governance&&data.governance.intent){
     var intent=data.governance.intent;
@@ -1117,7 +1162,6 @@ function updateLyla(data){
 }
 function uM(id,val,inv){var f=document.getElementById(id);if(!f)return;var p=Math.max(0,Math.min(100,val));f.style.width=p+'%';f.className='wl-fill '+(inv?(p>72?'crit':p>48?'warn':'safe'):(p<28?'crit':p<48?'warn':'safe'));}
 
-/* ═══ RUN ═══ */
 async function run(){
   var inp=document.getElementById('main-input');
   var text=(inp.value||'').trim();if(!text)return;
@@ -1156,8 +1200,7 @@ async function run(){
   }
 }
 
-/* ═══ TOOLS ═══ */
-function addSimPath(){var g=document.getElementById('sim-paths'),d=document.createElement('div');d.className='sim-path';d.innerHTML='<input type="text" placeholder="เส้นทางใหม่…">';g.appendChild(d);}
+function addSimPath(){var g=document.getElementById('sim-paths'),d=document.createElement('div');d.className='sim-path';d.innerHTML='<input type="text" placeholder="เส้นทางใหม่…">'; g.appendChild(d);}
 async function simulate(){
   var input=(document.getElementById('sim-input-text')?.value||document.getElementById('main-input')?.value||'').trim();
   var btn=document.getElementById('sim-btn'),out=document.getElementById('sim-result');
