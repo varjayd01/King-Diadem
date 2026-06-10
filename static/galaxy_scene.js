@@ -20,6 +20,10 @@
   var lastTime = 0;
   var t0 = performance.now();
 
+  /* ── Logo image preload ── */
+  var _logoImg = new Image();
+  _logoImg.src = '/static/logo.png';
+
   /* ════════════════════════════════════════════════
      RESIZE — debounced, rebuild only what's needed
   ════════════════════════════════════════════════ */
@@ -477,17 +481,37 @@
     ctx.beginPath(); ctx.arc(CX,CY,R*3,0,Math.PI*2); ctx.fillStyle=halo; ctx.fill();
     ctx.globalCompositeOperation = 'source-over';
 
-    /* disk */
-    var disk = ctx.createRadialGradient(CX-R*0.18,CY-R*0.18,0,CX,CY,R);
-    disk.addColorStop(0,   '#fffef8');
-    disk.addColorStop(0.10,'#fff3a0');
-    disk.addColorStop(0.32,'#ffcb52');
-    disk.addColorStop(0.58,'#ff7c18');
-    disk.addColorStop(0.80,'#bf2400');
-    disk.addColorStop(1,   '#180200');
-    ctx.beginPath(); ctx.arc(CX,CY,R,0,Math.PI*2); ctx.fillStyle=disk; ctx.fill();
+    /* ★ LOGO IMAGE — แทน disk canvas */
+    ctx.globalCompositeOperation = 'source-over';
+    if (_logoImg && _logoImg.complete && _logoImg.naturalWidth > 0) {
+      var logoSize = R * 2.8;
+      /* glow behind logo */
+      ctx.globalCompositeOperation = 'lighter';
+      var logoGlow = ctx.createRadialGradient(CX,CY,0,CX,CY,logoSize*0.8);
+      logoGlow.addColorStop(0,  'rgba(255,220,120,'+(0.55*thinkGlow)+')');
+      logoGlow.addColorStop(0.4,'rgba(0,200,255,'+(0.25*thinkGlow)+')');
+      logoGlow.addColorStop(1,  'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.arc(CX,CY,logoSize*0.8,0,Math.PI*2);
+      ctx.fillStyle=logoGlow; ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
 
-    /* LYLA ◈ label */
+      /* slow pulse scale */
+      var pulse = isT ? (1 + Math.sin(t*6)*0.06) : (1 + Math.sin(t*1.5)*0.03);
+      var sz = logoSize * pulse;
+      ctx.save();
+      ctx.globalAlpha = 0.92;
+      ctx.drawImage(_logoImg, CX - sz/2, CY - sz/2, sz, sz);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    } else {
+      /* fallback disk ถ้ายังโหลดรูปไม่เสร็จ */
+      var disk = ctx.createRadialGradient(CX-R*0.18,CY-R*0.18,0,CX,CY,R);
+      disk.addColorStop(0,'#fffef8'); disk.addColorStop(0.32,'#ffcb52');
+      disk.addColorStop(0.58,'#ff7c18'); disk.addColorStop(1,'#180200');
+      ctx.beginPath(); ctx.arc(CX,CY,R,0,Math.PI*2); ctx.fillStyle=disk; ctx.fill();
+    }
+
+    /* LYLA ◈ label ใต้โลโก้ */
     var fs = Math.max(8, Math.floor(R*0.28));
     ctx.shadowColor = 'rgba(255,220,100,0.95)'; ctx.shadowBlur = isT ? 20 : 12;
     ctx.fillStyle   = 'rgba(255,252,230,0.90)';
