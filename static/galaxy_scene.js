@@ -1,7 +1,10 @@
 /**
- * galaxy_scene.js — KING DIADEM
- * Close-up Earth + sunrise glow + dense starfield
- * Earth is fixed/large — only light & atmosphere animate
+ * galaxy_scene.js — KING DIADEM v5.0
+ * - ระบบสุริยะโคจรจริง perspective tilt
+ * - เลือก route → ดาวนั้นวิ่งมาหาผู้ใช้ (bottom center)
+ * - กลับสู่ idle → ดาววนกลับ orbit
+ * - canvas z-index ต่ำ ไม่บัง UI เด็ดขาด
+ * - ไม่ใช้ filter/blur → ไม่ lag
  */
 (function () {
   'use strict';
@@ -12,360 +15,420 @@
   let W, H, CX, CY;
 
   function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    cv.width  = window.innerWidth  * dpr;
-    cv.height = window.innerHeight * dpr;
-    cv.style.width  = window.innerWidth  + 'px';
-    cv.style.height = window.innerHeight + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const dpr  = Math.min(window.devicePixelRatio || 1, 2);
     W = window.innerWidth;
     H = window.innerHeight;
+    cv.width   = W * dpr;
+    cv.height  = H * dpr;
+    cv.style.width  = W + 'px';
+    cv.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     CX = W / 2;
     CY = H / 2;
   }
   resize();
   window.addEventListener('resize', resize);
 
-  /* ── stars ── */
-  const stars = [];
-  for (let i = 0; i < 1100; i++) {
+  /* ══════════════════════════════════════
+     STAR FIELD — 3 layers, mostly static
+  ══════════════════════════════════════ */
+  const STARS = [];
+  for (let i = 0; i < 800; i++) {
     const b = Math.random();
-    stars.push({
+    STARS.push({
       nx: Math.random(), ny: Math.random(),
-      r:  b < .03 ? 1.6 + Math.random() * .9
-        : b < .14 ? .7  + Math.random() * .5
-        :            .15 + Math.random() * .38,
-      a:  .10 + Math.random() * .65,
-      tw: Math.random() < .10,
-      ph: Math.random() * Math.PI * 2,
-      ps: (.08 + Math.random() * .22) * .0005,
+      r:  b < .025 ? 1.4 + Math.random() * .7
+        : b < .12  ? .55 + Math.random() * .45
+        :             .12 + Math.random() * .32,
+      a:   .08 + Math.random() * .55,
+      tw:  Math.random() < .10,
+      ph:  Math.random() * Math.PI * 2,
+      ps:  (.05 + Math.random() * .18) * .0005,
       hue: Math.random() < .07 ? 'w' : Math.random() < .06 ? 'b' : 'n',
     });
   }
 
-  /* ── small orbiting dots (route indicators) ── */
-  const ROUTES = [
-    { role:'general',  color:'#4488cc', angle: .8,  orbitF: .52, speed:.00018 },
-    { role:'risk',     color:'#f59e0b', angle: 2.1, orbitF: .57, speed:.00013 },
-    { role:'survival', color:'#00ccdd', angle: 3.5, orbitF: .62, speed:.00009 },
-    { role:'collapse', color:'#ef4444', angle: 4.8, orbitF: .67, speed:.00007 },
-    { role:'civil',    color:'#a78bfa', angle: 1.4, orbitF: .72, speed:.00005 },
-    { role:'vega',     color:'#e8c078', angle: 5.2, orbitF: .77, speed:.00003 },
+  /* ══════════════════════════════════════
+     PLANET DEFINITIONS
+     role ตรงกับ route ใน index.html
+  ══════════════════════════════════════ */
+  const TILT  = 0.36;
+  const BASE_SPEED = 0.000048; // Earth period ref
+
+  const PLANETS = [
+    {
+      name: 'MERCURY', role: 'general',
+      orbit: 80,  r: 4.2,  period: 0.241, angle: 0.8,
+      color: '#b0a898', glow: [176, 168, 152],
+      desc: 'ตั้งต้น · รับฟัง · ทั่วไป',
+      act: 0, homing: false, homeX: 0, homeY: 0,
+    },
+    {
+      name: 'VENUS', role: 'risk',
+      orbit: 115, r: 5.5,  period: 0.615, angle: 2.2,
+      color: '#f59e0b', glow: [245, 158, 11],
+      desc: 'ประเมินความเสี่ยง · อันตราย',
+      act: 0, homing: false, homeX: 0, homeY: 0,
+    },
+    {
+      name: 'EARTH',  role: 'survival',
+      orbit: 152, r: 6.0,  period: 1.000, angle: 3.8,
+      color: '#4488cc', glow: [68, 136, 204],
+      desc: 'LYLA · เอาตัวรอด · waterline',
+      act: 0, homing: false, homeX: 0, homeY: 0, isLyla: true,
+    },
+    {
+      name: 'MARS',   role: 'collapse',
+      orbit: 192, r: 5.0,  period: 1.881, angle: 1.0,
+      color: '#ef4444', glow: [239, 68, 68],
+      desc: 'วิกฤต · ฟื้นฟู · collapse chain',
+      act: 0, homing: false, homeX: 0, homeY: 0,
+    },
+    {
+      name: 'JUPITER', role: 'civil',
+      orbit: 242, r: 10.0, period: 11.86, angle: 4.5,
+      color: '#a78bfa', glow: [167, 139, 250],
+      desc: 'สังคม · ธรรมาภิบาล · civil work',
+      act: 0, homing: false, homeX: 0, homeY: 0, band: true,
+    },
+    {
+      name: 'SATURN',  role: 'vega',
+      orbit: 295, r: 8.5,  period: 29.46, angle: 2.8,
+      color: '#e8c078', glow: [232, 192, 120],
+      desc: 'VEGA · วิเคราะห์ · strategy',
+      act: 0, homing: false, homeX: 0, homeY: 0, ring: true,
+    },
   ];
-  ROUTES.forEach(r => r.act = 0);
 
-  /* ── state ── */
-  let activeRoute = 'general';
-  let sunriseT    = 0;   // slow sunrise angle oscillation
-  let burstT      = 0;
-  let lylaThink   = false;
-  let lylaThinkT  = 0;
-  let t           = 0;
-  let lastTs      = 0;
+  /* ══════════════════════════════════════
+     STATE
+  ══════════════════════════════════════ */
+  let activeRoute  = 'general';
+  let lylaThinking = false;
+  let lylaThinkT   = 0;
+  let burstT       = 0;
+  let councilMode  = false; // ถ้า true = ทุกดาวกลับ orbit + sun pulse
+  let t            = 0;
+  let lastTs       = 0;
 
-  /* ── scale helper ── */
-  function earthRadius() {
-    // close-up: Earth fills ~55% of min dimension
-    return Math.min(W, H) * .55;
-  }
-  function earthCenter() {
-    // positioned slightly below center
-    return { x: CX, y: CY + Math.min(W, H) * .12 };
-  }
-
-  /* ════════════════════════
-     DRAW: deep space bg
-  ════════════════════════ */
-  function drawSpace() {
-    // deep navy → near-black
-    const g = ctx.createRadialGradient(CX, CY * .6, 0, CX, CY, Math.max(W, H) * .85);
-    g.addColorStop(0,   '#0a1628');
-    g.addColorStop(.45, '#050b18');
-    g.addColorStop(1,   '#010306');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-
-    // subtle blue nebula upper-right
-    const nb = ctx.createRadialGradient(W * .72, H * .18, 0, W * .72, H * .18, W * .38);
-    nb.addColorStop(0, 'rgba(30,60,140,.09)');
-    nb.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = nb;
-    ctx.fillRect(0, 0, W, H);
-
-    // warm hint upper-left
-    const nb2 = ctx.createRadialGradient(W * .18, H * .22, 0, W * .18, H * .22, W * .30);
-    nb2.addColorStop(0, 'rgba(60,20,80,.07)');
-    nb2.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = nb2;
-    ctx.fillRect(0, 0, W, H);
+  // target ที่ดาว active จะวิ่งมา (near bottom input area)
+  function getHomeTarget() {
+    return {
+      x: CX,
+      y: H - 140,  // เหนือ input dock
+    };
   }
 
-  /* ════════════════════════
-     DRAW: stars
-  ════════════════════════ */
+  /* ══════════════════════════════════════
+     SCALE
+  ══════════════════════════════════════ */
+  function sc() { return Math.min(W, H) / 820 * 0.82; }
+
+  /* ══════════════════════════════════════
+     DRAW — background
+  ══════════════════════════════════════ */
+  function drawBg() {
+    ctx.fillStyle = '#02010a';
+    ctx.fillRect(0, 0, W, H);
+    // nebula
+    [
+      [0.18, 0.22, 0.28, 'rgba(45,10,95,.08)'],
+      [0.78, 0.68, 0.24, 'rgba(90,20,8,.07)'],
+      [0.60, 0.15, 0.18, 'rgba(55,12,110,.06)'],
+    ].forEach(([nx, ny, rr, c]) => {
+      const g = ctx.createRadialGradient(
+        nx*W, ny*H, 0, nx*W, ny*H, rr*Math.max(W,H)
+      );
+      g.addColorStop(0, c);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    });
+  }
+
   function drawStars() {
-    const ec = earthCenter();
-    const er = earthRadius();
-    stars.forEach(s => {
-      const sx = s.nx * W, sy = s.ny * H;
-      // hide stars inside Earth
-      const dx = sx - ec.x, dy = sy - ec.y;
-      if (dx * dx + dy * dy < er * er * .88) return;
-
+    STARS.forEach(s => {
       let a = s.a;
       if (s.tw) { s.ph += s.ps; a *= .62 + .38 * Math.sin(s.ph); }
       ctx.beginPath();
-      ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
+      ctx.arc(s.nx * W, s.ny * H, s.r, 0, Math.PI * 2);
       ctx.fillStyle = s.hue === 'w' ? `rgba(255,232,205,${a})`
-                    : s.hue === 'b' ? `rgba(205,222,255,${a})`
-                    :                  `rgba(198,215,255,${a})`;
+                    : s.hue === 'b' ? `rgba(205,220,255,${a})`
+                    :                  `rgba(195,212,255,${a})`;
       ctx.fill();
     });
   }
 
-  /* ════════════════════════
-     DRAW: Earth (close-up)
-  ════════════════════════ */
-  function drawEarth() {
-    const ec = earthCenter();
-    const er = earthRadius();
-    const ex = ec.x, ey = ec.y;
+  /* ══════════════════════════════════════
+     DRAW — Sun
+  ══════════════════════════════════════ */
+  function drawSun(scale) {
+    const r  = 18 * scale;
+    const pulse = councilMode ? 1 + .3 * Math.sin(t * .0012) : 1;
 
-    // === ocean base ===
-    const ocean = ctx.createRadialGradient(
-      ex - er * .25, ey - er * .25, 0,
-      ex, ey, er
-    );
-    ocean.addColorStop(0,   '#1a6090');
-    ocean.addColorStop(.35, '#0f4060');
-    ocean.addColorStop(.72, '#082235');
-    ocean.addColorStop(1,   '#030e18');
+    // corona
+    [3.5, 2.2, 1.4].forEach((m, i) => {
+      const g = ctx.createRadialGradient(CX, CY, r*.4, CX, CY, r*m*pulse);
+      const a = [.04, .07, .11][i] * (1 + burstT * .25) * pulse;
+      g.addColorStop(0, `rgba(255,200,55,${a})`);
+      g.addColorStop(1, 'rgba(255,130,0,0)');
+      ctx.beginPath();
+      ctx.arc(CX, CY, r*m*pulse, 0, Math.PI*2);
+      ctx.fillStyle = g;
+      ctx.fill();
+    });
+
+    // core
+    const cg = ctx.createRadialGradient(CX-r*.28, CY-r*.28, 0, CX, CY, r);
+    cg.addColorStop(0,    '#fffbe8');
+    cg.addColorStop(.35,  '#ffd040');
+    cg.addColorStop(.78,  '#ff9000');
+    cg.addColorStop(1,    '#cc4400');
     ctx.beginPath();
-    ctx.arc(ex, ey, er, 0, Math.PI * 2);
-    ctx.fillStyle = ocean;
+    ctx.arc(CX, CY, r, 0, Math.PI*2);
+    ctx.fillStyle = cg;
     ctx.fill();
+    ctx.beginPath();
+    ctx.arc(CX, CY, r*.20, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,255,235,.82)';
+    ctx.fill();
+  }
 
-    // === land masses (stylized blobs) ===
+  /* ══════════════════════════════════════
+     DRAW — Planet
+  ══════════════════════════════════════ */
+  function drawPlanet(p, scale, dt) {
+    const isActive  = p.role === activeRoute;
+    const isThink   = p.isLyla && lylaThinking;
+    const target    = getHomeTarget();
+
+    // smooth activation
+    p.act += ((isActive ? 1 : 0) - p.act) * .045;
+
+    // orbital angle
+    let spd = BASE_SPEED / p.period;
+    if (isThink) spd *= 2.2;
+    p.angle += spd * dt;
+
+    // orbit position
+    const orb     = p.orbit * scale;
+    const orbitX  = CX + Math.cos(p.angle) * orb;
+    const orbitY  = CY + Math.sin(p.angle) * orb * TILT;
+
+    // homing: เคลื่อนที่ไปหา target เมื่อ active
+    const shouldHome = isActive && !councilMode;
+    if (shouldHome) {
+      p.homeX += (target.x - p.homeX) * .04;
+      p.homeY += (target.y - p.homeY) * .04;
+    } else {
+      p.homeX += (orbitX - p.homeX) * .04;
+      p.homeY += (orbitY - p.homeY) * .04;
+    }
+
+    const px = p.homeX || orbitX;
+    const py = p.homeY || orbitY;
+    const pr = p.r * scale * (1 + p.act * .28);
+
+    const [gr, gg, gb] = p.glow;
+
+    // orbit ring (only draw when not fully homed)
+    const homeDist = Math.hypot(px - orbitX, py - orbitY);
+    const orbitAlpha = isActive ? .12 + (homeDist / (orb + 1)) * .10 : .06;
     ctx.save();
+    ctx.translate(CX, CY);
     ctx.beginPath();
-    ctx.arc(ex, ey, er, 0, Math.PI * 2);
-    ctx.clip();
-
-    // Europe/Africa area
-    ctx.fillStyle = 'rgba(100,130,70,.55)';
-    ctx.beginPath();
-    ctx.ellipse(ex + er * .08, ey - er * .08, er * .22, er * .35, .3, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Arabia/Middle East
-    ctx.fillStyle = 'rgba(160,130,75,.60)';
-    ctx.beginPath();
-    ctx.ellipse(ex + er * .18, ey + er * .05, er * .10, er * .14, .5, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Asia blob
-    ctx.fillStyle = 'rgba(90,120,60,.50)';
-    ctx.beginPath();
-    ctx.ellipse(ex + er * .32, ey - er * .20, er * .28, er * .22, -.2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Americas (left side, partial)
-    ctx.fillStyle = 'rgba(80,115,65,.45)';
-    ctx.beginPath();
-    ctx.ellipse(ex - er * .38, ey - er * .05, er * .18, er * .30, -.1, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Antarctic ice
-    ctx.fillStyle = 'rgba(220,235,255,.30)';
-    ctx.beginPath();
-    ctx.ellipse(ex, ey + er * .72, er * .55, er * .18, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // clouds
-    ctx.fillStyle = 'rgba(240,245,255,.18)';
-    ctx.beginPath();
-    ctx.ellipse(ex - er * .10, ey - er * .30, er * .40, er * .08, .6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(ex + er * .20, ey + er * .20, er * .28, er * .06, -.3, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(ex - er * .30, ey + er * .40, er * .25, er * .07, .4, 0, Math.PI * 2);
-    ctx.fill();
-
+    ctx.ellipse(0, 0, orb, orb * TILT, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(100,150,200,${orbitAlpha})`;
+    ctx.lineWidth   = isActive ? .65 : .30;
+    ctx.stroke();
     ctx.restore();
 
-    // === atmosphere glow (blue rim) ===
-    const atm = ctx.createRadialGradient(ex, ey, er * .88, ex, ey, er * 1.18);
-    atm.addColorStop(0,   'rgba(60,130,220,.22)');
-    atm.addColorStop(.5,  'rgba(40,90,180,.10)');
-    atm.addColorStop(1,   'rgba(20,50,140,0)');
+    // glow halo
+    const glowR = pr * (2.2 + p.act * 2.2 + (isThink ? 1.5 + Math.sin(lylaThinkT*.018)*.8 : 0));
+    const glowA = .08 + p.act * .52 + (isThink ? .18 + Math.sin(lylaThinkT*.016)*.10 : 0);
+    const gg_ = ctx.createRadialGradient(px, py, 0, px, py, glowR);
+    gg_.addColorStop(0,   `rgba(${gr},${gg},${gb},${glowA})`);
+    gg_.addColorStop(.55, `rgba(${gr},${gg},${gb},${glowA*.18})`);
+    gg_.addColorStop(1,   `rgba(${gr},${gg},${gb},0)`);
     ctx.beginPath();
-    ctx.arc(ex, ey, er * 1.18, 0, Math.PI * 2);
-    ctx.fillStyle = atm;
+    ctx.arc(px, py, glowR, 0, Math.PI*2);
+    ctx.fillStyle = gg_;
     ctx.fill();
 
-    // === sunrise / terminator ===
-    // Slowly rotate sunrise angle
-    sunriseT += .000018;
-    const sunAngle = Math.PI * 1.15 + Math.sin(sunriseT) * .18; // bottom-left
+    // Jupiter bands
+    if (p.band) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(px, py, pr, 0, Math.PI*2);
+      ctx.clip();
+      const ba = .12 + p.act*.08;
+      [-0.3, 0, .3].forEach(dy => {
+        ctx.fillStyle = `rgba(170,130,70,${ba})`;
+        ctx.fillRect(px-pr, py+dy*pr-pr*.12, pr*2, pr*.24);
+      });
+      ctx.restore();
+    }
 
-    const sunX = ex + Math.cos(sunAngle) * er;
-    const sunY = ey + Math.sin(sunAngle) * er;
+    // Saturn ring
+    if (p.ring) {
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.scale(1, .28);
+      ctx.beginPath();
+      ctx.arc(0, 0, pr*1.95, 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(${gr},${gg},${gb},${.20+p.act*.22})`;
+      ctx.lineWidth   = pr * .46;
+      ctx.stroke();
+      ctx.restore();
+    }
 
-    // orange glow where sun hits
-    const sunrise = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, er * .85);
-    sunrise.addColorStop(0,   'rgba(255,180,50,.80)');
-    sunrise.addColorStop(.12, 'rgba(255,130,30,.45)');
-    sunrise.addColorStop(.35, 'rgba(200,80,10,.18)');
-    sunrise.addColorStop(1,   'rgba(0,0,0,0)');
+    // planet body
+    const pb = ctx.createRadialGradient(px-pr*.28, py-pr*.28, 0, px, py, pr);
+    pb.addColorStop(0,   '#ffffff');
+    pb.addColorStop(.26, p.color);
+    pb.addColorStop(1,   `rgb(${Math.max(0,gr-55)},${Math.max(0,gg-55)},${Math.max(0,gb-42)})`);
     ctx.beginPath();
-    ctx.arc(ex, ey, er * 1.02, 0, Math.PI * 2);
-    ctx.fillStyle = sunrise;
+    ctx.arc(px, py, pr, 0, Math.PI*2);
+    ctx.fillStyle = pb;
     ctx.fill();
 
-    // bright lens flare at sunrise point
-    const fScale = .85 + .15 * Math.sin(t * .0008);
-    const flare = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, er * .28 * fScale);
-    flare.addColorStop(0,   `rgba(255,255,220,${.75 * fScale})`);
-    flare.addColorStop(.08, `rgba(255,200,80,${.55 * fScale})`);
-    flare.addColorStop(.30, `rgba(255,140,20,${.20 * fScale})`);
-    flare.addColorStop(1,   'rgba(255,100,0,0)');
-    ctx.beginPath();
-    ctx.arc(sunX, sunY, er * .28 * fScale, 0, Math.PI * 2);
-    ctx.fillStyle = flare;
-    ctx.fill();
-
-    // hard Earth edge (dark limb)
-    const limb = ctx.createRadialGradient(ex, ey, er * .92, ex, ey, er);
-    limb.addColorStop(0, 'rgba(0,0,0,0)');
-    limb.addColorStop(1, 'rgba(0,5,15,.72)');
-    ctx.beginPath();
-    ctx.arc(ex, ey, er, 0, Math.PI * 2);
-    ctx.fillStyle = limb;
-    ctx.fill();
-
-    // thin atmosphere ring line
-    ctx.beginPath();
-    ctx.arc(ex, ey, er, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(80,160,255,.18)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-  }
-
-  /* ════════════════════════
-     DRAW: orbiting route satellites
-  ════════════════════════ */
-  function drawSatellites(dt) {
-    const ec = earthCenter();
-    const er = earthRadius();
-
-    ROUTES.forEach(r => {
-      const isActive = r.role === activeRoute;
-      r.act += ((isActive ? 1 : 0) - r.act) * .04;
-      r.angle += r.speed * dt;
-
-      const orb = er * r.orbitF;
-      const sx = ec.x + Math.cos(r.angle) * orb;
-      const sy = ec.y + Math.sin(r.angle) * orb * .38; // tilt
-
-      const rgb = hexToRgb(r.color);
-      const [rr, rg, rb] = rgb;
-
-      // skip if behind Earth (simple z-check)
-      const behind = Math.sin(r.angle) < -.1 && Math.cos(r.angle) > -.5;
-
-      if (!behind) {
-        // glow
-        if (r.act > .04) {
-          const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, 18 + r.act * 14);
-          g.addColorStop(0, `rgba(${rr},${rg},${rb},${r.act * .7})`);
-          g.addColorStop(1, `rgba(${rr},${rg},${rb},0)`);
-          ctx.beginPath();
-          ctx.arc(sx, sy, 18 + r.act * 14, 0, Math.PI * 2);
-          ctx.fillStyle = g;
-          ctx.fill();
-        }
-
-        // dot
-        const dotR = 2.2 + r.act * 2.5;
+    // pulse ring when active
+    if (p.act > .08) {
+      const pu  = (t * .00042 + p.orbit * .006) % 1;
+      const pa  = (1 - pu) * .22 * p.act;
+      if (pa > .004) {
         ctx.beginPath();
-        ctx.arc(sx, sy, dotR, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${rr},${rg},${rb},${.45 + r.act * .50})`;
-        ctx.fill();
-
-        // label
-        if (r.act > .15 || isActive) {
-          ctx.font = `500 ${Math.max(8, 9 * (Math.min(W,H)/700))}px 'DM Mono', monospace`;
-          ctx.textAlign = 'center';
-          ctx.fillStyle = `rgba(${rr},${rg},${rb},${.35 + r.act * .55})`;
-          ctx.fillText(r.role.toUpperCase(), sx, sy - dotR - 5);
-        }
+        ctx.arc(px, py, pr*(1.5 + pu*2.5), 0, Math.PI*2);
+        ctx.strokeStyle = `rgba(${gr},${gg},${gb},${pa})`;
+        ctx.lineWidth   = .65;
+        ctx.stroke();
       }
-    });
+    }
+
+    // LYLA thinking rings
+    if (isThink) {
+      const pulse = .5 + .5 * Math.sin(lylaThinkT * .010);
+      ctx.beginPath();
+      ctx.arc(px, py, pr*(1.45 + pulse*.7), 0, Math.PI*2);
+      ctx.strokeStyle = `rgba(0,205,225,${.10+pulse*.18})`;
+      ctx.lineWidth   = .9;
+      ctx.stroke();
+    }
+
+    // alignment line to sun when active
+    if (p.act > .06 && !councilMode) {
+      const g = ctx.createLinearGradient(CX, CY, px, py);
+      g.addColorStop(0,   `rgba(255,210,55,${p.act*.28})`);
+      g.addColorStop(.6,  `rgba(0,185,215,${p.act*.20})`);
+      g.addColorStop(1,   `rgba(0,185,215,${p.act*.05})`);
+      ctx.beginPath();
+      ctx.moveTo(CX, CY);
+      ctx.lineTo(px, py);
+      ctx.strokeStyle = g;
+      ctx.lineWidth   = .45 + p.act * .45;
+      ctx.stroke();
+    }
+
+    // label — แสดงเสมอ ขนาดตามระยะ
+    const labelAlpha = .22 + p.act * .60;
+    const fontSize   = Math.max(7, (isActive ? 9.5 : 7.5) * scale);
+    ctx.font         = `500 ${fontSize}px 'DM Mono', monospace`;
+    ctx.textAlign    = 'center';
+    ctx.fillStyle    = `rgba(${gr},${gg},${gb},${labelAlpha})`;
+    ctx.fillText(p.name, px, py - pr - 5 * scale);
+
+    // desc เฉพาะ active
+    if (p.act > .35 && W > 600) {
+      ctx.font      = `${Math.max(6, 6.5*scale)}px 'DM Mono', monospace`;
+      ctx.fillStyle = `rgba(180,210,240,${p.act * .45})`;
+      ctx.fillText(p.desc, px, py - pr - 13 * scale);
+    }
+
+    return { x: px, y: py, r: pr, act: p.act };
   }
 
-  /* ════════════════════════
-     DRAW: answer burst
-  ════════════════════════ */
-  function drawBurst() {
+  /* ══════════════════════════════════════
+     DRAW — burst on answer
+  ══════════════════════════════════════ */
+  function drawBurst(scale) {
     if (burstT <= 0) return;
     burstT = Math.max(0, burstT - .007);
-    const ec = earthCenter();
-    const er = earthRadius();
-    const br = (1 - burstT) * er * 2.2;
-    const g = ctx.createRadialGradient(ec.x, ec.y, 0, ec.x, ec.y, br);
-    g.addColorStop(0, `rgba(0,190,215,${burstT * .18})`);
-    g.addColorStop(.6, `rgba(0,170,200,${burstT * .06})`);
-    g.addColorStop(1, 'rgba(0,0,0,0)');
+    const br = (1 - burstT) * 260 * scale;
+    const bg = ctx.createRadialGradient(CX, CY, 0, CX, CY, br);
+    bg.addColorStop(0,   `rgba(0,195,215,${burstT*.16})`);
+    bg.addColorStop(.65, `rgba(0,175,205,${burstT*.05})`);
+    bg.addColorStop(1,   'rgba(0,0,0,0)');
     ctx.beginPath();
-    ctx.arc(ec.x, ec.y, br, 0, Math.PI * 2);
-    ctx.fillStyle = g;
+    ctx.arc(CX, CY, br, 0, Math.PI*2);
+    ctx.fillStyle = bg;
     ctx.fill();
   }
 
-  /* ════════════════════════
+  /* ══════════════════════════════════════
      MAIN LOOP
-  ════════════════════════ */
+  ══════════════════════════════════════ */
   function frame(ts) {
     const dt = Math.min(ts - lastTs, 40);
     lastTs = ts;
-    t += dt;
-    if (lylaThink) lylaThinkT += dt;
+    t     += dt;
+    if (lylaThinking) lylaThinkT += dt;
 
+    const scale = sc();
     ctx.clearRect(0, 0, W, H);
-
-    drawSpace();
+    drawBg();
     drawStars();
-    drawBurst();
-    drawEarth();
-    drawSatellites(dt);
+    drawBurst(scale);
+    drawSun(scale);
+
+    PLANETS.forEach(p => {
+      if (!p.homeX) { p.homeX = CX + Math.cos(p.angle) * p.orbit * scale; }
+      if (!p.homeY) { p.homeY = CY + Math.sin(p.angle) * p.orbit * scale * TILT; }
+    });
+    PLANETS.forEach(p => drawPlanet(p, scale, dt));
 
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
-  /* ── util ── */
-  function hexToRgb(hex) {
-    return [
-      parseInt(hex.slice(1,3),16),
-      parseInt(hex.slice(3,5),16),
-      parseInt(hex.slice(5,7),16),
-    ];
-  }
-
-  /* ════════════════════════
+  /* ══════════════════════════════════════
      PUBLIC API
-  ════════════════════════ */
-  window.LYLA_thinking = function() { lylaThink = true; lylaThinkT = 0; };
-  window.LYLA_answered = function() { lylaThink = false; burstT = 1.0; };
-  window.KD_pulse      = function(route) { if(route) activeRoute = route; };
+  ══════════════════════════════════════ */
+  window.LYLA_thinking = function () {
+    lylaThinking = true;
+    lylaThinkT   = 0;
+  };
 
-  const _ot = window.addThinking;
-  window.addThinking = function() { window.LYLA_thinking(); if(_ot) _ot.apply(this,arguments); };
-  const _or = window.removeThinking;
-  window.removeThinking = function() { window.LYLA_answered(); if(_or) _or.apply(this,arguments); };
+  window.LYLA_answered = function () {
+    lylaThinking = false;
+    burstT       = 1.0;
+  };
+
+  window.KD_pulse = function (route) {
+    if (route) activeRoute = route;
+  };
+
+  window.KD_councilMode = function (on) {
+    councilMode = !!on;
+  };
+
+  // hook setRoute
   const _os = window.setRoute;
-  window.setRoute = function(r) { activeRoute = r; if(_os) _os.apply(this,arguments); };
+  window.setRoute = function (r) {
+    activeRoute = r;
+    councilMode = false;
+    if (_os) _os.apply(this, arguments);
+  };
+
+  // hook addThinking / removeThinking
+  const _ot = window.addThinking;
+  window.addThinking = function () {
+    window.LYLA_thinking();
+    if (_ot) _ot.apply(this, arguments);
+  };
+  const _or = window.removeThinking;
+  window.removeThinking = function () {
+    window.LYLA_answered();
+    if (_or) _or.apply(this, arguments);
+  };
 
 })();
