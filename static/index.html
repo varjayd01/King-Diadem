@@ -365,7 +365,7 @@ body{
 <div id="intro-screen" aria-hidden="true">
   <canvas id="intro-canvas"></canvas>
   <div class="intro-content">
-    <div class="intro-crown">♛</div>
+    <div class="intro-crown"><img src="/static/logo.png" alt="" style="width:56px;height:56px;object-fit:contain;filter:drop-shadow(0 0 24px rgba(232,192,120,0.9)) drop-shadow(0 0 48px rgba(0,200,220,0.5));"></div>
     <div class="intro-title">KING DIADEM</div>
     <div class="intro-sub">DriftZero · Waterline · Governance OS</div>
     <div class="intro-divider"></div>
@@ -439,11 +439,11 @@ body{
       <div id="view-chat" class="view active">
         <div id="chat-scroll">
           <div id="welcome">
-            <div class="welcome-card">
+            <div class="welcome-card" style="background:transparent;border:none;backdrop-filter:none;-webkit-backdrop-filter:none;padding:16px 8px;">
               <img src="/static/logo.png" alt="" class="welcome-logo" width="72" height="72">
               <div class="welcome-title">KING DIADEM</div>
               <div class="welcome-sub">LYLA KERNEL · GOVERNANCE OS</div>
-              <p class="welcome-desc" style="margin-top:10px;">ระบบใดที่ทำให้ทางเลือกของมนุษย์เท่ากับศูนย์ ระบบนั้นล้มเหลว<br>การตัดสินใจสุดท้ายเป็นของคุณเสมอ</p>
+              <p class="welcome-desc" style="margin-top:10px;color:rgba(180,210,240,0.50);">ระบบใดที่ทำให้ทางเลือกของมนุษย์เท่ากับศูนย์ ระบบนั้นล้มเหลว<br>การตัดสินใจสุดท้ายเป็นของคุณเสมอ</p>
             </div>
             <div class="welcome-philosophy">
               <div class="philosophy-title">◈ Personal Horizon — มุมมองจักรวาล</div>
@@ -455,7 +455,7 @@ body{
             </div>
             <div class="philosophy-quote">
               "การรู้สึกว่าเป็นศูนย์กลางคือสัญชาตญาณของการรับรู้ แต่การเข้าใจว่าเราเป็นเพียงจุดเล็กๆ ที่ได้รับแสงดาวนับพันล้านรอบจักรวาลสว่างท่ามกลางความกว้างใหญ่ คือปัญญาที่แท้จริงซึ่งช่วยให้เราเห็นความงดงามของผู้อื่นที่อาบแสงเดียวกับเรา"
-              <span class="philosophy-quote-sig">— นิธิกร บุญสร้าง · 2025-12-23 · 🛡️⚖️🌌</span>
+              <span class="philosophy-quote-sig">— KING DIADEM · DriftZero · 🛡️⚖️🌌</span>
             </div>
             <div class="welcome-hint">
               <span class="hint-chip" onclick="useHint(this)">ฉันตกงาน ไม่รู้จะทำอะไร</span>
@@ -472,6 +472,9 @@ body{
           <div class="section" id="section-simulate">
             <div class="sec-head">FUTURE SIMULATION</div>
             <div class="sec-body">
+              <textarea id="sim-input-text" rows="2"
+                style="width:100%;padding:12px;border-radius:var(--r-s);border:1px solid var(--border);background:rgba(5,2,20,0.85);color:var(--text-bright);font-size:15px;font-family:'DM Sans',inherit;line-height:1.5;resize:none;outline:none;margin-bottom:10px;display:block;-webkit-appearance:none;"
+                placeholder="พิมพ์สถานการณ์ที่ต้องการจำลอง…"></textarea>
               <div id="sim-paths">
                 <div class="sim-path"><input type="text" value="เดินหน้าต่อแบบเดิม"></div>
                 <div class="sim-path"><input type="text" value="หยุดและประเมินใหม่"></div>
@@ -486,6 +489,30 @@ body{
             <div class="sec-head">STRIPE · CREDITS</div>
             <div class="sec-body">
               <input type="email" id="payment-email" class="stripe-input" placeholder="อีเมล (ใบเสร็จ)" autocomplete="email">
+
+              <!-- ★ Phone prefix picker — TFT style -->
+              <div style="margin-bottom:10px;">
+                <div style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(0,200,220,0.45);letter-spacing:.1em;margin-bottom:6px;">เบอร์โทร (ยืนยันตัวตน)</div>
+                <div style="display:flex;gap:6px;align-items:stretch;">
+                  <!-- prefix picker -->
+                  <div id="prefix-btn" onclick="togglePrefixMenu()"
+                    style="flex-shrink:0;min-width:74px;padding:12px 10px;border-radius:var(--r-s);border:1px solid rgba(0,180,220,0.20);background:rgba(5,2,20,0.88);color:rgba(0,200,220,0.80);font-family:'DM Mono',monospace;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:4px;min-height:48px;user-select:none;transition:border-color .15s;">
+                    <span id="prefix-flag" style="font-size:16px;">🇹🇭</span>
+                    <span id="prefix-val">+66</span>
+                    <span style="font-size:8px;opacity:.5;">▾</span>
+                  </div>
+                  <!-- number input -->
+                  <input type="tel" id="payment-phone" inputmode="numeric"
+                    style="flex:1;padding:12px;border-radius:var(--r-s);border:1px solid rgba(0,180,220,0.20);background:rgba(5,2,20,0.88);color:rgba(210,235,255,0.92);font-size:16px;font-family:'DM Sans',inherit;outline:none;min-height:48px;-webkit-appearance:none;"
+                    placeholder="8X-XXX-XXXX">
+                </div>
+                <!-- prefix dropdown -->
+                <div id="prefix-menu" style="display:none;margin-top:4px;border-radius:var(--r-s);border:1px solid rgba(0,180,220,0.20);background:rgba(4,2,18,0.97);backdrop-filter:blur(20px);overflow:hidden;max-height:240px;overflow-y:auto;">
+                  <!-- popular -->
+                  <div style="font-family:'DM Mono',monospace;font-size:8px;color:rgba(0,200,220,0.35);padding:8px 12px 4px;letter-spacing:.1em;">POPULAR</div>
+                </div>
+              </div>
+
               <div class="plan-row">
                 <label><input type="radio" name="plan" value="basic" checked> Basic</label>
                 <label><input type="radio" name="plan" value="civilization"> Civilization</label>
@@ -583,80 +610,134 @@ window.KD_pulse = function(){};
 
 <script>
 /* ═══════════════════════════════════════════════════
-   INTRO — dark space starfield (ไม่ใช่ blue warp)
+   INTRO — ดาวเรียงตัว K D
    ═══════════════════════════════════════════════════ */
 (function(){
   var cv = document.getElementById('intro-canvas');
   if(!cv) return;
   var ctx = cv.getContext('2d');
-  var W, H, stars = [], t = 0;
+  var W, H, t = 0;
 
-  function resize(){
-    W = cv.width = window.innerWidth;
-    H = cv.height = window.innerHeight;
-  }
+  function resize(){ W = cv.width = window.innerWidth; H = cv.height = window.innerHeight; }
   resize();
 
-  // สร้างดาว static + twinkle
-  for(var i = 0; i < 280; i++){
-    stars.push({
-      x: Math.random() * 1.0,
-      y: Math.random() * 1.0,
-      r: Math.random() * 1.3 + 0.2,
-      a: Math.random() * 0.7 + 0.15,
-      phase: Math.random() * Math.PI * 2,
-      speed: (Math.random() * 0.5 + 0.15) * 0.001,
+  /* ── ตัวอักษร K และ D เป็นจุดพิกัด (normalized 0-1) ── */
+  var KPts = [
+    /* K — เส้นตั้ง */
+    [0,0],[0,.15],[0,.3],[0,.45],[0,.6],[0,.75],[0,.9],[0,1],
+    /* K — แขนบน */
+    [.08,.45],[.16,.36],[.24,.27],[.32,.18],[.40,.09],[.48,0],
+    /* K — แขนล่าง */
+    [.08,.55],[.16,.64],[.24,.73],[.32,.82],[.40,.91],[.48,1],
+  ];
+  var DPts = [
+    /* D — เส้นตั้ง */
+    [0,0],[0,.15],[0,.3],[0,.45],[0,.6],[0,.75],[0,.9],[0,1],
+    /* D — โค้ง */
+    [.1,.02],[.22,.06],[.36,.14],[.46,.25],[.52,.4],[.52,.6],[.46,.75],[.36,.86],[.22,.94],[.1,.98],
+  ];
+
+  /* สร้าง star objects จาก KD points */
+  var scale, offKX, offDX, offY;
+  function buildStars(){
+    scale = Math.min(W, H) * 0.38;
+    offY  = (H - scale) / 2;
+    offKX = W * 0.5 - scale * 0.68;
+    offDX = W * 0.5 + scale * 0.12;
+  }
+  buildStars();
+
+  function toWorld(pts, ox, isK){
+    return pts.map(function(p){
+      return { x: ox + p[0]*scale*0.48, y: offY + p[1]*scale,
+               phase: Math.random()*Math.PI*2, spd: 0.8+Math.random()*1.2,
+               r: 1.2+Math.random()*1.4, gold: isK };
     });
   }
+  var kStars = toWorld(KPts, offKX, true);
+  var dStars = toWorld(DPts, offDX, false);
+  var allStars = kStars.concat(dStars);
+
+  /* bg dust stars */
+  var dust = [];
+  for(var i=0;i<220;i++) dust.push({x:Math.random(),y:Math.random(),r:.3+Math.random()*.7,a:.05+Math.random()*.18,ph:Math.random()*Math.PI*2,sp:.3+Math.random()*.8});
 
   function frame(){
-    if(t > 4000) return;
+    if(t > 4200) return;
     t += 16;
-    ctx.clearRect(0, 0, W, H);
+    ctx.clearRect(0,0,W,H);
 
-    // sky
-    var bg = ctx.createRadialGradient(W*.5, H*.5, 0, W*.5, H*.5, Math.max(W,H)*.7);
-    bg.addColorStop(0, 'rgba(4,2,18,1)');
-    bg.addColorStop(0.5, 'rgba(2,1,10,1)');
-    bg.addColorStop(1, 'rgba(0,0,4,1)');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, W, H);
+    /* bg */
+    var bg = ctx.createRadialGradient(W*.5,H*.45,0,W*.5,H*.5,Math.max(W,H)*.8);
+    bg.addColorStop(0,'rgba(6,3,22,1)'); bg.addColorStop(0.5,'rgba(2,1,10,1)'); bg.addColorStop(1,'rgba(0,0,4,1)');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
 
-    // nebula hint
-    var progress = Math.min(1, t / 2000);
-    var nb = ctx.createRadialGradient(W*.3, H*.35, 0, W*.3, H*.35, W*.4);
-    nb.addColorStop(0, 'rgba(60,15,120,' + (0.12 * progress) + ')');
-    nb.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = nb;
-    ctx.fillRect(0, 0, W, H);
+    var prog = Math.min(1, t/1800);
 
-    var nb2 = ctx.createRadialGradient(W*.72, H*.65, 0, W*.72, H*.65, W*.35);
-    nb2.addColorStop(0, 'rgba(100,25,10,' + (0.10 * progress) + ')');
-    nb2.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = nb2;
-    ctx.fillRect(0, 0, W, H);
+    /* nebula */
+    ctx.globalCompositeOperation='screen';
+    var nb=ctx.createRadialGradient(W*.28,H*.38,0,W*.28,H*.38,W*.38);
+    nb.addColorStop(0,'rgba(55,12,110,'+(0.14*prog)+')'); nb.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=nb; ctx.fillRect(0,0,W,H);
+    var nb2=ctx.createRadialGradient(W*.72,H*.62,0,W*.72,H*.62,W*.32);
+    nb2.addColorStop(0,'rgba(90,22,8,'+(0.10*prog)+')'); nb2.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=nb2; ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation='source-over';
 
-    // stars
-    for(var s of stars){
-      s.phase += s.speed;
-      var tw = 0.55 + 0.45 * Math.sin(s.phase);
-      var fadeIn = Math.min(1, t / 800);
-      ctx.beginPath();
-      ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(210,225,255,' + (s.a * tw * fadeIn) + ')';
-      ctx.fill();
+    /* dust */
+    for(var i=0;i<dust.length;i++){
+      var d=dust[i];
+      var tw=d.a*(0.6+0.4*Math.sin(t*d.sp*0.001+d.ph));
+      ctx.beginPath(); ctx.arc(d.x*W,d.y*H,d.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(150,165,220,'+tw+')'; ctx.fill();
+    }
+
+    /* draw constellation lines first (faint) */
+    if(prog>0.3){
+      var lineAlpha = (prog-0.3)/0.7 * 0.15;
+      ctx.strokeStyle='rgba(0,200,255,'+lineAlpha+')';
+      ctx.lineWidth=0.5;
+      /* K lines */
+      [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[3,8],[8,9],[9,10],[10,11],[11,12],[12,13],[3,14],[14,15],[15,16],[16,17],[17,18],[18,19]].forEach(function(e){
+        if(kStars[e[0]]&&kStars[e[1]]){
+          ctx.beginPath(); ctx.moveTo(kStars[e[0]].x,kStars[e[0]].y);
+          ctx.lineTo(kStars[e[1]].x,kStars[e[1]].y); ctx.stroke();
+        }
+      });
+      /* D lines */
+      [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[0,8],[8,9],[9,10],[10,11],[11,12],[12,13],[13,14],[14,15],[15,16],[16,17],[7,17]].forEach(function(e){
+        if(dStars[e[0]]&&dStars[e[1]]){
+          ctx.beginPath(); ctx.moveTo(dStars[e[0]].x,dStars[e[0]].y);
+          ctx.lineTo(dStars[e[1]].x,dStars[e[1]].y); ctx.stroke();
+        }
+      });
+    }
+
+    /* draw stars */
+    var revealDelay = 200;
+    for(var i=0;i<allStars.length;i++){
+      var s=allStars[i];
+      var appear = Math.min(1, Math.max(0, (t - revealDelay - i*55) / 400));
+      if(appear<=0) continue;
+      var tw = appear * (0.65+0.35*Math.sin(t*s.spd*0.001+s.phase));
+      /* glow */
+      ctx.globalCompositeOperation='screen';
+      var col = s.gold ? '255,248,231' : '0,210,255'; /* K=cosmic latte, D=teal */
+      var g=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,s.r*4);
+      g.addColorStop(0,'rgba('+col+','+(tw*0.7)+')');
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r*4,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+      ctx.globalCompositeOperation='source-over';
+      /* dot */
+      ctx.beginPath(); ctx.arc(s.x,s.y,s.r*appear,0,Math.PI*2);
+      ctx.fillStyle='rgba('+col+','+tw+')'; ctx.fill();
     }
 
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+})()
 
-  // hide intro after animation
-  setTimeout(function(){
-    var el = document.getElementById('intro-screen');
-    if(el) el.style.display = 'none';
-  }, 4600);
-})();
 </script>
 
 <script>
@@ -1111,30 +1192,34 @@ async function run(){
 /* ─── tools ─── */
 function addSimPath(){ var g=document.getElementById('sim-paths'),d=document.createElement('div');d.className='sim-path';d.innerHTML='<input type="text" placeholder="เส้นทางใหม่…">';g.appendChild(d); }
 async function simulate(){
-  var input=(document.getElementById('main-input').value||'').trim();
+  var input=(
+    document.getElementById('sim-input-text')?.value||
+    document.getElementById('main-input')?.value||''
+  ).trim();
   var btn=document.getElementById('sim-btn'),out=document.getElementById('sim-result');
   out.style.display='block';
-  if(!input){out.textContent='พิมพ์ในช่องแชทก่อน';return;}
-  btn.disabled=true;out.textContent='กำลังจำลอง…';
+  if(!input){out.textContent='พิมพ์สถานการณ์ที่ต้องการจำลองในช่องด้านบนก่อนค่ะ';return;}
+  btn.disabled=true;out.textContent='กำลังจำลองอนาคต…';
   var paths=[...document.querySelectorAll('#sim-paths input')].map(function(i){return i.value;}).filter(Boolean);
   try{
     var r=await fetchRetry('/simulate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({input:input,paths:paths})},2,1000);
     var d=await readJson(r);
     var txt=d.simulation||d.message||d.error||'—';
-    if(d.lyla_observation) txt+='\n\nLYLA\n'+(typeof d.lyla_observation==='object'?JSON.stringify(d.lyla_observation,null,2):d.lyla_observation);
+    if(d.lyla_observation) txt+='\n\nLYLA OBSERVATION\n'+(typeof d.lyla_observation==='object'?JSON.stringify(d.lyla_observation,null,2):d.lyla_observation);
     out.textContent=txt;
-  }catch(e){out.textContent='ERROR '+e;}
+  }catch(e){out.textContent='ระบบยุ่งอยู่ค่ะ ลองใหม่อีกครั้งนะคะ';}
   btn.disabled=false;
 }
 async function stripeCheckout(){
   var email=document.getElementById('payment-email').value.trim();
   var plan=document.querySelector('input[name="plan"]:checked')?.value||'basic';
+  if(!email){showErr('กรุณากรอก Email ก่อนชำระเงินค่ะ',4000);return;}
   try{
-    var r=await fetch('/create-checkout-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan:plan,email:email,api_key:email})});
+    var r=await fetch('/payment/create-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan:plan,email:email,api_key:email})});
     var d=await readJson(r);
-    if(d.url) location.href=d.url;
-    else showErr(d.error||'Stripe ไม่สำเร็จ',5000);
-  }catch(e){showErr('Stripe: '+e,5000);}
+    if(d.url)location.href=d.url;
+    else showErr(d.error||d.message||'Stripe ไม่สำเร็จ — ลองใหม่อีกครั้งค่ะ',5000);
+  }catch(e){showErr('เครือข่าย: '+e,5000);}
 }
 async function uploadImage(){
   var fi=document.getElementById('photo-file'),out=document.getElementById('photo-output');
@@ -1167,11 +1252,22 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('/static/serv
   var _edgeTx=0,_edgeSwiping=false;
   document.addEventListener('touchstart',function(e){ if(e.touches[0].clientX<22){_edgeTx=e.touches[0].clientX;_edgeSwiping=true;} },{passive:true});
   document.addEventListener('touchend',function(e){ if(!_edgeSwiping)return;_edgeSwiping=false;var dx=e.changedTouches[0].clientX-_edgeTx;if(dx>40){haptic('light');openRailMobile();} },{passive:true});
+  var _kbOpen=false;
   if(window.visualViewport){
     var dock=document.getElementById('input-dock');
-    function onVP(){ if(!dock)return;var vv=window.visualViewport,keyboardH=window.innerHeight-(vv.height+vv.offsetTop);if(keyboardH>100){dock.style.transform='translateY(-'+Math.round(keyboardH)+'px)';dock.style.transition='transform .15s ease';}else{dock.style.transform='';} }
-    window.visualViewport.addEventListener('resize',onVP);
-    window.visualViewport.addEventListener('scroll',onVP);
+    var _app=document.getElementById('app');
+    function onVP(){
+      if(!_app)return;
+      var vv=window.visualViewport;
+      var kbH=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);
+      if(kbH>120){
+        if(!_kbOpen){_kbOpen=true;_app.style.transition='padding-bottom .18s ease';_app.style.paddingBottom=kbH+'px';setTimeout(function(){var cs=document.getElementById('chat-scroll');if(cs)cs.scrollTop=cs.scrollHeight;},200);}
+      }else{
+        if(_kbOpen){_kbOpen=false;_app.style.paddingBottom='';}
+      }
+    }
+    window.visualViewport.addEventListener('resize',onVP,{passive:true});
+    window.visualViewport.addEventListener('scroll',onVP,{passive:true});
   }
   var inp=document.getElementById('main-input');
   if(inp){ inp.addEventListener('blur',function(){ setTimeout(function(){ var cs=document.getElementById('chat-scroll');if(cs)cs.scrollTop=cs.scrollHeight; },320); }); }
@@ -1179,7 +1275,70 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('/static/serv
 })();
 </script>
 
-<script src="/static/app.js"></script>
 <script src="/static/galaxy_scene.js"></script>
+<script src="/static/warp_intro.js"></script>
+<script>
+/* ★ PHONE PREFIX PICKER — TFT style */
+(function(){
+  var PREFIXES = [
+    {flag:'🇹🇭',code:'+66',name:'ไทย'},
+    {flag:'🇺🇸',code:'+1', name:'USA'},
+    {flag:'🇬🇧',code:'+44',name:'UK'},
+    {flag:'🇯🇵',code:'+81',name:'Japan'},
+    {flag:'🇰🇷',code:'+82',name:'Korea'},
+    {flag:'🇸🇬',code:'+65',name:'Singapore'},
+    {flag:'🇲🇾',code:'+60',name:'Malaysia'},
+    {flag:'🇮🇩',code:'+62',name:'Indonesia'},
+    {flag:'🇻🇳',code:'+84',name:'Vietnam'},
+    {flag:'🇨🇳',code:'+86',name:'China'},
+    {flag:'🇮🇳',code:'+91',name:'India'},
+    {flag:'🇦🇺',code:'+61',name:'Australia'},
+    {flag:'🇩🇪',code:'+49',name:'Germany'},
+    {flag:'🇫🇷',code:'+33',name:'France'},
+    {flag:'🇧🇷',code:'+55',name:'Brazil'},
+    {flag:'🇦🇪',code:'+971',name:'UAE'},
+  ];
+
+  /* build dropdown items */
+  var menu = document.getElementById('prefix-menu');
+  if(!menu) return;
+
+  PREFIXES.forEach(function(p){
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;transition:background .12s;font-family:"DM Sans",sans-serif;font-size:14px;color:rgba(210,235,255,0.85);border-bottom:1px solid rgba(0,180,220,0.06);';
+    row.innerHTML = '<span style="font-size:18px">'+p.flag+'</span><span style="font-family:\'DM Mono\',monospace;font-size:12px;color:rgba(0,200,220,0.70);min-width:36px">'+p.code+'</span><span style="font-size:13px;color:rgba(170,200,230,0.55)">'+p.name+'</span>';
+    row.addEventListener('touchstart',function(){ this.style.background='rgba(0,180,220,0.10)'; },{passive:true});
+    row.addEventListener('touchend',function(){ this.style.background=''; selectPrefix(p); },{passive:true});
+    row.addEventListener('click',function(){ selectPrefix(p); });
+    menu.appendChild(row);
+  });
+
+  function selectPrefix(p){
+    var flag = document.getElementById('prefix-flag');
+    var val  = document.getElementById('prefix-val');
+    var btn  = document.getElementById('prefix-btn');
+    if(flag) flag.textContent = p.flag;
+    if(val)  val.textContent  = p.code;
+    if(btn)  btn.style.borderColor = 'rgba(0,200,220,0.35)';
+    togglePrefixMenu(false);
+    /* focus phone input */
+    setTimeout(function(){ var ph=document.getElementById('payment-phone'); if(ph)ph.focus(); },50);
+  }
+
+  window.togglePrefixMenu = function(force){
+    var open = force !== undefined ? force : menu.style.display === 'none';
+    menu.style.display = open ? 'block' : 'none';
+    var btn = document.getElementById('prefix-btn');
+    if(btn) btn.style.borderColor = open ? 'rgba(0,200,220,0.40)' : 'rgba(0,180,220,0.20)';
+  };
+
+  /* close when tapping outside */
+  document.addEventListener('click',function(e){
+    if(!e.target.closest('#prefix-btn') && !e.target.closest('#prefix-menu')){
+      menu.style.display='none';
+    }
+  });
+})();
+</script>
 </body>
 </html>
