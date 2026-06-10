@@ -1,13 +1,14 @@
 """
 core/llm_gemini.py
-KING DIADEM — AI Core v3.1 (Performance Fix)
+KING DIADEM — AI Core v3.2
 
-การแก้ไข:
-1. Single GeminiLLM instance (ไม่แย่ง quota)
-2. Key rotation อัตโนมัติ (KEY1 → KEY2 เมื่อ rate limit)
-3. Retry ไม่ blocking — fail fast แล้ว fallback ทันที
-4. Response cache 60s สำหรับ prompt ซ้ำ
-5. max_tokens ลดลงตามความจำเป็น
+การแก้ไข v3.2:
+1. _fallback_response — โทน LYLA/VEGA จริง ไม่มีคำว่า "โหลดหนัก"
+2. CRISIS fallback อ่อนโยนขึ้น ไม่ใช่ error message
+3. Single GeminiLLM instance (ไม่แย่ง quota)
+4. Key rotation อัตโนมัติ (KEY1 → KEY2 เมื่อ rate limit)
+5. Retry ไม่ blocking — fail fast แล้ว fallback ทันที
+6. Response cache 60s สำหรับ prompt ซ้ำ
 
 LYLA = หญิง (ค่ะ/นะคะ) · VEGA = ชาย (ครับ/นะครับ) · CRISIS = วิกฤต
 """
@@ -146,7 +147,7 @@ def detect_emotion(text: str) -> bool:
 # SIMPLE RESPONSE CACHE (60 วินาที)
 # ══════════════════════════════════════════════════════════════════
 _cache: dict = {}
-_CACHE_TTL = 60  # วินาที
+_CACHE_TTL = 60
 
 def _cache_key(system: str, prompt: str) -> str:
     return hashlib.md5(f"{system[:50]}|{prompt}".encode()).hexdigest()
@@ -158,7 +159,6 @@ def _cache_get(key: str) -> Optional[str]:
     return None
 
 def _cache_set(key: str, value: str):
-    # ไม่ให้ cache ใหญ่เกิน 200 entries
     if len(_cache) > 200:
         oldest = min(_cache, key=lambda k: _cache[k]["ts"])
         del _cache[oldest]
@@ -169,7 +169,6 @@ def _cache_set(key: str, value: str):
 # ══════════════════════════════════════════════════════════════════
 def _build_contents(history: list, user_input: str, ctx_note: str = "") -> list:
     contents = []
-    # จำกัด history 8 turns (ลดจาก 12) เพื่อลด token
     for turn in (history or [])[-8:]:
         role = "user" if turn.get("role") == "user" else "model"
         text = str(turn.get("content", "")).strip()
@@ -186,24 +185,18 @@ def _build_contents(history: list, user_input: str, ctx_note: str = "") -> list:
     return contents
 
 # ══════════════════════════════════════════════════════════════════
-# GeminiLLM CLASS — Single Instance + Key Rotation
+# GeminiLLM CLASS
 # ══════════════════════════════════════════════════════════════════
 class GeminiLLM:
     def __init__(self, model: str = "gemini-2.0-flash"):
-        """
-        ใช้ gemini-2.0-flash เป็น default (เร็วกว่า 2.5-flash มาก)
-        2.5-flash สำรองสำหรับ VEGA / complex routing เท่านั้น
-        """
         key1 = os.getenv("GEMINI_API_KEY")
         key2 = os.getenv("GEMINI_API_KEY2")
 
         if not key1 and not key2:
             raise ValueError("ไม่พบ GEMINI_API_KEY")
 
-        # เก็บ keys ทั้งสอง สำหรับ rotation
         self._keys = [k for k in [key1, key2] if k]
         self._key_index = 0
-
         self.model = model
         self._init_client()
         print(f"✅ GeminiLLM ready | model={model} | keys={len(self._keys)}")
@@ -212,7 +205,6 @@ class GeminiLLM:
         self.client = genai.Client(api_key=self._keys[self._key_index])
 
     def _rotate_key(self):
-        """หมุน key ไปตัวถัดไปเมื่อโดน rate limit"""
         if len(self._keys) > 1:
             self._key_index = (self._key_index + 1) % len(self._keys)
             self._init_client()
@@ -220,11 +212,6 @@ class GeminiLLM:
 
     def _call(self, system: str, contents: list,
               temperature: float = 0.72, max_tokens: int = 1024) -> str:
-        """
-        Fail fast: ลอง 2 ครั้ง rotate key แล้ว fallback ทันที
-        ไม่ blocking 120 วินาทีอีกต่อไป
-        """
-        # เช็ค cache ก่อน
         prompt_text = contents[-1].parts[0].text if contents else ""
         ck = _cache_key(system, prompt_text)
         cached = _cache_get(ck)
@@ -239,7 +226,7 @@ class GeminiLLM:
         )
 
         last_error = None
-        for attempt in range(len(self._keys) * 2):  # ลองแต่ละ key 2 รอบ
+        for attempt in range(len(self._keys) * 2):
             try:
                 resp = self.client.models.generate_content(
                     model=self.model,
@@ -257,7 +244,7 @@ class GeminiLLM:
                 if any(k in err for k in ["429", "quota", "rate limit", "resource exhausted"]):
                     print(f"⚠ Rate limit (attempt {attempt+1}) — rotating key")
                     self._rotate_key()
-                    time.sleep(1)  # รอแค่ 1 วินาทีแล้ว rotate แทน
+                    time.sleep(1)
 
                 elif any(k in err for k in ["invalid", "authentication", "api_key"]):
                     raise ValueError(f"Auth Error: {e}")
@@ -266,15 +253,37 @@ class GeminiLLM:
                     print(f"⚠ API error (attempt {attempt+1}): {e}")
                     time.sleep(2)
 
-        # Fallback response แทนที่จะ raise exception
         print(f"❌ All attempts failed: {last_error}")
         return self._fallback_response(system)
 
     def _fallback_response(self, system: str) -> str:
-        """ตอบ fallback เมื่อ API ไม่ว่าง แทนที่จะ error"""
-        if "VEGA" in system:
-            return "ขออภัยครับ ระบบรับโหลดหนักอยู่ รบกวนลองใหม่อีกสักครู่นะครับ\n\n— VEGA ◆"
-        return "ขออภัยค่ะ ระบบรับโหลดหนักอยู่ รบกวนลองใหม่อีกสักครู่นะคะ\n\n— LYLA ◈"
+        """
+        ★ v3.2 FIX — โทน LYLA/VEGA จริง ไม่มีคำว่า 'โหลดหนัก'
+        ปรับตาม context: crisis / vega / lyla
+        """
+        is_crisis = "CRISIS" in system or "เจ็บปวด" in system
+        is_vega   = "VEGA" in system
+
+        if is_crisis:
+            return (
+                "ฉันได้ยินที่คุณพูดอยู่ค่ะ\n\n"
+                "ตอนนี้ระบบช้าไปหน่อย รบกวนลองส่งใหม่อีกครั้งได้เลยนะคะ "
+                "ฉันอยู่ที่นี่ค่ะ\n\n"
+                "— LYLA ◈"
+            )
+
+        if is_vega:
+            return (
+                "ขณะนี้ระบบ Gemini ยุ่งอยู่ครับ\n\n"
+                "รบกวนลองส่งใหม่อีกสักครู่นะครับ\n\n"
+                "— VEGA ◆"
+            )
+
+        return (
+            "ขณะนี้ระบบตอบช้ากว่าปกติค่ะ\n\n"
+            "รบกวนลองส่งใหม่อีกครั้งนะคะ\n\n"
+            "— LYLA ◈"
+        )
 
     def generate_with_governance(
         self,
@@ -286,7 +295,7 @@ class GeminiLLM:
         emotion_state: str = "NEUTRAL",
     ) -> str:
 
-        # ── CRISIS override ทุก state เสมอ ────────────────────
+        # ── CRISIS override ────────────────────────────────────
         if detect_crisis(prompt) or voice_mode == "crisis" or "EMOTION:CRISIS" in emotion_state.upper():
             contents = _build_contents(history or [], prompt, additional_context)
             return self._call(CRISIS_SYSTEM, contents, temperature=0.5, max_tokens=600)
@@ -346,15 +355,11 @@ class GeminiLLM:
 
 
 # ══════════════════════════════════════════════════════════════════
-# SINGLETON — ใช้ instance เดียวทั้งระบบ ไม่สร้างซ้ำ
+# SINGLETON
 # ══════════════════════════════════════════════════════════════════
 _instance: Optional[GeminiLLM] = None
 
 def get_llm(model: str = "gemini-2.0-flash") -> GeminiLLM:
-    """
-    เรียก get_llm() แทนการ GeminiLLM() ใหม่ทุกครั้ง
-    ทำให้ quota ไม่ถูกแย่งจาก instance ซ้ำ
-    """
     global _instance
     if _instance is None:
         _instance = GeminiLLM(model=model)
