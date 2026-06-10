@@ -3,7 +3,8 @@ services:
     name: King-Diadem
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app -k uvicorn.workers.UvicornWorker --timeout 300 --workers 1 --keep-alive 5
+    startCommand: gunicorn app:app -k uvicorn.workers.UvicornWorker --timeout 120 --workers 1 --keep-alive 75 --graceful-timeout 30
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.0"
