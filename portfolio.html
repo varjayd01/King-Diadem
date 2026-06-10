@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Nithikorn Bunsrang — AI Systems Architect</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#03010a;
+  --bg2:#06020f;
+  --gold:#e8c478;
+  --gold2:#ffdf8a;
+  --teal:#00ccd4;
+  --teal2:#00eaf5;
+  --violet:#8b7ff5;
+  --text:#c8d8f0;
+  --text2:rgba(200,216,240,0.60);
+  --text3:rgba(200,216,240,0.35);
+  --border:rgba(0,180,220,0.14);
+  --border2:rgba(232,196,120,0.14);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{scroll-behavior:smooth;font-size:16px;}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'DM Sans',system-ui,sans-serif;
+  min-height:100vh;overflow-x:hidden;line-height:1.7;
+}
+
+/* ══ SPACE ══ */
+#cosmos{position:fixed;inset:0;z-index:0;pointer-events:none;}
+#cosmos canvas{position:absolute;inset:0;width:100%;height:100%;}
+.nebula{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(ellipse 70% 55% at 8% 18%,rgba(60,15,120,0.35) 0%,transparent 65%),
+    radial-gradient(ellipse 55% 45% at 88% 12%,rgba(90,20,160,0.25) 0%,transparent 60%),
+    radial-gradient(ellipse 60% 40% at 75% 80%,rgba(120,40,8,0.28) 0%,transparent 55%),
+    radial-gradient(ellipse 80% 70% at 50% 50%,transparent 40%,rgba(2,0,10,0.85) 100%);
+  animation:ndrift 90s ease-in-out infinite alternate;
+}
+@keyframes ndrift{
+  0%{transform:scale(1);}
+  50%{transform:scale(1.05) translate(-8px,6px);}
+  100%{transform:scale(.98) translate(10px,-8px);}
+}
+.vignette{
+  position:fixed;inset:0;z-index:1;pointer-events:none;
+  background:radial-gradient(ellipse 90% 90% at 50% 50%,transparent 40%,rgba(1,0,8,.6) 100%);
+}
+
+/* ══ LAYOUT ══ */
+.wrap{position:relative;z-index:10;max-width:860px;margin:0 auto;padding:0 24px 120px;}
+
+/* ══ NAV ══ */
+nav{
+  position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:15px 24px;margin:0 -24px;
+  background:rgba(3,1,12,.92);
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(28px);-webkit-backdrop-filter:blur(28px);
+}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.nav-crown{font-size:20px;filter:drop-shadow(0 0 10px rgba(232,196,120,.7));}
+.nav-name{font-family:'Cinzel',serif;font-size:14px;letter-spacing:.12em;color:var(--text);}
+.nav-sub{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.14em;color:var(--text3);display:block;}
+.nav-actions{display:flex;gap:8px;}
+.nbtn{
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;
+  padding:8px 14px;border-radius:6px;text-decoration:none;
+  border:1px solid var(--border);color:var(--text2);
+  transition:all .2s;white-space:nowrap;
+}
+.nbtn:hover{border-color:rgba(0,200,220,.35);color:var(--teal);}
+.nbtn.g{border-color:var(--border2);color:rgba(232,196,120,.7);}
+.nbtn.g:hover{color:var(--gold);border-color:rgba(232,196,120,.4);}
+@media(max-width:480px){.nav-sub,.nbtn.g{display:none;}}
+
+/* ══ HERO ══ */
+.hero{
+  min-height:96vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;padding:80px 0 60px;gap:20px;
+}
+.hero-eyebrow{
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.22em;
+  color:rgba(0,200,220,.55);text-transform:uppercase;
+  border:1px solid rgba(0,180,220,.16);
+  background:rgba(0,100,140,.08);
+  padding:7px 16px;border-radius:999px;
+  display:inline-flex;align-items:center;gap:8px;
+  animation:fadeUp .8s ease .1s both;
+}
+.live{width:5px;height:5px;border-radius:50%;background:var(--teal);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+.hero-crown{
+  font-size:clamp(44px,10vw,80px);
+  filter:drop-shadow(0 0 40px rgba(232,196,120,.65)) drop-shadow(0 0 80px rgba(232,196,120,.25));
+  animation:crownrise 1.1s cubic-bezier(.16,1,.3,1) .2s both;
+}
+@keyframes crownrise{from{opacity:0;transform:scale(.5) translateY(20px);}to{opacity:1;transform:scale(1) translateY(0);}}
+h1{
+  font-family:'Cinzel',serif;font-weight:700;
+  font-size:clamp(32px,8vw,72px);
+  line-height:.95;letter-spacing:.16em;
+  background:linear-gradient(160deg,#d0e8ff 0%,#fff 25%,#e8c478 55%,#ffdf8a 75%,#fff 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:fadeUp 1s cubic-bezier(.16,1,.3,1) .35s both;
+}
+.hero-mono{
+  font-family:'DM Mono',monospace;font-size:clamp(10px,2vw,13px);
+  letter-spacing:.22em;color:rgba(0,200,220,.5);text-transform:uppercase;
+  animation:fadeUp .8s ease .5s both;
+}
+.hero-bio{
+  max-width:500px;font-size:clamp(13px,2.2vw,15px);line-height:1.9;
+  color:rgba(180,210,240,.60);
+  animation:fadeUp .8s ease .6s both;
+}
+.hero-bio em{font-style:normal;color:rgba(0,200,220,.75);}
+.hero-bio strong{font-weight:400;color:rgba(232,196,120,.75);}
+.hero-cta{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;animation:fadeUp .8s ease .7s both;}
+.btn{
+  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;
+  padding:13px 22px;border-radius:8px;text-decoration:none;
+  display:inline-flex;align-items:center;gap:8px;transition:all .2s;min-height:46px;
+}
+.btn-t{background:rgba(0,200,220,.07);border:1px solid rgba(0,200,220,.25);color:var(--teal);}
+.btn-t:hover{background:rgba(0,200,220,.13);border-color:rgba(0,200,220,.45);}
+.btn-g{background:rgba(232,196,120,.07);border:1px solid rgba(232,196,120,.25);color:var(--gold);}
+.btn-g:hover{background:rgba(232,196,120,.13);}
+.hero-rule{
+  width:200px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,200,220,.35),rgba(232,196,120,.35),transparent);
+  animation:fadeUp .8s ease .8s both;
+}
+.hero-stats{
+  display:flex;border:1px solid var(--border);border-radius:12px;overflow:hidden;
+  background:rgba(3,1,16,.75);backdrop-filter:blur(20px);
+  animation:fadeUp .8s ease .85s both;
+}
+.hs{padding:16px 26px;text-align:center;border-right:1px solid var(--border);}
+.hs:last-child{border-right:none;}
+.hs-n{font-family:'Cinzel',serif;font-size:clamp(18px,3.5vw,26px);color:var(--text);display:block;}
+.hs-l{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.15em;color:var(--text3);text-transform:uppercase;margin-top:4px;display:block;}
+@media(max-width:420px){.hs{padding:12px 16px;}.hs-n{font-size:18px;}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+
+/* ══ SECTION HEADER ══ */
+.sh{margin:80px 0 32px;}
+.sh-pre{
+  font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.22em;
+  color:var(--text3);text-transform:uppercase;margin-bottom:10px;
+  display:flex;align-items:center;gap:10px;
+}
+.sh-pre::after{content:'';flex:1;height:1px;background:var(--border);}
+.sh-title{font-family:'Cinzel',serif;font-size:clamp(19px,4vw,26px);color:var(--text);margin-bottom:6px;}
+.sh-desc{font-size:14px;color:var(--text2);line-height:1.8;max-width:540px;}
+
+/* ══ STORY CARD ══ */
+.story{
+  background:rgba(2,1,12,.75);border:1px solid var(--border2);
+  border-radius:16px;padding:32px 36px;position:relative;overflow:hidden;
+}
+.story::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(232,196,120,.4),transparent);
+}
+.story-quote{
+  font-family:'DM Mono',monospace;font-size:11px;line-height:2.1;
+  color:rgba(200,220,250,.55);font-style:italic;margin-bottom:24px;
+  border-left:2px solid rgba(232,196,120,.3);padding-left:20px;
+}
+.story-quote strong{font-style:normal;color:rgba(232,196,120,.75);font-weight:400;}
+.story-origin{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.origin-item{
+  background:rgba(0,0,0,.3);border:1px solid var(--border);
+  border-radius:10px;padding:16px 18px;
+}
+.origin-label{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.14em;color:var(--text3);text-transform:uppercase;margin-bottom:6px;}
+.origin-val{font-size:13px;color:var(--text2);line-height:1.6;}
+@media(max-width:500px){.story-origin{grid-template-columns:1fr;}.story{padding:22px 20px;}}
+
+/* ══ SYSTEM CARD ══ */
+.scard{
+  background:rgba(3,1,18,.80);border:1px solid var(--border);
+  border-radius:18px;overflow:hidden;
+  transition:border-color .25s,transform .25s;margin-bottom:16px;
+}
+.scard:hover{border-color:rgba(0,200,220,.28);transform:translateY(-3px);}
+.scard-head{
+  padding:22px 26px 18px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;gap:14px;
+}
+.scard-icon{font-size:26px;flex-shrink:0;margin-top:2px;filter:drop-shadow(0 0 10px rgba(232,196,120,.4));}
+.scard-meta{flex:1;}
+.tag{
+  font-family:'DM Mono',monospace;font-size:7px;letter-spacing:.14em;
+  padding:3px 8px;border-radius:4px;border:1px solid;display:inline-block;margin-bottom:8px;
+}
+.tag-live{border-color:rgba(0,220,200,.3);color:rgba(0,220,200,.75);background:rgba(0,200,180,.05);}
+.tag-ai{border-color:rgba(139,127,245,.3);color:rgba(160,152,255,.75);background:rgba(139,127,245,.05);}
+.tag-gov{border-color:rgba(232,196,120,.3);color:rgba(232,196,120,.75);background:rgba(232,196,120,.05);}
+.scard-title{font-family:'DM Sans',sans-serif;font-size:17px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.scard-sub{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;color:var(--text3);}
+.scard-body{padding:20px 26px 24px;}
+.scard-desc{font-size:13px;line-height:1.85;color:var(--text2);margin-bottom:18px;}
+.mods{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:18px;}
+.mod{
+  font-family:'DM Mono',monospace;font-size:9px;
+  padding:4px 9px;border-radius:5px;
+  border:1px solid rgba(0,180,220,.1);
+  background:rgba(0,100,140,.07);color:var(--text3);letter-spacing:.03em;
+}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(0,180,220,.08);border-radius:10px;overflow:hidden;margin-bottom:18px;}
+.mval{background:rgba(3,1,14,.92);padding:14px;text-align:center;}
+.mval-n{font-family:'DM Mono',monospace;font-size:15px;color:var(--teal);display:block;}
+.mval-l{font-size:9px;color:var(--text3);margin-top:3px;display:block;}
+.scard-links{display:flex;gap:8px;flex-wrap:wrap;}
+.cl{
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.05em;
+  padding:9px 15px;border-radius:6px;border:1px solid var(--border);
+  color:var(--text2);text-decoration:none;transition:all .15s;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.cl:hover{border-color:rgba(0,200,220,.35);color:var(--teal);}
+.cl.g{border-color:var(--border2);color:rgba(232,196,120,.6);}
+.cl.g:hover{color:var(--gold);border-color:rgba(232,196,120,.4);}
+@media(max-width:480px){.metrics{grid-template-columns:repeat(2,1fr);}.scard-head{flex-direction:column;gap:10px;}.scard-head,.scard-body{padding:18px 18px;}}
+
+/* ══ ARCH FLOW ══ */
+.arch{
+  background:rgba(3,1,16,.72);border:1px solid var(--border);
+  border-radius:16px;padding:28px 24px;
+  display:flex;flex-direction:column;align-items:center;
+}
+.anode{
+  width:100%;max-width:520px;
+  background:rgba(4,1,18,.9);border:1px solid rgba(0,180,220,.12);
+  border-radius:9px;padding:13px 18px;
+  display:flex;align-items:center;gap:12px;
+  transition:border-color .2s;
+}
+.anode:hover{border-color:rgba(0,200,220,.28);}
+.anode-ic{font-size:15px;flex-shrink:0;width:28px;text-align:center;opacity:.85;}
+.anode-t{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.05em;color:var(--text);}
+.anode-s{font-size:11px;color:var(--text3);margin-top:2px;}
+.anode-f{font-family:'DM Mono',monospace;font-size:8px;color:rgba(0,200,220,.3);margin-top:3px;}
+.arr{display:flex;flex-direction:column;align-items:center;padding:2px 0;opacity:.4;}
+.arr-l{width:1px;height:16px;background:linear-gradient(to bottom,var(--teal),var(--gold));}
+.arr-h{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:6px solid var(--gold);}
+
+/* ══ CERTS ══ */
+.cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.cert{
+  background:rgba(3,1,14,.72);border:1px solid var(--border);
+  border-radius:9px;padding:14px 16px;
+  transition:border-color .2s;
+}
+.cert:hover{border-color:rgba(0,200,220,.22);}
+.cert-issuer{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.1em;color:var(--text3);margin-bottom:5px;text-transform:uppercase;}
+.cert-name{font-size:12px;color:var(--text2);line-height:1.5;}
+.cert-date{font-family:'DM Mono',monospace;font-size:8px;color:rgba(232,196,120,.45);margin-top:4px;}
+@media(max-width:520px){.cert-grid{grid-template-columns:1fr;}}
+
+/* ══ PRINCIPLES ══ */
+.phi{
+  background:rgba(2,1,10,.70);border:1px solid var(--border2);
+  border-radius:16px;overflow:hidden;
+}
+.phi-head{
+  padding:20px 26px;border-bottom:1px solid rgba(232,196,120,.08);
+  font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.18em;
+  color:rgba(232,196,120,.4);text-transform:uppercase;
+}
+.phi-quote{
+  padding:22px 26px;font-size:13px;font-style:italic;
+  line-height:2;color:rgba(200,220,250,.55);
+  border-bottom:1px solid rgba(255,255,255,.04);
+}
+.phi-item{
+  display:flex;gap:14px;padding:16px 26px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  transition:background .15s;
+}
+.phi-item:last-child{border-bottom:none;}
+.phi-item:hover{background:rgba(0,100,140,.04);}
+.phi-sym{font-size:14px;flex-shrink:0;margin-top:3px;width:22px;text-align:center;opacity:.7;}
+.phi-tit{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.1em;color:rgba(0,200,220,.65);margin-bottom:4px;text-transform:uppercase;}
+.phi-txt{font-size:12px;color:var(--text2);line-height:1.7;}
+
+/* ══ CODE BLOCK ══ */
+.code{
+  background:rgba(0,0,0,.5);border:1px solid rgba(0,180,220,.12);
+  border-radius:10px;padding:20px 22px;
+  font-family:'DM Mono',monospace;font-size:12px;line-height:1.9;
+  color:rgba(0,200,220,.65);overflow-x:auto;
+}
+.code .cm{color:rgba(140,170,200,.35);}
+.code .kw{color:rgba(139,127,245,.85);}
+.code .fn{color:rgba(232,196,120,.75);}
+.code .st{color:rgba(0,220,180,.65);}
+.code .num{color:rgba(255,160,100,.70);}
+
+/* ══ STACK ══ */
+.stk{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;}
+.si{
+  background:rgba(3,1,14,.72);border:1px solid var(--border);
+  border-radius:8px;padding:14px 12px;text-align:center;
+  transition:border-color .2s;
+}
+.si:hover{border-color:rgba(0,200,220,.22);}
+.si-n{font-family:'DM Mono',monospace;font-size:11px;color:var(--text);margin-bottom:3px;}
+.si-r{font-size:9px;color:var(--text3);}
+
+/* ══ CONTACT ══ */
+.contact{
+  background:rgba(3,1,18,.85);border:1px solid var(--border);
+  border-radius:20px;padding:48px 40px;text-align:center;
+  backdrop-filter:blur(28px);position:relative;overflow:hidden;
+}
+.contact::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,200,220,.35),rgba(232,196,120,.35),transparent);
+}
+.contact-crown{font-size:40px;margin-bottom:16px;filter:drop-shadow(0 0 24px rgba(232,196,120,.6));}
+.contact-title{font-family:'Cinzel',serif;font-size:clamp(18px,4vw,24px);letter-spacing:.1em;color:var(--text);margin-bottom:10px;}
+.contact-desc{font-size:13px;color:var(--text2);line-height:1.85;margin-bottom:28px;max-width:420px;margin-left:auto;margin-right:auto;}
+.contact-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+
+/* ══ FOOTER ══ */
+footer{
+  margin-top:72px;padding-top:24px;
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;
+}
+.ft{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.12em;color:var(--text3);}
+.ft a{color:rgba(0,200,220,.35);text-decoration:none;}
+.ft a:hover{color:var(--teal);}
+
+/* ══ REVEAL ══ */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .65s ease,transform .65s ease;}
+.rv.on{opacity:1;transform:translateY(0);}
+
+/* ══ SCROLLBAR ══ */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(0,180,220,.2);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div class="nebula"></div>
+<div class="vignette"></div>
+<div id="cosmos"><canvas id="sc"></canvas></div>
+
+<div class="wrap">
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <span class="nav-crown">♛</span>
+    <div>
+      <span class="nav-name">KING DIADEM</span>
+      <span class="nav-sub">DriftZero · AI Governance OS</span>
+    </div>
+  </a>
+  <div class="nav-actions">
+    <a href="#system" class="nbtn">System</a>
+    <a href="#certs" class="nbtn">Certs</a>
+    <a href="#contact" class="nbtn g">✦ Contact</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow"><span class="live"></span>Active System · Built Solo · 200+ Files</div>
+  <div class="hero-crown">♛</div>
+  <h1>KING&nbsp;DIADEM</h1>
+  <div class="hero-mono">Nithikorn Bunsrang · AI Systems Architect</div>
+  <p class="hero-bio">
+    An AI governance operating system that detects <em>choice collapse</em> before it becomes irreversible.<br>
+    <strong>Not a wrapper. Not a chatbot. A deterministic decision infrastructure.</strong>
+  </p>
+  <div class="hero-cta">
+    <a href="https://github.com/varjayd01/King-Diadem" target="_blank" class="btn btn-t">↗ GitHub</a>
+    <a href="#system" class="btn btn-g">◈ Architecture</a>
+  </div>
+  <div class="hero-rule"></div>
+  <div class="hero-stats">
+    <div class="hs"><span class="hs-n">200+</span><span class="hs-l">Source Files</span></div>
+    <div class="hs"><span class="hs-n">9</span><span class="hs-l">Subsystems</span></div>
+    <div class="hs"><span class="hs-n">9</span><span class="hs-l">Certifications</span></div>
+    <div class="hs"><span class="hs-n">Solo</span><span class="hs-l">Built from zero</span></div>
+  </div>
+</section>
+
+<!-- ORIGIN -->
+<section class="rv" id="origin">
+  <div class="sh">
+    <div class="sh-pre">00 · Origin</div>
+    <div class="sh-title">Built from the Floor Up</div>
+    <p class="sh-desc">ไม่ได้เริ่มจากทุน ไม่มีคนแนะทาง — เริ่มจากกระเบื้องเย็น มือถือเครื่องเดียว และเน็ตหมดสปีด</p>
+  </div>
+  <div class="story">
+    <div class="story-quote">
+      "เรียนใบเซอร์ 9 ใบ — <strong>ไม่ใช่เพื่อสมัครงาน แต่เพื่อสร้างระบบนี้</strong><br>
+      สร้างมันมาจากความล้มเหลวที่สมบูรณ์ที่สุด วันนั้นกลัวทุกอย่างจนไม่มีอะไรให้กลัว<br>
+      หนีจนไม่มีที่ให้หนี เลยเขียนสิ่งนี้จากการตื่นครั้งนั้น"
+    </div>
+    <div class="story-origin">
+      <div class="origin-item">
+        <div class="origin-label">Core Insight</div>
+        <div class="origin-val">ระบบล่มสลายได้เสมอ — แต่ถ้ายังมีทางเลือกอยู่ มันยังไม่ล่ม</div>
+      </div>
+      <div class="origin-item">
+        <div class="origin-label">Design Philosophy</div>
+        <div class="origin-val">Fail Less · Harm Less · Restore Choice<br>Evidence ON · Ego OFF</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SYSTEM -->
+<section class="rv" id="system">
+  <div class="sh">
+    <div class="sh-pre">01 · Core System</div>
+    <div class="sh-title">DriftZero Governance OS</div>
+    <p class="sh-desc">Full-stack AI governance platform — real-time decision engine, multi-persona AI, global node network, payment layer, and mobile-first UI. Built entirely from scratch.</p>
+  </div>
+
+  <div class="scard">
+    <div class="scard-head">
+      <div class="scard-icon">♛</div>
+      <div class="scard-meta">
+        <span class="tag tag-live">◉ LIVE SYSTEM</span>
+        <span class="tag tag-ai" style="margin-left:6px;">AI KERNEL</span>
+        <span class="tag tag-gov" style="margin-left:6px;">GOVERNANCE</span>
+        <div class="scard-title">KING DIADEM — Complete AI Infrastructure</div>
+        <div class="scard-sub">Python 67% · HTML/JS 28% · Deployed on Render</div>
+      </div>
+    </div>
+    <div class="scard-body">
+      <p class="scard-desc">
+        End-to-end AI decision system with deterministic logic kernels, Monte Carlo simulation engine, multi-persona AI (LYLA + VEGA), global node network with trust scoring, Stripe payment integration, JWT auth gateway, and PWA mobile interface. Detects choice collapse in human and organizational systems before it becomes irreversible.
+      </p>
+      <div class="mods">
+        <span class="mod">ENGINE/decision_engine.py</span>
+        <span class="mod">AI_KERNEL/fate_core.py</span>
+        <span class="mod">AI_KERNEL/reality_constraint.py</span>
+        <span class="mod">SIMULATIONS/montecarlo_engine.py</span>
+        <span class="mod">SIMULATIONS/black_swan_detector.py</span>
+        <span class="mod">NETWORK/global_network.py</span>
+        <span class="mod">PAYMENT/stripe_payment.py</span>
+        <span class="mod">AUTH/gateway.py</span>
+        <span class="mod">DATABASE/db.py</span>
+        <span class="mod">WORLD_MODEL/human_state.py</span>
+        <span class="mod">SECURITY/emergency_mode.py</span>
+        <span class="mod">DOMAINS/survival_engine.py</span>
+      </div>
+      <div class="metrics">
+        <div class="mval"><span class="mval-n">200+</span><span class="mval-l">Files</span></div>
+        <div class="mval"><span class="mval-n">9</span><span class="mval-l">Subsystems</span></div>
+        <div class="mval"><span class="mval-n">4</span><span class="mval-l">Logic Layers</span></div>
+        <div class="mval"><span class="mval-n">Live</span><span class="mval-l">Status</span></div>
+      </div>
+      <div class="scard-links">
+        <a href="https://github.com/varjayd01/King-Diadem" target="_blank" class="cl">↗ GitHub Repo</a>
+        <a href="#contact" class="cl g">✦ Discuss Project</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section class="rv">
+  <div class="sh">
+    <div class="sh-pre">02 · Architecture</div>
+    <div class="sh-title">4-Layer Decision Stack</div>
+    <p class="sh-desc">Each layer is purpose-built and cannot override another. Deterministic by design.</p>
+  </div>
+
+  <div class="arch">
+    <div class="anode">
+      <div class="anode-ic">👤</div>
+      <div>
+        <div class="anode-t">Human Input</div>
+        <div class="anode-s">Text · Image · Location · Context State</div>
+        <div class="anode-f">INTERFACE/ · mobile_node.py</div>
+      </div>
+    </div>
+    <div class="arr"><div class="arr-l"></div><div class="arr-h"></div></div>
+    <div class="anode">
+      <div class="anode-ic">⚡</div>
+      <div>
+        <div class="anode-t">API Gateway + Auth</div>
+        <div class="anode-s">JWT · Rate Limiting · Session Management</div>
+        <div class="anode-f">server.py · AUTH/gateway.py</div>
+      </div>
+    </div>
+    <div class="arr"><div class="arr-l"></div><div class="arr-h"></div></div>
+    <div class="anode">
+      <div class="anode-ic">🧠</div>
+      <div>
+        <div class="anode-t">FATE™ Kernel — Decision Engine</div>
+        <div class="anode-s">DriftZero Logic · Collapse Detection · Deterministic</div>
+        <div class="anode-f">ENGINE/decision_engine.py · AI_KERNEL/</div>
+      </div>
+    </div>
+    <div class="arr"><div class="arr-l"></div><div class="arr-h"></div></div>
+    <div class="anode">
+      <div class="anode-ic">🌐</div>
+      <div>
+        <div class="anode-t">World Model + Monte Carlo Simulation</div>
+        <div class="anode-s">Black Swan Detection · Future Projection · Learning</div>
+        <div class="anode-f">SIMULATIONS/ · WORLD_MODEL/</div>
+      </div>
+    </div>
+    <div class="arr"><div class="arr-l"></div><div class="arr-h"></div></div>
+    <div class="anode">
+      <div class="anode-ic">✅</div>
+      <div>
+        <div class="anode-t">Choice Output Package</div>
+        <div class="anode-s">Best Action · Alternatives · Escape Routes · Projection</div>
+        <div class="anode-f">ENGINE/choice_optimizer.py · escape_routes.py</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:16px;">
+    <div class="code">
+<span class="cm"># FATE™ Core Law — Layer 0</span>
+<span class="cm"># ระบบใดที่ทำให้ทางเลือกของมนุษย์ = 0 ระบบนั้นล้มเหลว</span>
+
+<span class="kw">if</span> <span class="fn">Choice</span>(t) <span class="kw">&gt;=</span> <span class="num">1</span>:
+    collapse = <span class="st">False</span>
+
+<span class="cm"># UDOK — Causal Interrupt at Vedanā → Taṇhā</span>
+<span class="fn">detect_feeling</span>()
+<span class="kw">if</span> craving_detected:
+    <span class="fn">do_not_act</span>()
+    <span class="fn">re_evaluate_from_fact_layer</span>()
+<span class="kw">else</span>:
+    <span class="fn">proceed</span>()</div>
+  </div>
+</section>
+
+<!-- PRINCIPLES -->
+<section class="rv">
+  <div class="sh">
+    <div class="sh-pre">03 · Governance Principles</div>
+    <div class="sh-title">FATE™ Axioms</div>
+  </div>
+  <div class="phi">
+    <div class="phi-head">Immutable Axioms · Cannot be overridden by any subsystem</div>
+    <div class="phi-quote">"FATE™ ไม่ทำให้คุณชนะบ่อยขึ้น — แต่มันทำให้คุณไม่พังซ้ำ อย่างอธิบายย้อนกลับได้"</div>
+    <div class="phi-item">
+      <div class="phi-sym">◎</div>
+      <div><div class="phi-tit">Axiom 1 — Logic over Persona</div><p class="phi-txt">ไม่มี persona ไหน override ตรรกะได้ ระบบไม่มี ego ระบบมีแค่หลักฐาน</p></div>
+    </div>
+    <div class="phi-item">
+      <div class="phi-sym">⚖️</div>
+      <div><div class="phi-tit">Axiom 2 — Rule over Authority</div><p class="phi-txt">กฎสำคัญกว่าผู้มีอำนาจ ไม่มีใครอยู่เหนือ rule set ของระบบ</p></div>
+    </div>
+    <div class="phi-item">
+      <div class="phi-sym">⚙️</div>
+      <div><div class="phi-tit">Axiom 3 — Determinism</div><p class="phi-txt">Input เดิม → Output เดิมเสมอ ไม่มีความแปรปรวนที่อธิบายไม่ได้</p></div>
+    </div>
+    <div class="phi-item">
+      <div class="phi-sym">⛔</div>
+      <div><div class="phi-tit">Axiom 4 — Stop-the-Line Authority</div><p class="phi-txt">Any operator may halt a process when harm is detected. Speed never overrides integrity.</p></div>
+    </div>
+    <div class="phi-item">
+      <div class="phi-sym">◈</div>
+      <div><div class="phi-tit">Axiom 5 — Stabilize Before Optimize</div><p class="phi-txt">Never improve a broken foundation. อธิบายไม่ได้ = ใช้ไม่ได้ Explainability = 100%</p></div>
+    </div>
+    <div class="phi-item">
+      <div class="phi-sym">🧭</div>
+      <div><div class="phi-tit">Axiom 6 — Human Final Authority</div><p class="phi-txt">ระบบไม่มีอำนาจบังคับมนุษย์ ทางเลือกสุดท้ายเสมออยู่ที่มนุษย์</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- CERTS -->
+<section class="rv" id="certs">
+  <div class="sh">
+    <div class="sh-pre">04 · Credentials</div>
+    <div class="sh-title">9 Certifications</div>
+    <p class="sh-desc">เรียนเพื่อสร้างระบบนี้ — ไม่ใช่เพื่อสมัครงาน</p>
+  </div>
+  <div class="cert-grid">
+    <div class="cert">
+      <div class="cert-issuer">Google · Coursera</div>
+      <div class="cert-name">Google Business Intelligence</div>
+      <div class="cert-date">Feb 22, 2026</div>
+    </div>
+    <div class="cert">
+      <div class="cert-issuer">Google · Coursera</div>
+      <div class="cert-name">Google AI Professional Certificate</div>
+      <div class="cert-date">Feb 23, 2026</div>
+    </div>
+    <div class="cert">
+      <div class="cert-issuer">Google · Coursera</div>
+      <div class="cert-name">Google AI Essentials</div>
+      <div class="cert-date">Mar 3, 2026</div>
+    </div>
+    <div class="cert">
+      <div class="cert-issuer">Google · Coursera</div>
+      <div class="cert-name">Google Cybersecurity</div>
+      <div class="cert-date">Mar 5, 2026</div>
+    </div>
+    <div class="cert">
+      <div class="cert-issuer">Google · Coursera</div>
+      <div class="cert-name">Google Prompting Essentials</div>
+      <div class="cert-date">Mar 24, 2026</div>
+    </div>
+    <div class="cert">
+      <div class="cert-issuer">Vanderbilt · Coursera</div>
+      <div class="cert-name">Generative AI Strategic Leader</div>
+      <div class="cert-date">Mar 7, 2026</div>
+    </div>
+    <div class="cert">
+      <div class="cert-issuer">Vanderbilt · Coursera</div>
+      <div class="cert-name">Generative AI Software Engineering</div>
+      <div class="cert-date">Mar 4, 2026</div>
+    </div>
+    <div class="cert">
+      <div class="cert-issuer">Vanderbilt · Coursera</div>
+      <div class="cert-name">AI Agents with Model Context Protocol</div>
+      <div class="cert-date">Mar 6, 2026</div>
+    </div>
+    <div class="cert">
+      <div class="cert-issuer">Vanderbilt · Coursera</div>
+      <div class="cert-name">ChatGPT: Master Free AI Tools</div>
+      <div class="cert-date">Mar 7, 2026</div>
+    </div>
+  </div>
+</section>
+
+<!-- STACK -->
+<section class="rv">
+  <div class="sh">
+    <div class="sh-pre">05 · Tech Stack</div>
+    <div class="sh-title">Built With</div>
+  </div>
+  <div class="stk">
+    <div class="si"><div class="si-n">Python</div><div class="si-r">Core · 67%</div></div>
+    <div class="si"><div class="si-n">Flask</div><div class="si-r">Web Server</div></div>
+    <div class="si"><div class="si-n">Anthropic API</div><div class="si-r">AI Engine</div></div>
+    <div class="si"><div class="si-n">Stripe</div><div class="si-r">Payments</div></div>
+    <div class="si"><div class="si-n">HTML/CSS/JS</div><div class="si-r">Frontend</div></div>
+    <div class="si"><div class="si-n">Render</div><div class="si-r">Deployment</div></div>
+    <div class="si"><div class="si-n">SQLite</div><div class="si-r">Database</div></div>
+    <div class="si"><div class="si-n">JWT</div><div class="si-r">Auth Layer</div></div>
+    <div class="si"><div class="si-n">Monte Carlo</div><div class="si-r">Simulation</div></div>
+    <div class="si"><div class="si-n">WebSocket</div><div class="si-r">Real-time</div></div>
+    <div class="si"><div class="si-n">PWA</div><div class="si-r">Mobile App</div></div>
+    <div class="si"><div class="si-n">MCP Protocol</div><div class="si-r">AI Agents</div></div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="rv" id="contact">
+  <div class="sh">
+    <div class="sh-pre">06 · Contact</div>
+  </div>
+  <div class="contact">
+    <div class="contact-crown">♛</div>
+    <div class="contact-title">Let's Build Together</div>
+    <p class="contact-desc">
+      AI workflow automation · Decision systems · Custom AI infrastructure<br>
+      ผมสร้างระบบที่ work จริง — ไม่ใช่ demo ไม่ใช่ prototype
+    </p>
+    <div class="contact-btns">
+      <a href="https://github.com/varjayd01/King-Diadem" target="_blank" class="btn btn-t">↗ GitHub Repo</a>
+      <a href="https://www.fastwork.co" target="_blank" class="btn btn-g">✦ Hire on Fastwork</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="ft">♛ KING DIADEM · NITHIKORN BUNSRANG · © 2026</div>
+  <div class="ft"><a href="https://github.com/varjayd01/King-Diadem" target="_blank">github.com/varjayd01</a> · Fail Less · Harm Less · Restore Choice</div>
+</footer>
+
+</div><!-- .wrap -->
+
+<script>
+/* ── STARS ── */
+(function(){
+  var c=document.getElementById('sc'),ctx=c.getContext('2d');
+  function resize(){c.width=window.innerWidth;c.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize,{passive:true});
+  var S=[];
+  for(var i=0;i<220;i++)S.push({x:Math.random(),y:Math.random(),r:Math.random()*1.4+.2,o:Math.random()*.45+.05,s:Math.random()*.6+.1,p:Math.random()*Math.PI*2});
+  var t=0;
+  function draw(){
+    t+=.008;ctx.clearRect(0,0,c.width,c.height);
+    S.forEach(function(s){
+      var o=s.o+Math.sin(t*s.s+s.p)*.06;
+      ctx.beginPath();ctx.arc(s.x*c.width,s.y*c.height,s.r,0,Math.PI*2);
+      ctx.fillStyle='rgba(200,220,255,'+Math.max(.03,Math.min(.55,o))+')';
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+/* ── SCROLL REVEAL ── */
+(function(){
+  var els=document.querySelectorAll('.rv');
+  var io=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add('on');});
+  },{threshold:.08});
+  els.forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>
