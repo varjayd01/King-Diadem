@@ -94,9 +94,12 @@
   function buildStars() {
     STARS = [];
     var configs = [
-      { n:1400, sMin:0.08, sMax:0.28, aMin:0.08, aMax:0.28, twinkle:false, par:0.00008 },
-      { n:700,  sMin:0.20, sMax:0.55, aMin:0.18, aMax:0.42, twinkle:true,  tAmp:0.04, tSpd:0.0008, par:0.00016 },
-      { n:300,  sMin:0.45, sMax:1.10, aMin:0.35, aMax:0.72, twinkle:true,  tAmp:0.08, tSpd:0.0015, par:0.00025 },
+      /* Layer 0: +150% alpha boost per PDF Action 1B — background stars now visible */
+      { n:1400, sMin:0.10, sMax:0.32, aMin:0.14, aMax:0.42, twinkle:false, par:0.00008 },
+      /* Layer 1: mid stars — slight boost */
+      { n:700,  sMin:0.22, sMax:0.58, aMin:0.22, aMax:0.50, twinkle:true,  tAmp:0.04, tSpd:0.0008, par:0.00016 },
+      /* Layer 2: foreground bright — unchanged, already strong */
+      { n:300,  sMin:0.45, sMax:1.10, aMin:0.38, aMax:0.75, twinkle:true,  tAmp:0.06, tSpd:0.0012, par:0.00025 },
     ];
     configs.forEach(function(c) {
       for (var i = 0; i < c.n; i++) {
@@ -558,6 +561,13 @@
     ctx.globalCompositeOperation = 'source-over';
   }
 
+  /* ════════ SUPPLY CHAIN RIPPLE — PDF Action 1A ════════
+     Global state object — drawn in main loop, never nested IIFE
+     Spawns every 200 frames, expands outward, fades to zero
+  ════════ */
+  var supplyChainRipple = null;
+  var _frameCount = 0;
+
   /* ════════ SHOOTING STAR ════════ */
   var SHOOTS = [], nextShoot = 5000;
   function spawnShoot(t) {
@@ -590,6 +600,21 @@
     }
   }
 
+  /* ════════ DRAW RIPPLE — in main loop, after bg cleared ════════ */
+  function drawRipple() {
+    if (!supplyChainRipple || supplyChainRipple.alpha <= 0) return;
+    supplyChainRipple.radius += 3.5;
+    supplyChainRipple.alpha  -= 0.0028;
+    if (supplyChainRipple.radius >= W * 0.55 || supplyChainRipple.alpha <= 0) {
+      supplyChainRipple = null; return;
+    }
+    ctx.beginPath();
+    ctx.arc(SX, SY, supplyChainRipple.radius, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(140,170,255,' + supplyChainRipple.alpha.toFixed(3) + ')';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  }
+
   /* ════════ TILT + GLOW + STATE ════════ */
   var BASE_TILT = 0.30;
   function getTilt() {
@@ -620,16 +645,23 @@
     if (!lastTime) lastTime = ts;
     var dt = Math.min((ts-lastTime)/1000, 0.05);
     lastTime = ts;
+    _frameCount++;
 
     updateState(dt);
     updateGlow(dt);
     updateSunDrift(dt);
+
+    /* PDF Action 1A — spawn ripple every 200 frames in global state */
+    if (_frameCount % 200 === 0) {
+      supplyChainRipple = { radius: 0, alpha: 0.12 };
+    }
 
     var tilt = getTilt();
 
     drawBg();
     drawMilkyWay();
     drawFilaments();
+    drawRipple();   /* after bg, before stars — pulse emanates from sun */
     drawStars(ts);
     drawQP(ts);
     drawShoots(ts, dt);
@@ -648,5 +680,13 @@
   window.KD_setRoute   = function(route){ activeRoute=route; };
   window.KD_council    = function(){ STATE.mode='council'; STATE.converge=0; };
   window.KD_councilEnd = function(){ STATE.mode='answering'; };
+
+  /* PDF Action 1C — safe entropy display, prevents toFixed() crash on null/undefined */
+  if (!window.KD) window.KD = {};
+  window.KD.safeVal = function(v, decimals) {
+    var n = +v;
+    var d = typeof decimals === 'number' ? decimals : 2;
+    return (isFinite(n) && !isNaN(n)) ? n.toFixed(d) : '0.00';
+  };
 
 })();
