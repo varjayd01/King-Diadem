@@ -507,6 +507,60 @@ body{
   background: transparent !important;
 }
 
+
+/* ★ PASTEL GALAXY VISIBILITY FIX ★ */
+#app, #main-scroll, #view-chat, #view-tools, #view-gov, #chat-scroll {
+  background: transparent !important;
+}
+/* ★ glassmorphism สำหรับ chat messages area */
+#chat-scroll {
+  background: transparent !important;
+}
+/* ★ topbar glassmorphism */
+#topbar {
+  background: rgba(14,8,28,0.85) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(212,179,255,0.14) !important;
+}
+/* ★ rail glassmorphism */
+#rail {
+  background: rgba(14,8,28,0.92) !important;
+}
+/* ★ input dock glassmorphism */
+#input-dock {
+  background: rgba(14,8,28,0.88) !important;
+  border-top: 1px solid rgba(212,179,255,0.12) !important;
+}
+/* ★ tabbar glassmorphism */
+#tabbar {
+  background: rgba(12,7,22,0.92) !important;
+  border-top: 1px solid rgba(212,179,255,0.10) !important;
+}
+/* ★ msg system text — soft pastel bg */
+.msg.system .msg-text {
+  background: rgba(20,12,38,0.55) !important;
+  border-radius: 16px !important;
+  padding: 14px 16px !important;
+  border: 1px solid rgba(212,179,255,0.10) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+/* ★ section bg glassmorphism */
+.section {
+  background: rgba(18,10,32,0.65) !important;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+/* ★ session item */
+.session-item {
+  border-radius: 8px;
+}
+/* ★ rail bg */
+.rail-brand {
+  border-bottom: 1px solid rgba(212,179,255,0.10) !important;
+}
+
 </style>
 </head>
 <body>
@@ -1209,6 +1263,8 @@ async function run(){
     removeThinking();
     if(data.error){addMsg('system','ข้อผิดพลาด: '+data.error,'ERROR');showErr(data.error,6000);return;}
     var reply=data.ai_response||data.message||JSON.stringify(data,null,2);
+    /* ★ FIX: strip trailing persona signatures ที่ backend ส่งมา */
+    reply=reply.replace(/\s*[—–-]+\s*(LYLA\s*[◈✦✧]?|VEGA\s*[◆◇]?|HALT\s*[⬡]?)\s*$/gi,'').trim();
     var risk=data.risk_score!=null?' · RISK '+Math.round(data.risk_score):'';
     var meta='ROUTE '+(data.route||R).toUpperCase()+risk;
     var persona=data.persona||(mode==='vega'||mode==='crisis'?mode.toUpperCase():'LYLA');
