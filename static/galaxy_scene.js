@@ -37,9 +37,9 @@
   setTimeout(doResize, 10);
 
   /* ── Sun geometry ── */
-  function SX() { return Math.max(H * 0.58, Math.min(W * 0.12, 72)); }
+  function SX() { return Math.max(H * 0.50, Math.min(W * 0.09, 52)); }
   function SY() { return H * 0.50; }
-  function SR() { return Math.min(H * 0.36, 22); }
+  function SR() { return Math.min(H * 0.26, 16); }
 
   /* Orbit tilt — shallow ellipse like reference */
   var TILT = 0.18;
@@ -49,27 +49,27 @@
      sz   = base radius px (will scale with H)
   */
   var PDEFS = [
-    /* main visible planets */
-    { id:'general',  label:'GENERAL',  ang:0.60, spd:0.00022, orb:0.14, sz:6.0,
+    /* main visible planets — orb scaled so VEGA fits within W */
+    { id:'general',  label:'GENERAL',  ang:0.60, spd:0.00022, orb:0.13, sz:5.5,
       c0:'#b8cce0', c1:'#4a7090', c2:'#1a3050', atm:'rgba(100,160,220,' },
-    { id:'risk',     label:'RISK',     ang:2.30, spd:0.00015, orb:0.22, sz:5.0,
+    { id:'risk',     label:'RISK',     ang:2.30, spd:0.00015, orb:0.21, sz:4.8,
       c0:'#cc7858', c1:'#803018', c2:'#340c04', atm:'rgba(175,70,30,' },
-    { id:'survival', label:'SURVIVAL', ang:3.80, spd:0.00010, orb:0.31, sz:6.4,
+    { id:'survival', label:'SURVIVAL', ang:3.80, spd:0.00010, orb:0.30, sz:6.0,
       c0:'#a8c460', c1:'#4a6c20', c2:'#1c2808', atm:'rgba(100,155,60,' },
-    { id:'collapse', label:'COLLAPSE', ang:5.10, spd:0.00007, orb:0.41, sz:5.2,
+    { id:'collapse', label:'COLLAPSE', ang:5.10, spd:0.00007, orb:0.40, sz:5.0,
       c0:'#b88855', c1:'#705025', c2:'#2c1c08', atm:'rgba(145,85,30,' },
-    { id:'civil',    label:'CIVIL',    ang:1.20, spd:0.00004, orb:0.54, sz:6.8,
+    { id:'civil',    label:'CIVIL',    ang:1.20, spd:0.00004, orb:0.53, sz:6.4,
       c0:'#98c0d8', c1:'#407090', c2:'#182c44', atm:'rgba(80,130,185,' },
-    { id:'vega',     label:'VEGA',     ang:4.20, spd:0.00002, orb:0.72, sz:9.5,
+    { id:'vega',     label:'VEGA',     ang:4.20, spd:0.00002, orb:0.68, sz:8.5,
       c0:'#d0c498', c1:'#988448', c2:'#3a2c10', atm:'rgba(165,135,65,' },
     /* small ambient */
-    { id:'a1', ang:1.60, spd:0.00032, orb:0.09, sz:1.8,
+    { id:'a1', ang:1.60, spd:0.00032, orb:0.08, sz:1.6,
       c0:'#7888a0', c1:'#445060', c2:'#202838' },
-    { id:'a2', ang:3.20, spd:0.00019, orb:0.18, sz:1.5,
+    { id:'a2', ang:3.20, spd:0.00019, orb:0.17, sz:1.4,
       c0:'#908070', c1:'#504030', c2:'#201808' },
-    { id:'a3', ang:5.60, spd:0.00009, orb:0.36, sz:1.6,
+    { id:'a3', ang:5.60, spd:0.00009, orb:0.35, sz:1.5,
       c0:'#809070', c1:'#405038', c2:'#1e2a16' },
-    { id:'a4', ang:2.80, spd:0.00003, orb:0.62, sz:1.9,
+    { id:'a4', ang:2.80, spd:0.00003, orb:0.60, sz:1.7,
       c0:'#90a0b0', c1:'#506070', c2:'#202c38' },
   ];
   var PLANETS = PDEFS.map(function (d) { return Object.assign({}, d); });
