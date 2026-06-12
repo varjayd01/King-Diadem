@@ -17,51 +17,40 @@
    Mobile: bottom nav | Desktop: left sidebar
 ═══════════════════════════════════════════════ */
 :root {
-  /* ── Cosmic Latte — #FFF8E7 สีจริงของจักรวาล ── */
   --bg:        #090703;
   --bg2:       #0e0b05;
   --bg3:       #141008;
   --bg4:       #1a150a;
   --surface:   rgba(18,13,6,0.94);
   --surface2:  rgba(26,20,10,0.90);
-
-  /* accent = warm amber / cosmic latte */
   --gold:      #c8a855;
   --gold-dim:  rgba(200,168,85,0.55);
   --gold-glow: rgba(200,168,85,0.16);
   --gold-hot:  #e0c070;
   --gold-pale: rgba(200,168,85,0.10);
-
   --text:      rgba(230,218,190,0.88);
   --text-hi:   rgba(248,238,210,0.96);
   --text-dim:  rgba(175,158,120,0.52);
   --text-faint:rgba(138,120,85,0.32);
-
   --border:    rgba(200,168,85,0.16);
   --border-s:  rgba(200,168,85,0.08);
   --border-hi: rgba(220,188,105,0.35);
-
   --accent:    #c8a855;
   --accent2:   #8a7040;
-
   --red:       #c05838;
   --green:     #5a8848;
   --blue:      #5878a8;
-
   --sat: env(safe-area-inset-top,0px);
   --sar: env(safe-area-inset-right,0px);
   --sab: env(safe-area-inset-bottom,0px);
   --sal: env(safe-area-inset-left,0px);
-
   --r:    10px;
   --r-s:  7px;
   --r-xs: 4px;
-
   --strip-h:   110px;
   --topbar-h:  50px;
   --tabbar-h:  56px;
   --sidebar-w: 248px;
-
   --font-mono: 'DM Mono', monospace;
   --font-sans: 'DM Sans', system-ui, sans-serif;
 }
@@ -114,28 +103,19 @@ body {
 @keyframes introFill { 0%{width:0;opacity:1} 80%{width:100%;opacity:1} 100%{width:100%;opacity:.4} }
 .intro-tagline { font-family: var(--font-mono); font-size: 8.5px; letter-spacing: .18em; color: rgba(200,168,85,0.22); margin-top: 14px; text-transform: uppercase; animation: introUp 1s ease 1.3s both; }
 
-/* ═══ APP SHELL — 3-zone column ═══
-   [topbar fixed]
-   [galaxy strip fixed]
-   [main flex-1 scroll]
-   [input-dock fixed bottom]
-   [tabbar fixed bottom — mobile only]
-   Desktop: adds sidebar left
-═══ */
+/* ═══ APP SHELL ═══ */
 #app {
   position: relative; z-index: 10;
   display: flex; flex-direction: column;
   width: 100%; height: 100dvh;
   background: transparent;
 }
-
-/* Desktop: row layout */
 @media (min-width: 900px) {
   #app { flex-direction: row; }
   #tabbar { display: none !important; }
 }
 
-/* ═══ SIDEBAR (desktop only) ═══ */
+/* ═══ SIDEBAR (desktop) ═══ */
 #sidebar {
   display: none;
   flex-direction: column;
@@ -226,7 +206,7 @@ body {
 }
 .btn-sb-out:hover { background: rgba(200,60,40,.08); }
 
-/* ═══ MOBILE RAIL (drawer) ═══ */
+/* ═══ MOBILE RAIL ═══ */
 #rail-scrim { display: none; position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.75); cursor: pointer; }
 #rail-scrim.on { display: block; }
 #rail {
@@ -308,11 +288,7 @@ body {
   border-bottom: 1px solid var(--border-s);
   overflow: hidden;
 }
-#galaxy {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  display: block;
-}
+#galaxy { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .strip-lyla {
   position: absolute; top: 8px; right: 12px; z-index: 2;
   font-family: var(--font-mono); font-size: 8px; letter-spacing: .10em;
@@ -354,7 +330,6 @@ body {
 @media (min-width: 600px) { #chat-scroll { padding: 40px 32px 28px; } }
 @media (min-width: 900px) { #chat-scroll { padding: 40px 48px 28px; } }
 
-/* scrollbar */
 ::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(200,168,85,.16); border-radius: 2px; }
@@ -362,8 +337,8 @@ body {
 /* ─── WELCOME ─── */
 #welcome {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 28px; text-align: center;
-  padding: 48px 28px 32px; min-height: 100%;
+  justify-content: center; gap: 24px; text-align: center;
+  padding: 40px 28px 32px; min-height: 100%;
   max-width: 640px; margin: 0 auto; width: 100%;
   overflow: hidden; box-sizing: border-box;
 }
@@ -372,29 +347,13 @@ body {
 .welcome-title {
   font-family: 'Cinzel', serif;
   font-size: clamp(13px, 3.2vw, 20px);
-  font-weight: 600;
-  letter-spacing: .12em;
+  font-weight: 600; letter-spacing: .12em;
   word-break: break-word; overflow-wrap: break-word;
   background: linear-gradient(135deg, #a08840 0%, #f0dea0 45%, #c8a855 100%);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 .welcome-sub { font-family: var(--font-mono); font-size: 8px; letter-spacing: .18em; color: var(--text-faint); text-transform: uppercase; }
 .welcome-tagline { font-size: 13px; line-height: 1.88; color: rgba(210,198,178,.55); max-width: 30rem; }
-
-.node-status-bar {
-  display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: center;
-}
-.node-dot {
-  display: inline-flex; align-items: center; gap: 4px;
-  font-family: var(--font-mono); font-size: 8.5px; letter-spacing: .05em;
-  padding: 3px 8px; border-radius: 999px; border: 1px solid transparent;
-}
-.node-dot::before { content:''; width:3px; height:3px; border-radius:50%; background:currentColor; display:inline-block; }
-.node-dot.waterline { color: rgba(200,168,85,.80); border-color: rgba(200,168,85,.28); background: rgba(200,168,85,.07); }
-.node-dot.vega  { color: rgba(220,200,120,.75); border-color: rgba(220,200,120,.22); background: rgba(220,200,120,.06); }
-.node-dot.halt  { color: rgba(200,80,60,.75);  border-color: rgba(200,80,60,.22);  background: rgba(200,80,60,.06);  }
-.node-dot.civil { color: rgba(180,160,120,.70); border-color: rgba(180,160,120,.18); background: rgba(180,160,120,.05); }
-.node-dot.fate  { color: rgba(160,145,110,.65); border-color: rgba(160,145,110,.16); background: rgba(160,145,110,.05); }
 
 .welcome-hint { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; animation: fadeUp 1.2s ease 0.5s both; }
 .hint-chip {
@@ -454,17 +413,13 @@ body {
 @media (min-width: 600px) { .tools-pad, .gov-pad { padding: 20px; padding-bottom: calc(20px + var(--sab)); } }
 
 .section {
-  margin-bottom: 10px;
-  border: 1px solid var(--border-s);
-  border-radius: var(--r);
-  background: rgba(14,12,18,.75);
-  overflow: hidden;
-  transition: border-color .2s;
+  margin-bottom: 10px; border: 1px solid var(--border-s);
+  border-radius: var(--r); background: rgba(14,12,18,.75);
+  overflow: hidden; transition: border-color .2s;
 }
 .section:hover { border-color: var(--border); }
 .sec-head {
-  padding: 9px 13px;
-  border-bottom: 1px solid var(--border-s);
+  padding: 9px 13px; border-bottom: 1px solid var(--border-s);
   font-family: var(--font-mono); font-size: 8.5px; letter-spacing: .12em;
   color: var(--text-faint); text-transform: uppercase;
   display: flex; align-items: center; gap: 8px;
@@ -578,8 +533,7 @@ body {
 
 /* ─── TABBAR (mobile) ─── */
 #tabbar {
-  flex-shrink: 0;
-  display: flex;
+  flex-shrink: 0; display: flex;
   border-top: 1px solid var(--border-s);
   background: rgba(6,5,9,.97);
   padding-bottom: var(--sab);
@@ -598,9 +552,7 @@ body {
 #bottom-note { flex-shrink: 0; text-align: center; font-family: var(--font-mono); font-size: 7.5px; color: var(--text-faint); padding: 4px 8px 6px; letter-spacing: .09em; display: none; }
 @media (min-width: 900px) { #bottom-note { display: block; } }
 
-/* ─── ERROR TOAST ─── */
 #err-toast { position: fixed; bottom: calc(70px + var(--sab)); left: 50%; transform: translateX(-50%); z-index: 999; font-family: var(--font-mono); font-size: 11px; padding: 11px 18px; border-radius: var(--r); background: rgba(12,4,4,.98); border: 1px solid rgba(200,60,40,.35); color: rgba(220,80,60,.88); max-width: min(90vw,440px); text-align: center; display: none; animation: fadeUp .22s ease; }
-@keyframes fadeUp { from{opacity:0;transform:translateX(-50%) translateY(8px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
 @media (max-height: 500px) and (orientation: landscape) {
@@ -719,7 +671,7 @@ body {
       </div>
     </header>
 
-    <!-- GALAXY STRIP — canvas lives here, not fullscreen -->
+    <!-- GALAXY STRIP -->
     <div id="galaxy-strip">
       <canvas id="galaxy"></canvas>
       <div class="strip-lyla">LYLA ◈</div>
@@ -738,21 +690,25 @@ body {
           <div id="welcome">
             <div class="welcome-hero">
               <div class="welcome-title">KING DIADEM</div>
-              <div class="welcome-sub">LYLA Kernel · Governance OS</div>
-              <p class="welcome-tagline">ระบบใดที่ทำให้ทางเลือกของมนุษย์เท่ากับศูนย์ ระบบนั้นล้มเหลว<br>การตัดสินใจสุดท้ายเป็นของคุณเสมอ</p>
+              <div class="welcome-sub">AI ที่อยู่ข้างคุณ — เรื่องเล็กถึงระดับชีวิต</div>
+              <p class="welcome-tagline">บอก LYLA ว่าคุณเจออะไรอยู่<br>เธอจะช่วยคิด เปิดทางเลือก และอยู่กับคุณจนกว่าจะเห็นทางออก</p>
             </div>
-            <div class="node-status-bar" id="welcome-nodes">
-              <span class="node-dot waterline">WATERLINE</span>
-              <span class="node-dot vega">VEGA</span>
-              <span class="node-dot halt">HALT</span>
-              <span class="node-dot civil">CIVIL</span>
-              <span class="node-dot fate">FATE</span>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:500px;">
+              <span style="font-family:'DM Mono',monospace;font-size:10.5px;padding:6px 13px;border-radius:6px;border:1px solid rgba(200,168,85,0.18);background:rgba(200,168,85,0.06);color:rgba(200,178,128,0.65);">◈ วิเคราะห์สถานการณ์</span>
+              <span style="font-family:'DM Mono',monospace;font-size:10.5px;padding:6px 13px;border-radius:6px;border:1px solid rgba(200,168,85,0.18);background:rgba(200,168,85,0.06);color:rgba(200,178,128,0.65);">◈ ประเมินความเสี่ยง</span>
+              <span style="font-family:'DM Mono',monospace;font-size:10.5px;padding:6px 13px;border-radius:6px;border:1px solid rgba(200,168,85,0.18);background:rgba(200,168,85,0.06);color:rgba(200,178,128,0.65);">◈ เปิดทางเลือก</span>
+              <span style="font-family:'DM Mono',monospace;font-size:10.5px;padding:6px 13px;border-radius:6px;border:1px solid rgba(200,168,85,0.18);background:rgba(200,168,85,0.06);color:rgba(200,178,128,0.65);">◈ จำลองอนาคต</span>
             </div>
             <div class="welcome-hint">
-              <span class="hint-chip" onclick="useHint(this)">ฉันตกงาน ไม่รู้จะทำอะไร</span>
-              <span class="hint-chip" onclick="useHint(this)">ธุรกิจกำลังล้มเหลว</span>
-              <span class="hint-chip" onclick="useHint(this)">ต้องตัดสินใจสำคัญ</span>
-              <span class="hint-chip" onclick="useHint(this)">ทรัพยากรกำลังหมด</span>
+              <span class="hint-chip" onclick="useHint(this)">ตกงานแล้ว ไม่มีเงิน ไม่รู้จะทำอะไร</span>
+              <span class="hint-chip" onclick="useHint(this)">ควรลาออกจากงานนี้ไหม</span>
+              <span class="hint-chip" onclick="useHint(this)">มีหนี้และไม่รู้จะจัดการยังไง</span>
+              <span class="hint-chip" onclick="useHint(this)">ธุรกิจกำลังขาดทุน ต้องตัดสินใจ</span>
+              <span class="hint-chip" onclick="useHint(this)">ความสัมพันธ์มีปัญหา ไม่รู้จะทำยังไง</span>
+              <span class="hint-chip" onclick="useHint(this)">เครียดมาก ไม่รู้จะเริ่มตรงไหน</span>
+            </div>
+            <div style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(155,140,105,0.28);letter-spacing:.10em;">
+              พิมพ์เรื่องของคุณด้านล่าง หรือเลือกตัวอย่างข้างบน
             </div>
           </div>
         </div>
@@ -833,7 +789,6 @@ body {
               <button type="button" class="route-chip" data-r="vega"      onclick="setRoute('vega')">VEGA</button>
             </div>
           </div>
-
           <div class="section">
             <div class="sec-head">WATERLINE METRICS</div>
             <div class="sec-body">
@@ -847,7 +802,6 @@ body {
               </div>
             </div>
           </div>
-
           <div class="section">
             <div class="sec-head">LYLA STATUS</div>
             <div class="sec-body">
@@ -858,21 +812,19 @@ body {
               <div class="lyla-item"><span class="lyla-key">CHOICES</span>  <span class="lyla-val safe"    id="lyla-choices">≥1</span></div>
             </div>
           </div>
-
           <div class="section">
             <div class="sec-head">KD NODE COUNCIL</div>
             <div class="sec-body">
               <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px;">
-                <span class="node-dot waterline">WATERLINE</span>
-                <span class="node-dot vega">VEGA</span>
-                <span class="node-dot halt">HALT</span>
-                <span class="node-dot civil">CIVIL</span>
-                <span class="node-dot fate">FATE</span>
+                <span class="node-dot waterline" style="display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:8.5px;padding:3px 8px;border-radius:999px;border:1px solid rgba(200,168,85,.28);color:rgba(200,168,85,.80);background:rgba(200,168,85,.07);">WATERLINE</span>
+                <span class="node-dot vega"      style="display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:8.5px;padding:3px 8px;border-radius:999px;border:1px solid rgba(220,200,120,.22);color:rgba(220,200,120,.75);background:rgba(220,200,120,.06);">VEGA</span>
+                <span class="node-dot halt"      style="display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:8.5px;padding:3px 8px;border-radius:999px;border:1px solid rgba(200,80,60,.22);color:rgba(200,80,60,.75);background:rgba(200,80,60,.06);">HALT</span>
+                <span class="node-dot civil"     style="display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:8.5px;padding:3px 8px;border-radius:999px;border:1px solid rgba(180,160,120,.18);color:rgba(180,160,120,.70);background:rgba(180,160,120,.05);">CIVIL</span>
+                <span class="node-dot fate"      style="display:inline-flex;align-items:center;gap:4px;font-family:var(--font-mono);font-size:8.5px;padding:3px 8px;border-radius:999px;border:1px solid rgba(160,145,110,.16);color:rgba(160,145,110,.65);background:rgba(160,145,110,.05);">FATE</span>
               </div>
               <div id="council" class="kd-diag">Waiting for council vote…</div>
             </div>
           </div>
-
           <div class="section" style="border-color:rgba(200,168,85,.12);">
             <div class="sec-head">◈ PERSONAL HORIZON — มุมมองจักรวาล</div>
             <div class="sec-body">
@@ -887,7 +839,6 @@ body {
               </div>
             </div>
           </div>
-
           <div class="section">
             <div class="sec-head">GALAXY · DECISION TRACE</div>
             <div class="sec-body"><div id="summary" class="kd-diag">—</div></div>
@@ -921,25 +872,21 @@ body {
       <button type="button" class="tab-btn" data-tab="tools" onclick="setTab('tools')"><span class="ti">⚙</span>เครื่องมือ</button>
       <button type="button" class="tab-btn" data-tab="gov"   onclick="setTab('gov')"><span class="ti">◎</span>กำกับดูแล</button>
     </nav>
-    <div id="bottom-note">FAIL LESS · HARM LESS · RESTORE CHOICE · KING DIADEM v18</div>
+    <div id="bottom-note">FAIL LESS · HARM LESS · RESTORE CHOICE · KING DIADEM v24</div>
 
   </div><!-- /main-col -->
 </div><!-- /app -->
 
-<!-- ★ galaxy_scene.js v17 — canvas อยู่ใน #galaxy-strip แล้ว
-     ต้องแก้ galaxy_scene.js ด้วย (ดูหมายเหตุท้ายไฟล์)     -->
 <script src="/static/galaxy_scene.js"></script>
-<!-- ★ warp_intro.js ลบออกแล้ว (เคย 404) -->
 
 <script>
-/* ═══ INTRO REMOVE ═══ */
+/* ═══ INTRO ═══ */
 (function(){
   var el = document.getElementById('intro-screen');
   if(!el) return;
   setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); }, 3800);
 })();
 
-/* ═══ INTRO CANVAS ═══ */
 (function(){
   var cv = document.getElementById('intro-canvas');
   if(!cv) return;
@@ -974,7 +921,7 @@ body {
 
 <script>
 /* ═══════════════════════════════════════════════
-   KING DIADEM — App Logic (preserved from v15)
+   KING DIADEM — App Logic
 ═══════════════════════════════════════════════ */
 window.KD = { byId: function(id){ return document.getElementById(id); } };
 window.KD_pulse = function(){};
@@ -1050,15 +997,25 @@ async function syncChatStateFromServer(){
 
 function buildWelcomeHtml(){
   return '<div id="welcome"><div class="welcome-hero">'+
-    '<div class="welcome-title">KING DIADEM</div><div class="welcome-sub">LYLA Kernel · Governance OS</div>'+
-    '<p class="welcome-tagline">ระบบใดที่ทำให้ทางเลือกของมนุษย์เท่ากับศูนย์ ระบบนั้นล้มเหลว<br>การตัดสินใจสุดท้ายเป็นของคุณเสมอ</p></div>'+
-    '<div class="node-status-bar"><span class="node-dot waterline">WATERLINE</span><span class="node-dot vega">VEGA</span><span class="node-dot halt">HALT</span><span class="node-dot civil">CIVIL</span><span class="node-dot fate">FATE</span></div>'+
+    '<div class="welcome-title">KING DIADEM</div>'+
+    '<div class="welcome-sub">AI ที่อยู่ข้างคุณ — เรื่องเล็กถึงระดับชีวิต</div>'+
+    '<p class="welcome-tagline">บอก LYLA ว่าคุณเจออะไรอยู่<br>เธอจะช่วยคิด เปิดทางเลือก และอยู่กับคุณจนกว่าจะเห็นทางออก</p></div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:500px;">'+
+    '<span style="font-family:\'DM Mono\',monospace;font-size:10.5px;padding:6px 13px;border-radius:6px;border:1px solid rgba(200,168,85,0.18);background:rgba(200,168,85,0.06);color:rgba(200,178,128,0.65);">◈ วิเคราะห์สถานการณ์</span>'+
+    '<span style="font-family:\'DM Mono\',monospace;font-size:10.5px;padding:6px 13px;border-radius:6px;border:1px solid rgba(200,168,85,0.18);background:rgba(200,168,85,0.06);color:rgba(200,178,128,0.65);">◈ ประเมินความเสี่ยง</span>'+
+    '<span style="font-family:\'DM Mono\',monospace;font-size:10.5px;padding:6px 13px;border-radius:6px;border:1px solid rgba(200,168,85,0.18);background:rgba(200,168,85,0.06);color:rgba(200,178,128,0.65);">◈ เปิดทางเลือก</span>'+
+    '<span style="font-family:\'DM Mono\',monospace;font-size:10.5px;padding:6px 13px;border-radius:6px;border:1px solid rgba(200,168,85,0.18);background:rgba(200,168,85,0.06);color:rgba(200,178,128,0.65);">◈ จำลองอนาคต</span>'+
+    '</div>'+
     '<div class="welcome-hint">'+
-    '<span class="hint-chip" onclick="useHint(this)">ฉันตกงาน ไม่รู้จะทำอะไร</span>'+
-    '<span class="hint-chip" onclick="useHint(this)">ธุรกิจกำลังล้มเหลว</span>'+
-    '<span class="hint-chip" onclick="useHint(this)">ต้องตัดสินใจสำคัญ</span>'+
-    '<span class="hint-chip" onclick="useHint(this)">ทรัพยากรกำลังหมด</span>'+
-    '</div></div>';
+    '<span class="hint-chip" onclick="useHint(this)">ตกงานแล้ว ไม่มีเงิน ไม่รู้จะทำอะไร</span>'+
+    '<span class="hint-chip" onclick="useHint(this)">ควรลาออกจากงานนี้ไหม</span>'+
+    '<span class="hint-chip" onclick="useHint(this)">มีหนี้และไม่รู้จะจัดการยังไง</span>'+
+    '<span class="hint-chip" onclick="useHint(this)">ธุรกิจกำลังขาดทุน ต้องตัดสินใจ</span>'+
+    '<span class="hint-chip" onclick="useHint(this)">ความสัมพันธ์มีปัญหา ไม่รู้จะทำยังไง</span>'+
+    '<span class="hint-chip" onclick="useHint(this)">เครียดมาก ไม่รู้จะเริ่มตรงไหน</span>'+
+    '</div>'+
+    '<div style="font-family:\'DM Mono\',monospace;font-size:9px;color:rgba(155,140,105,0.28);letter-spacing:.10em;">พิมพ์เรื่องของคุณด้านล่าง หรือเลือกตัวอย่างข้างบน</div>'+
+    '</div>';
 }
 
 function getSessionStore(){
@@ -1167,7 +1124,6 @@ async function refreshMe(){
     window.__kdLoggedIn = !!d.logged_in; window.__kdUserEmail = d.email||d.name||'';
     SESSION_KEY = _getUserKey();
     var el = document.getElementById('credits-pill'); if(el) el.textContent = d.logged_in?'CR '+String(d.credits??0):'guest';
-    /* desktop sidebar auth */
     var sg = document.getElementById('sb-auth-guest'), su = document.getElementById('sb-auth-user');
     var rg = document.getElementById('rail-auth-guest'), ru = document.getElementById('rail-auth-user');
     if(d.logged_in){
@@ -1327,7 +1283,7 @@ async function stripeCheckout(){
   var plan=document.querySelector('input[name="plan"]:checked')?.value||'basic';
   if(!email){ showErr('กรุณากรอก Email ก่อนชำระเงินค่ะ',4000); return; }
   try{
-    var r=await fetch('/payment/create-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan:plan,email:email,api_key:email})});
+    var r=await fetch('/create-checkout-session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({plan:plan,email:email,api_key:email})});
     var d=await readJson(r);
     if(d.url) location.href=d.url;
     else showErr(d.error||d.message||'Stripe ไม่สำเร็จ',5000);
@@ -1348,7 +1304,7 @@ async function uploadImage(){
 
 if('serviceWorker' in navigator){ navigator.serviceWorker.register('/static/service-worker.js').catch(function(){}); }
 
-/* ═══ UX — HAPTIC + SWIPE + KEYBOARD ═══ */
+/* UX — HAPTIC + SWIPE + KEYBOARD */
 (function(){
   function haptic(type){ if(!navigator.vibrate) return; if(type==='light') navigator.vibrate(6); }
   var origRun = window.run;
@@ -1379,7 +1335,7 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('/static/serv
 </script>
 
 <script>
-/* ═══ PHONE PREFIX PICKER ═══ */
+/* PHONE PREFIX PICKER */
 (function(){
   var PREFIXES=[
     {flag:'🇹🇭',code:'+66',name:'ไทย'},{flag:'🇺🇸',code:'+1',name:'USA'},
@@ -1416,18 +1372,5 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('/static/serv
 })();
 </script>
 
-<!--
-★ PATCH NOTE สำหรับ galaxy_scene.js v17 ★
-ต้องแก้บรรทัดนี้ใน galaxy_scene.js:
-
-  // เดิม (ลบออก):
-  cv.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;display:block;';
-
-  // ใหม่ (แทนที่ด้วย):
-  cv.style.cssText = 'display:block;width:100%;height:100%;';
-
-Canvas ตอนนี้อยู่ใน #galaxy-strip แล้ว
-ไม่ต้อง fixed fullscreen อีกต่อไป
--->
 </body>
 </html>
