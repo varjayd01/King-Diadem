@@ -1,7 +1,15 @@
 # =========================
-# 👑 KING DIADEM — app.py v4.3
+# 👑 KING DIADEM — app.py v4.4
 # LYLA (หญิง/ค่ะ) · VEGA (ชาย/ครับ) · ปฏิจสมุปบาท · โยนิโสมนสิการ · สุญยตา
 # Fail less. Harm less. Restore more.
+#
+# PATCH v4.4 — Conversation Memory Fix
+# ปัญหา: history ถูก flatten เป็น text ใน `effective` แล้ว
+#         ยังถูกส่งซ้ำเป็น array ให้ Gemini → history ซ้อนกัน 2 ชั้น
+#         และ decision engine path ไม่ได้รับ history เลย
+# แก้:  1. ลบ history_text ออกจาก effective (ไม่ต้อง flatten แล้ว)
+#          ให้ _build_contents() ใน llm_gemini จัดการ Content objects แทน
+#       2. ส่ง history เข้า full_run_decision และ engine.run() ด้วย
 # =========================
 
 from fastapi import FastAPI, Request, File, UploadFile
@@ -154,7 +162,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 # ══════════════════════════════════════════════════════════════════
-# GALAXY STATE — built-in (no external file needed)
+# GALAXY STATE
 # ══════════════════════════════════════════════════════════════════
 _glock = threading.Lock()
 _gstate = {
@@ -190,7 +198,6 @@ def _planet_positions():
     return nodes
 
 def _sync_galaxy(result: dict):
-    """เรียกหลังทุก /run — sync waterline + route"""
     try:
         with _glock:
             _gstate["active_route"] = result.get("route", "general")
@@ -480,18 +487,6 @@ def _paticcasamuppada_context(text: str) -> str:
     return "[โยนิโสมนสิการ: วิเคราะห์ต้นเหตุและลูกโซ่ผลกระทบ]"
 
 
-def _build_history_text(history: list) -> str:
-    if not history: return ""
-    lines = []
-    for turn in history[-10:]:
-        content = str(turn.get("content", "")).strip()
-        if not content: continue
-        label = "ผู้ใช้" if turn.get("role") == "user" else "LYLA/VEGA"
-        lines.append(f"{label}: {content}")
-    if not lines: return ""
-    return "=== บทสนทนาก่อนหน้า ===\n" + "\n".join(lines) + "\n=== สิ้นสุด ===\n\n"
-
-
 # ══════════════════════════════════════════════════════════════════
 # /run  +  /decision
 # ══════════════════════════════════════════════════════════════════
@@ -502,9 +497,18 @@ async def run_kernel(request: Request, data: dict):
     if not user_input:
         return {"error": "Input is required"}
 
-    email = unquote(request.cookies.get("kd_email") or "anonymous")
-    route = data.get("route") or "general"
-    vm    = _resolve_voice_mode(data, route)
+    email   = unquote(request.cookies.get("kd_email") or "anonymous")
+    route   = data.get("route") or "general"
+    vm      = _resolve_voice_mode(data, route)
+
+    # ── FIX: history array สำหรับส่งให้ Gemini โดยตรง ──────────
+    # เดิม: history ถูก flatten เป็น text ใน effective แล้ว
+    #        ยังส่งซ้ำเป็น array → Gemini เห็น history 2 ชั้น
+    # แก้:  เก็บ history array แยกไว้ ไม่ flatten เป็น text อีกต่อไป
+    #        ส่งให้ llm.generate_with_governance() ผ่าน history= เท่านั้น
+    #        ให้ _build_contents() ใน llm_gemini จัดการ Content objects
+    history = data.get("history") or []
+    # ────────────────────────────────────────────────────────────
 
     if record_question: record_question()
 
@@ -563,15 +567,19 @@ async def run_kernel(request: Request, data: dict):
                 route = sr.get("route", route)
         except Exception: pass
 
-    # build input
-    history_text = _build_history_text(data.get("history") or [])
-    extra_ctx    = " ".join(p for p in [paticca_ctx, risk_ctx, collapse_ctx] if p)
-    effective    = history_text
-    if survivor_ctx:  effective += survivor_ctx + "\n\n"
+    # ── build effective prompt (ไม่มี history text แล้ว) ────────
+    extra_ctx = " ".join(p for p in [paticca_ctx, risk_ctx, collapse_ctx] if p)
+    effective = ""
+    if survivor_ctx:
+        effective += survivor_ctx + "\n\n"
     effective += _route_bias(route, user_input)
-    if extra_ctx:     effective += f"\n\n{extra_ctx}"
+    if extra_ctx:
+        effective += f"\n\n{extra_ctx}"
+    # ────────────────────────────────────────────────────────────
 
-    payload = {**data, "input": effective}
+    # ── FIX: ส่ง history เข้า decision engine path ด้วย ────────
+    payload = {**data, "input": effective, "history": history}
+    # ────────────────────────────────────────────────────────────
 
     # run
     if full_run_decision:
@@ -589,8 +597,9 @@ async def run_kernel(request: Request, data: dict):
                         f"stability={human_state.get('stability')}, "
                         f"voice_mode={vm}"
                     ),
-                    history=data.get("history") or [],
-                    route=route, voice_mode=vm,
+                    history=history,   # ← ส่ง array จริง ไม่ซ้ำกับ effective
+                    route=route,
+                    voice_mode=vm,
                 )
             except Exception as e:
                 reply = f"[Gemini Error: {e}]"
@@ -620,7 +629,7 @@ async def run_kernel(request: Request, data: dict):
                 result["consensus"] = cs["consensus"]
         except Exception: pass
 
-    # sync galaxy ★
+    # sync galaxy
     _sync_galaxy(result)
 
     # log
