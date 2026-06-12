@@ -47,7 +47,7 @@
   --r:    10px;
   --r-s:  7px;
   --r-xs: 4px;
-  --strip-h:   110px;
+  --strip-h:   82px;
   --topbar-h:  50px;
   --tabbar-h:  56px;
   --sidebar-w: 248px;
@@ -364,6 +364,8 @@ body {
   min-height: 42px; display: inline-flex; align-items: center;
 }
 .hint-chip:hover { border-color: var(--border-hi); color: var(--gold); background: var(--gold-pale); }
+.hint-chip--primary { border-color: rgba(200,168,85,0.38); background: rgba(200,168,85,0.10); color: rgba(220,200,155,0.92); font-weight: 500; }
+.hint-chip--primary:hover { border-color: var(--border-hi); color: var(--gold); background: var(--gold-pale); }
 
 /* ─── MESSAGES ─── */
 .msg { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 28px; animation: msgIn .2s ease; max-width: min(100%,760px); margin-left: auto; margin-right: auto; width: 100%; }
@@ -560,7 +562,7 @@ body {
   #input-dock { padding-top: 5px; padding-bottom: calc(5px + var(--sab)); }
   #tabbar { display: none; }
   .icon-btn { display: inline-flex !important; }
-  #galaxy-strip { height: 60px; }
+  #galaxy-strip { height: 52px; }
 }
 </style>
 </head>
@@ -689,26 +691,18 @@ body {
         <div id="chat-scroll">
           <div id="welcome">
             <div class="welcome-hero">
-              <div class="welcome-title">KING DIADEM</div>
-              <div class="welcome-sub">AI ที่อยู่ข้างคุณ — เรื่องเล็กถึงระดับชีวิต</div>
-              <p class="welcome-tagline">บอก LYLA ว่าคุณเจออะไรอยู่<br>เธอจะช่วยคิด เปิดทางเลือก และอยู่กับคุณจนกว่าจะเห็นทางออก</p>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:500px;">
-              <span style="font-family:'DM Mono',monospace;font-size:10.5px;padding:6px 13px;border-radius:6px;border:1px solid rgba(200,168,85,0.18);background:rgba(200,168,85,0.06);color:rgba(200,178,128,0.65);">◈ วิเคราะห์สถานการณ์</span>
-              <span style="font-family:'DM Mono',monospace;font-size:10.5px;padding:6px 13px;border-radius:6px;border:1px solid rgba(200,168,85,0.18);background:rgba(200,168,85,0.06);color:rgba(200,178,128,0.65);">◈ ประเมินความเสี่ยง</span>
-              <span style="font-family:'DM Mono',monospace;font-size:10.5px;padding:6px 13px;border-radius:6px;border:1px solid rgba(200,168,85,0.18);background:rgba(200,168,85,0.06);color:rgba(200,178,128,0.65);">◈ เปิดทางเลือก</span>
-              <span style="font-family:'DM Mono',monospace;font-size:10.5px;padding:6px 13px;border-radius:6px;border:1px solid rgba(200,168,85,0.18);background:rgba(200,168,85,0.06);color:rgba(200,178,128,0.65);">◈ จำลองอนาคต</span>
+              <div class="welcome-title">เกิดอะไรขึ้น?</div>
+              <p class="welcome-tagline">บอก LYLA ตามตรง — ไม่ต้องเรียบเรียง ไม่ต้องสวยงาม<br>เธออยู่ตรงนี้เพื่อให้มีทางออกเสมอ</p>
             </div>
             <div class="welcome-hint">
-              <span class="hint-chip" onclick="useHint(this)">ตกงานแล้ว ไม่มีเงิน ไม่รู้จะทำอะไร</span>
+              <span class="hint-chip hint-chip--primary" onclick="useHint(this)">ตกงาน ไม่รู้จะทำอะไร</span>
+              <span class="hint-chip hint-chip--primary" onclick="useHint(this)">มีหนี้ จ่ายไม่ไหว</span>
+              <span class="hint-chip hint-chip--primary" onclick="useHint(this)">ธุรกิจกำลังจะพัง</span>
+              <span class="hint-chip" onclick="useHint(this)">ต้องตัดสินใจครั้งใหญ่</span>
+              <span class="hint-chip" onclick="useHint(this)">ความสัมพันธ์มีปัญหา</span>
+              <span class="hint-chip" onclick="useHint(this)">เครียดมาก ไม่รู้เริ่มตรงไหน</span>
               <span class="hint-chip" onclick="useHint(this)">ควรลาออกจากงานนี้ไหม</span>
-              <span class="hint-chip" onclick="useHint(this)">มีหนี้และไม่รู้จะจัดการยังไง</span>
-              <span class="hint-chip" onclick="useHint(this)">ธุรกิจกำลังขาดทุน ต้องตัดสินใจ</span>
-              <span class="hint-chip" onclick="useHint(this)">ความสัมพันธ์มีปัญหา ไม่รู้จะทำยังไง</span>
-              <span class="hint-chip" onclick="useHint(this)">เครียดมาก ไม่รู้จะเริ่มตรงไหน</span>
-            </div>
-            <div style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(155,140,105,0.28);letter-spacing:.10em;">
-              พิมพ์เรื่องของคุณด้านล่าง หรือเลือกตัวอย่างข้างบน
+              <span class="hint-chip" onclick="useHint(this)">ไม่รู้จะเริ่มต้นชีวิตใหม่ยังไง</span>
             </div>
           </div>
         </div>
