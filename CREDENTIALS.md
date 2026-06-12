@@ -4,7 +4,6 @@ Creator Credentials Independent
 
 Name
 Nithikorn Bunsrang
-Birthday Me. วันเกิดกู 17/05/2543 คริสศักราช 2000.
 
 Professional Certifications ใบเซอร์ที่เรียนมา เรียนมาเพื่อสร้างระบบนี้ ไม่ได้ใช้ใบเซอร์สมัครงานที่ไหน
 
