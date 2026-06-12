@@ -1,7 +1,7 @@
 /* ============================================================
-   KING DIADEM — galaxy_scene.js v25
+   KING DIADEM — galaxy_scene.js v26
+   Full-screen fixed galaxy — resizes to full viewport
    Cosmic Indigo theme — deep purple/blue nebula
-   Sun smaller, stars full width, softer palette
    ============================================================ */
 (function () {
   'use strict';
@@ -12,27 +12,30 @@
   var ctx = cv.getContext('2d', { alpha: true });
   var W = 0, H = 0, lastTime = 0;
   var activeRoute = 'general';
+  var STARS = [];
 
-  cv.style.cssText = 'display:block;width:100%;height:100%;';
+  cv.style.cssText = 'display:block;position:absolute;inset:0;width:100%;height:100%;';
 
+  /* ── RESIZE — tracks full window ── */
   var _rT;
   function doResize() {
-    var p = cv.parentElement;
-    W = cv.width  = p ? p.offsetWidth  : 900;
-    H = cv.height = p ? p.offsetHeight : 130;
+    W = cv.width  = window.innerWidth;
+    H = cv.height = window.innerHeight;
     buildStars();
   }
-  var ro = window.ResizeObserver
-    ? new ResizeObserver(function () { clearTimeout(_rT); _rT = setTimeout(doResize, 60); })
-    : null;
-  if (ro && cv.parentElement) ro.observe(cv.parentElement);
-  window.addEventListener('resize', function () { clearTimeout(_rT); _rT = setTimeout(doResize, 80); }, { passive: true });
+  window.addEventListener('resize', function () {
+    clearTimeout(_rT); _rT = setTimeout(doResize, 60);
+  }, { passive: true });
+  /* also watch orientationchange for mobile */
+  window.addEventListener('orientationchange', function () {
+    clearTimeout(_rT); _rT = setTimeout(doResize, 160);
+  }, { passive: true });
   setTimeout(doResize, 10);
 
-  /* Sun — smaller, more centered vertically */
-  function SX() { return Math.max(H * 0.40, Math.min(W * 0.055, 52)); }
+  /* ── SUN position — left 5% of viewport, vertically centered ── */
+  function SX() { return Math.max(H * 0.38, Math.min(W * 0.055, 55)); }
   function SY() { return H * 0.50; }
-  function SR() { return Math.min(H * 0.13, 11); }
+  function SR() { return Math.min(H * 0.022, W * 0.013, 13); }
 
   var TILT = 0.16;
 
@@ -62,26 +65,30 @@
 
   function buildStars() {
     STARS = [];
-    for (var i = 0; i < 1300; i++)
+    /* dim dust — fills full canvas */
+    for (var i = 0; i < 1800; i++)
       STARS.push({ x:Math.random()*W, y:Math.random()*H,
         r:0.04+Math.random()*0.15, a:0.04+Math.random()*0.18,
         col: Math.random()>0.5 ? '200,210,240' : '215,210,255', tw:false });
-    for (var j = 0; j < 200; j++)
+    /* medium twinklers */
+    for (var j = 0; j < 260; j++)
       STARS.push({ x:Math.random()*W, y:Math.random()*H,
         r:0.12+Math.random()*0.30, a:0.14+Math.random()*0.26,
         col: Math.random()>0.5 ? '208,215,255' : '178,198,240',
         tw:true, tS:0.00010+Math.random()*0.00018, tO:Math.random()*Math.PI*2, tA:0.08 });
-    for (var k = 0; k < 55; k++)
+    /* bright bloom stars */
+    for (var k = 0; k < 70; k++)
       STARS.push({ x:Math.random()*W, y:Math.random()*H,
         r:0.32+Math.random()*0.58, a:0.30+Math.random()*0.34,
         col: Math.random()>0.4 ? '222,218,255' : '188,212,255',
         tw:true, tS:0.00005+Math.random()*0.00010, tO:Math.random()*Math.PI*2, tA:0.12, bloom:true });
   }
 
+  /* ── COMET ── */
   var COMET = { x:0, y:0, vx:0, vy:0, active:false, life:0, maxLife:0 };
   var nextComet = 10000;
   function spawnComet(t) {
-    COMET.x = W*0.20 + Math.random()*W*0.40;
+    COMET.x = W*0.20 + Math.random()*W*0.55;
     COMET.y = -4;
     COMET.vx = 0.5 + Math.random()*0.7;
     COMET.vy = 0.4 + Math.random()*0.5;
@@ -110,9 +117,10 @@
     ctx.fillStyle = 'rgba(220,230,255,'+(al*0.85)+')'; ctx.fill();
   }
 
+  /* ── BACKGROUND nebula ── */
   function drawBg() {
     ctx.clearRect(0, 0, W, H);
-    /* deep cosmic indigo base */
+    /* deep cosmic indigo base — gradient left to right */
     var bg = ctx.createLinearGradient(0, 0, W, 0);
     bg.addColorStop(0,    '#060410');
     bg.addColorStop(0.20, '#080618');
@@ -123,7 +131,7 @@
     var sx = SX(), sy = SY();
     ctx.globalCompositeOperation = 'screen';
 
-    /* warm red nebula — sun side (v21 style) */
+    /* warm red nebula — sun side */
     var n1 = ctx.createRadialGradient(sx*0.5, sy*0.5, 0, sx*0.5, sy*0.5, W*0.22);
     n1.addColorStop(0,   'rgba(140,42,12,0.34)');
     n1.addColorStop(0.5, 'rgba(95,25,8,0.12)');
@@ -139,13 +147,21 @@
     ctx.beginPath(); ctx.ellipse(sx, sy, W*0.28, H*0.90, 0, 0, Math.PI*2);
     ctx.fillStyle = n2; ctx.fill();
 
-    /* cold blue far right — contrast */
-    var n3 = ctx.createRadialGradient(W*0.90, H*0.40, 0, W*0.90, H*0.40, W*0.20);
+    /* cold blue far right */
+    var n3 = ctx.createRadialGradient(W*0.90, H*0.40, 0, W*0.90, H*0.40, W*0.25);
     n3.addColorStop(0,   'rgba(28,45,105,0.22)');
     n3.addColorStop(0.5, 'rgba(12,25,65,0.08)');
     n3.addColorStop(1,   'rgba(0,0,0,0)');
-    ctx.beginPath(); ctx.ellipse(W*0.90, H*0.40, W*0.20, H*0.85, 0, 0, Math.PI*2);
+    ctx.beginPath(); ctx.ellipse(W*0.90, H*0.40, W*0.25, H*0.85, 0, 0, Math.PI*2);
     ctx.fillStyle = n3; ctx.fill();
+
+    /* purple mid nebula — adds depth on large screens */
+    var n4 = ctx.createRadialGradient(W*0.50, H*0.35, 0, W*0.50, H*0.35, W*0.30);
+    n4.addColorStop(0,   'rgba(60,30,120,0.14)');
+    n4.addColorStop(0.6, 'rgba(30,15,70,0.05)');
+    n4.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.ellipse(W*0.50, H*0.35, W*0.30, H*1.0, 0.18, 0, Math.PI*2);
+    ctx.fillStyle = n4; ctx.fill();
 
     ctx.globalCompositeOperation = 'source-over';
   }
@@ -188,7 +204,8 @@
   }
 
   function drawPlanet(x, y, p, isA, t) {
-    var sz = Math.max(p.sz * (H/130), p.sz * 0.65);
+    var sz = p.sz * (Math.min(H, 900) / 500);
+    sz = Math.max(p.sz * 0.55, Math.min(sz, p.sz * 2.2));
 
     if (p.atm) {
       var atmA = isA ? 0.20 : 0.10;
@@ -311,7 +328,7 @@
 
     ctx.globalCompositeOperation = 'source-over';
 
-    /* LYLA — warm gold star เหมือน reference v21 */
+    /* sun body — warm gold */
     var body = ctx.createRadialGradient(sx - R*0.22, sy - R*0.22, 0, sx, sy, R);
     body.addColorStop(0,    '#fff8c8');
     body.addColorStop(0.25, '#ffd035');
@@ -320,8 +337,7 @@
     ctx.beginPath(); ctx.arc(sx, sy, R, 0, Math.PI*2);
     ctx.fillStyle = body; ctx.fill();
 
-
-    /* specular warm */
+    /* specular */
     var spec = ctx.createRadialGradient(sx - R*0.34, sy - R*0.34, 0, sx - R*0.16, sy - R*0.16, R*0.56);
     spec.addColorStop(0, 'rgba(255,250,235,0.52)');
     spec.addColorStop(1, 'rgba(255,250,235,0)');
@@ -336,12 +352,12 @@
     ctx.beginPath(); ctx.arc(sx, sy, R, 0, Math.PI*2);
     ctx.fillStyle = limb; ctx.fill();
 
-    /* LYLA name — อยู่เหนือดาว */
+    /* LYLA label */
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
     ctx.shadowColor = 'rgba(252,192,72,0.82)'; ctx.shadowBlur = 10;
     ctx.fillStyle = 'rgba(252,230,135,0.92)';
-    var fs = Math.max(6, Math.round(R*0.48));
+    var fs = Math.max(6, Math.round(R*0.50));
     ctx.font = '600 '+fs+'px "DM Mono",monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     ctx.fillText('LYLA \u25c6', sx, sy - R - 2);
@@ -361,10 +377,11 @@
     ctx.font = '500 5.5px "DM Mono",monospace';
     ctx.fillStyle = 'rgba(140,150,220,0.14)';
     ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
-    ctx.fillText('FATE\u2122  DETERMINISTIC DECISION INFRASTRUCTURE  v25', W-5, H-4);
+    ctx.fillText('FATE\u2122  DETERMINISTIC DECISION INFRASTRUCTURE  v26', W-5, H-4);
     ctx.restore();
   }
 
+  /* ── RENDER LOOP ── */
   function loop(ts) {
     if (!lastTime) lastTime = ts;
     var dt = Math.min((ts - lastTime) / 1000, 0.05);
@@ -381,6 +398,7 @@
   }
   requestAnimationFrame(loop);
 
+  /* ── PUBLIC API ── */
   window.LYLA_thinking  = function () { _S.thinking = true; };
   window.LYLA_answered  = function () { _S.thinking = false; };
   window.KD_pulse       = function (r) { _S.thinking = false; if (r) activeRoute = r; };
