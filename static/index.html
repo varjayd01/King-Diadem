@@ -81,9 +81,8 @@ body {
 #intro-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .intro-content { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 0; }
 .intro-logo {
-  width: 58px; height: 58px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 32%, #ffffff 5%, #d0e0ff 25%, #7090e0 65%, #1a2870 100%);
-  box-shadow: 0 0 28px rgba(140,165,255,0.70), 0 0 60px rgba(100,130,220,0.30);
+  width: 58px; height: 58px; object-fit: contain;
+  filter: drop-shadow(0 0 24px rgba(220,190,110,0.85)) drop-shadow(0 0 55px rgba(160,120,50,0.35));
   animation: introUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.3s both;
 }
 .intro-title {
@@ -141,7 +140,7 @@ body {
   border-bottom: 1px solid var(--border-s);
   margin-bottom: 8px;
 }
-.sb-logo { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 32%, #ffffff 5%, #c0d0ff 30%, #5878d0 70%, #1a2870 100%); box-shadow: 0 0 8px rgba(140,160,255,0.50); flex-shrink: 0; }
+.sb-logo { width: 28px; height: 28px; object-fit: contain; opacity: .88; filter: drop-shadow(0 0 6px rgba(200,140,40,0.55)); flex-shrink: 0; }
 .sb-brand-text { font-size: 14px; font-weight: 600; letter-spacing: .06em; color: var(--text-hi); }
 .sb-brand-sub { font-family: var(--font-mono); font-size: 8px; color: var(--text-faint); letter-spacing: .12em; text-transform: uppercase; }
 
@@ -245,7 +244,7 @@ body {
   position: relative; z-index: 30;
 }
 .topbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
-.topbar-logo { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 32%, #ffffff 5%, #c0d0ff 30%, #5878d0 70%, #1a2870 100%); box-shadow: 0 0 7px rgba(140,160,255,0.45); flex-shrink: 0; }
+.topbar-logo { width: 24px; height: 24px; object-fit: contain; opacity: .88; filter: drop-shadow(0 0 5px rgba(200,140,40,0.50)); flex-shrink: 0; }
 .logo-text { font-family: var(--font-sans); font-size: 14px; font-weight: 600; letter-spacing: .06em; color: var(--text-hi); }
 .logo-sub { font-family: var(--font-mono); font-size: 7px; letter-spacing: .12em; color: var(--text-faint); text-transform: uppercase; }
 .topbar-right { display: flex; gap: 5px; align-items: center; justify-content: flex-end; flex-shrink: 0; }
@@ -375,7 +374,7 @@ body {
 .msg-avatar { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 7.5px; font-family: var(--font-mono); margin-top: 2px; }
 .msg.user .msg-avatar { display: none; }
 .msg.system .msg-avatar { background: rgba(200,168,85,.08); border: 1px solid var(--border); }
-.msg-logo { width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle at 35% 32%, #ffffff 5%, #c0d0ff 30%, #5878d0 70%, #1a2870 100%); }
+.msg-logo { width: 100%; height: 100%; object-fit: contain; padding: 4px; opacity: .80; }
 .msg-body { flex: 1; min-width: 0; }
 .msg.user .msg-body { display: flex; justify-content: flex-end; }
 .msg.user .msg-text {
@@ -573,7 +572,7 @@ body {
 <div id="intro-screen" aria-hidden="true">
   <canvas id="intro-canvas"></canvas>
   <div class="intro-content">
-    <div class="intro-logo"></div>
+    <img src="/static/logo.png" alt="" class="intro-logo">
     <div class="intro-title">KING DIADEM</div>
     <div class="intro-sub">DriftZero · Waterline · Governance OS</div>
     <div class="intro-bar"><div class="intro-bar-fill"></div></div>
@@ -589,7 +588,7 @@ body {
   <div id="rail-scrim" onclick="closeRailMobile()"></div>
   <div id="rail" aria-label="เมนูหลัก">
     <div class="sb-brand">
-      <div class="sb-logo"></div>
+      <img src="/static/logo.png" alt="" class="sb-logo">
       <div>
         <div class="sb-brand-text">KING DIADEM</div>
         <div class="sb-brand-sub">DriftZero · Milky Scope</div>
@@ -621,7 +620,7 @@ body {
   <!-- DESKTOP SIDEBAR -->
   <aside id="sidebar" aria-label="เมนูหลัก">
     <div class="sb-brand">
-      <div class="sb-logo"></div>
+      <img src="/static/logo.png" alt="" class="sb-logo">
       <div>
         <div class="sb-brand-text">KING DIADEM</div>
         <div class="sb-brand-sub">DriftZero · Milky Scope</div>
@@ -657,7 +656,7 @@ body {
     <header id="topbar">
       <div class="topbar-left">
         <button type="button" class="icon-btn" aria-label="เปิดเมนู" onclick="openRailMobile()">☰</button>
-        <div class="topbar-logo"></div>
+        <img src="/static/logo.png" alt="" class="topbar-logo" width="24" height="24">
         <div style="min-width:0">
           <div class="logo-text">KING DIADEM</div>
           <div class="logo-sub">DRIFTZERO · MILKY SCOPE</div>
@@ -671,6 +670,7 @@ body {
         <span id="credits-pill">—</span>
         <span class="tone-pill lyla" id="tone-pill">LYLA</span>
         <div id="sys-time">--:--</div>
+        <a href="#" onclick="showUpgradeModal();return false;" id="upgrade-btn" style="display:none;font-family:var(--font-mono);font-size:8px;padding:3px 10px;border-radius:999px;border:1px solid rgba(200,140,40,0.45);background:rgba(200,140,40,0.10);color:rgba(220,170,80,0.90);text-decoration:none;letter-spacing:.04em;white-space:nowrap;">▲ UPGRADE</a>
       </div>
     </header>
 
@@ -1172,7 +1172,7 @@ function addMsg(type, text, meta, persona){
   hideWelcome();
   var area = document.getElementById('chat-scroll'); if(!area) return;
   var div = document.createElement('div'); div.className = 'msg '+type;
-  var av = type==='user' ? '' : '<div class="msg-avatar"><div class="msg-logo"></div></div>';
+  var av = type==='user' ? '' : '<div class="msg-avatar"><img class="msg-logo" src="/static/logo.png" alt=""></div>';
   var sigHtml = '';
   if(type!=='user' && persona){
     var cls = persona==='VEGA'?'vega':persona==='crisis'?'crisis':'lyla';
@@ -1189,7 +1189,7 @@ function addThinking(){
   hideWelcome();
   var area = document.getElementById('chat-scroll'); if(!area) return;
   var div = document.createElement('div'); div.className='msg system'; div.id='thinking-msg';
-  div.innerHTML = '<div class="msg-avatar"><div class="msg-logo"></div></div><div class="msg-body"><div class="msg-text"><div class="thinking"><span></span><span></span><span></span></div></div></div>';
+  div.innerHTML = '<div class="msg-avatar"><img class="msg-logo" src="/static/logo.png" alt=""></div><div class="msg-body"><div class="msg-text"><div class="thinking"><span></span><span></span><span></span></div></div></div>';
   area.appendChild(div); area.scrollTop = area.scrollHeight;
   if(window.LYLA_thinking) window.LYLA_thinking();
 }
@@ -1365,6 +1365,135 @@ if('serviceWorker' in navigator){ navigator.serviceWorker.register('/static/serv
   };
   document.addEventListener('click',function(e){ if(!e.target.closest('#prefix-btn')&&!e.target.closest('#prefix-menu')) menu.style.display='none'; });
 })();
+</script>
+
+
+<div id="upgrade-modal" style="display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
+  <div style="background:rgba(8,6,20,0.98);border:0.5px solid rgba(200,140,40,0.30);border-radius:14px;padding:28px 24px;max-width:360px;width:90%;position:relative;">
+    <button onclick="hideUpgradeModal()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:rgba(180,160,120,0.50);font-size:18px;cursor:pointer;">✕</button>
+    <div style="text-align:center;margin-bottom:20px;">
+      <img src="/static/logo.png" style="width:36px;height:36px;object-fit:contain;filter:drop-shadow(0 0 12px rgba(220,180,80,0.70));">
+      <div style="font-family:'Cinzel',serif;font-size:16px;letter-spacing:.12em;margin-top:8px;background:linear-gradient(135deg,#a08840,#f0dea0,#c8a855);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">KING DIADEM</div>
+      <div style="font-family:var(--font-mono);font-size:8px;color:var(--text-faint);letter-spacing:.14em;margin-top:3px;">PREMIUM</div>
+    </div>
+    <div style="background:rgba(200,140,40,0.08);border:1px solid rgba(200,140,40,0.25);border-radius:10px;padding:16px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+        <span style="font-family:var(--font-mono);font-size:10px;color:var(--gold);letter-spacing:.06em;">PREMIUM</span>
+        <span style="font-size:18px;font-weight:600;color:var(--text-hi);">฿279<span style="font-size:11px;color:var(--text-dim)">/เดือน</span></span>
+      </div>
+      <div style="font-size:11px;color:var(--text-dim);line-height:1.7;">
+        ✦ ข้อความไม่จำกัด<br>
+        ✦ วิเคราะห์รูปภาพได้<br>
+        ✦ จำลองอนาคต (Simulate)<br>
+        ✦ Memory ข้ามแชท<br>
+        ✦ VEGA Strategic Mode
+      </div>
+    </div>
+    <div style="font-family:var(--font-mono);font-size:8px;color:var(--text-faint);text-align:center;margin-bottom:12px;letter-spacing:.06em;">ฟรี: 20 ข้อความ/วัน · Premium: ไม่จำกัด</div>
+    <button onclick="startCheckout()" style="width:100%;padding:13px;border-radius:8px;border:1px solid rgba(200,140,40,0.50);background:rgba(200,140,40,0.15);color:var(--gold);font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;cursor:pointer;">สมัครใช้งาน ฿279/เดือน</button>
+  </div>
+</div>
+
+
+<script>
+/* ── UPGRADE MODAL ── */
+function showUpgradeModal(){
+  var m=document.getElementById('upgrade-modal');
+  if(m){m.style.display='flex';}
+}
+function hideUpgradeModal(){
+  var m=document.getElementById('upgrade-modal');
+  if(m){m.style.display='none';}
+}
+document.getElementById('upgrade-modal')?.addEventListener('click',function(e){
+  if(e.target===this) hideUpgradeModal();
+});
+
+function startCheckout(){
+  hideUpgradeModal();
+  stripeSubscribe();
+}
+
+async function stripeSubscribe(){
+  try{
+    var r=await fetch('/create-subscription',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}',credentials:'same-origin'});
+    var d=await r.json();
+    if(d.url) location.href=d.url;
+    else showErr(d.error||'ไม่สามารถเชื่อมต่อ Stripe ได้',5000);
+  }catch(e){ showErr('เครือข่าย: '+e,5000); }
+}
+
+/* ── DAILY LIMIT CHECK ── */
+var _msgToday = parseInt(localStorage.getItem('kd_msg_today')||'0');
+var _msgDate  = localStorage.getItem('kd_msg_date')||'';
+var _FREE_LIMIT = 20;
+
+function checkAndCountMsg(){
+  var today = new Date().toDateString();
+  if(_msgDate !== today){ _msgToday=0; _msgDate=today; }
+  if(!window.__kdPremium && _msgToday >= _FREE_LIMIT){
+    showUpgradeModal();
+    return false;
+  }
+  _msgToday++;
+  localStorage.setItem('kd_msg_today', _msgToday);
+  localStorage.setItem('kd_msg_date',  _msgDate);
+  updateLimitUI();
+  return true;
+}
+
+function updateLimitUI(){
+  var btn = document.getElementById('upgrade-btn');
+  var today = new Date().toDateString();
+  if(_msgDate!==today){ _msgToday=0; }
+  if(!window.__kdPremium){
+    var remaining = Math.max(0, _FREE_LIMIT - _msgToday);
+    if(btn) btn.style.display = (remaining<=5)?'inline-flex':'none';
+  } else {
+    if(btn) btn.style.display = 'none';
+  }
+}
+
+/* patch run() ให้เช็ค limit ก่อน */
+var _origRun = window.run;
+window.run = async function(){
+  if(!checkAndCountMsg()) return;
+  return _origRun && _origRun();
+};
+
+/* ── SIDEBAR SEARCH ── */
+function initSidebarSearch(){
+  var sb = document.getElementById('session-list');
+  var sbr = document.getElementById('session-list-rail');
+  if(!sb) return;
+
+  var searchHtml = '<div style="padding:4px 2px 6px;"><input id="chat-search" type="text" placeholder="🔍  ค้นหาแชท..." style="width:100%;padding:7px 10px;border-radius:6px;border:0.5px solid var(--border-s);background:rgba(120,140,220,0.06);color:var(--text);font-size:11px;font-family:var(--font-mono);outline:none;" oninput="filterChats(this.value)"></div>';
+  sb.insertAdjacentHTML('beforebegin', searchHtml);
+}
+
+function filterChats(q){
+  var items = document.querySelectorAll('#session-list .session-item, #session-list-rail .session-item');
+  items.forEach(function(el){
+    var title = el.querySelector('.session-title')?.textContent||'';
+    el.style.display = title.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+
+/* ── PREMIUM STATUS ── */
+async function checkPremium(){
+  try{
+    var r=await fetch('/me',{credentials:'same-origin'});
+    var d=await r.json();
+    window.__kdPremium = d.premium || false;
+    updateLimitUI();
+  }catch(_){ window.__kdPremium=false; }
+}
+
+setTimeout(function(){
+  initSidebarSearch();
+  checkPremium();
+  updateLimitUI();
+}, 500);
 </script>
 
 </body>
