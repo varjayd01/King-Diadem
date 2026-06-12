@@ -47,7 +47,7 @@
   --r:    10px;
   --r-s:  7px;
   --r-xs: 4px;
-  --strip-h:   96px;
+  --strip-h:   130px;
   --topbar-h:  50px;
   --tabbar-h:  56px;
   --sidebar-w: 248px;
@@ -81,8 +81,9 @@ body {
 #intro-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 .intro-content { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 0; }
 .intro-logo {
-  width: 58px; height: 58px; object-fit: contain;
-  filter: drop-shadow(0 0 24px rgba(220,190,110,0.85)) drop-shadow(0 0 55px rgba(160,120,50,0.35));
+  width: 58px; height: 58px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #ffffff 5%, #d0e0ff 25%, #7090e0 65%, #1a2870 100%);
+  box-shadow: 0 0 28px rgba(140,165,255,0.70), 0 0 60px rgba(100,130,220,0.30);
   animation: introUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.3s both;
 }
 .intro-title {
@@ -140,7 +141,7 @@ body {
   border-bottom: 1px solid var(--border-s);
   margin-bottom: 8px;
 }
-.sb-logo { width: 30px; height: 30px; object-fit: contain; opacity: .88; filter: drop-shadow(0 0 6px rgba(200,168,85,0.45)); }
+.sb-logo { width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle at 35% 32%, #ffffff 5%, #c0d0ff 30%, #5878d0 70%, #1a2870 100%); box-shadow: 0 0 8px rgba(140,160,255,0.50); flex-shrink: 0; }
 .sb-brand-text { font-size: 14px; font-weight: 600; letter-spacing: .06em; color: var(--text-hi); }
 .sb-brand-sub { font-family: var(--font-mono); font-size: 8px; color: var(--text-faint); letter-spacing: .12em; text-transform: uppercase; }
 
@@ -244,7 +245,7 @@ body {
   position: relative; z-index: 30;
 }
 .topbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
-.topbar-logo { width: 26px; height: 26px; object-fit: contain; opacity: .85; filter: drop-shadow(0 0 5px rgba(200,168,85,0.40)); }
+.topbar-logo { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 32%, #ffffff 5%, #c0d0ff 30%, #5878d0 70%, #1a2870 100%); box-shadow: 0 0 7px rgba(140,160,255,0.45); flex-shrink: 0; }
 .logo-text { font-family: var(--font-sans); font-size: 14px; font-weight: 600; letter-spacing: .06em; color: var(--text-hi); }
 .logo-sub { font-family: var(--font-mono); font-size: 7px; letter-spacing: .12em; color: var(--text-faint); text-transform: uppercase; }
 .topbar-right { display: flex; gap: 5px; align-items: center; justify-content: flex-end; flex-shrink: 0; }
@@ -337,9 +338,9 @@ body {
 /* ─── WELCOME ─── */
 #welcome {
   display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 24px; text-align: center;
-  padding: 40px 28px 32px; min-height: 100%;
-  max-width: 640px; margin: 0 auto; width: 100%;
+  justify-content: center; gap: 16px; text-align: center;
+  padding: 28px 24px 24px; min-height: 100%;
+  max-width: 600px; margin: 0 auto; width: 100%;
   overflow: hidden; box-sizing: border-box;
 }
 .welcome-hero { display: flex; flex-direction: column; align-items: center; gap: 10px; animation: fadeUp 1s ease both; }
@@ -355,16 +356,16 @@ body {
 .welcome-sub { font-family: var(--font-mono); font-size: 8px; letter-spacing: .18em; color: var(--text-faint); text-transform: uppercase; }
 .welcome-tagline { font-size: 13px; line-height: 1.88; color: rgba(210,198,178,.55); max-width: 30rem; }
 
-.welcome-hint { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; animation: fadeUp 1.2s ease 0.5s both; }
+.welcome-hint { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; animation: fadeUp 1.2s ease 0.5s both; }
 .hint-chip {
-  font-size: 12px; padding: 6px 14px; border-radius: 999px; cursor: pointer;
-  border: 1px solid var(--border); background: rgba(120,140,220,.06);
-  color: rgba(180,190,235,.65);
+  font-size: 11.5px; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); background: rgba(120,140,220,.05);
+  color: rgba(170,182,228,.60);
   transition: background .14s, border-color .14s, color .14s;
-  min-height: 36px; display: inline-flex; align-items: center;
+  min-height: 30px; display: inline-flex; align-items: center;
 }
 .hint-chip:hover { border-color: var(--border-hi); color: var(--gold); background: var(--gold-pale); }
-.hint-chip--primary { border-color: rgba(120,140,220,0.32); background: rgba(120,140,220,0.09); color: rgba(190,200,245,0.88); font-weight: 500; }
+.hint-chip--primary { border-color: rgba(120,140,220,0.28); background: rgba(120,140,220,0.08); color: rgba(185,195,240,0.85); font-weight: 500; }
 .hint-chip--primary:hover { border-color: var(--border-hi); color: var(--gold); background: var(--gold-pale); }
 
 /* ─── MESSAGES ─── */
@@ -374,7 +375,7 @@ body {
 .msg-avatar { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 7.5px; font-family: var(--font-mono); margin-top: 2px; }
 .msg.user .msg-avatar { display: none; }
 .msg.system .msg-avatar { background: rgba(200,168,85,.08); border: 1px solid var(--border); }
-.msg-logo { width: 100%; height: 100%; object-fit: contain; padding: 4px; opacity: .80; }
+.msg-logo { width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle at 35% 32%, #ffffff 5%, #c0d0ff 30%, #5878d0 70%, #1a2870 100%); }
 .msg-body { flex: 1; min-width: 0; }
 .msg.user .msg-body { display: flex; justify-content: flex-end; }
 .msg.user .msg-text {
@@ -562,7 +563,7 @@ body {
   #input-dock { padding-top: 5px; padding-bottom: calc(5px + var(--sab)); }
   #tabbar { display: none; }
   .icon-btn { display: inline-flex !important; }
-  #galaxy-strip { height: 52px; }
+  #galaxy-strip { height: 72px; }
 }
 </style>
 </head>
@@ -572,7 +573,7 @@ body {
 <div id="intro-screen" aria-hidden="true">
   <canvas id="intro-canvas"></canvas>
   <div class="intro-content">
-    <img src="/static/logo.png" alt="" class="intro-logo">
+    <div class="intro-logo"></div>
     <div class="intro-title">KING DIADEM</div>
     <div class="intro-sub">DriftZero · Waterline · Governance OS</div>
     <div class="intro-bar"><div class="intro-bar-fill"></div></div>
@@ -588,7 +589,7 @@ body {
   <div id="rail-scrim" onclick="closeRailMobile()"></div>
   <div id="rail" aria-label="เมนูหลัก">
     <div class="sb-brand">
-      <img src="/static/logo.png" alt="" class="sb-logo">
+      <div class="sb-logo"></div>
       <div>
         <div class="sb-brand-text">KING DIADEM</div>
         <div class="sb-brand-sub">DriftZero · Milky Scope</div>
@@ -620,7 +621,7 @@ body {
   <!-- DESKTOP SIDEBAR -->
   <aside id="sidebar" aria-label="เมนูหลัก">
     <div class="sb-brand">
-      <img src="/static/logo.png" alt="" class="sb-logo">
+      <div class="sb-logo"></div>
       <div>
         <div class="sb-brand-text">KING DIADEM</div>
         <div class="sb-brand-sub">DriftZero · Milky Scope</div>
@@ -656,7 +657,7 @@ body {
     <header id="topbar">
       <div class="topbar-left">
         <button type="button" class="icon-btn" aria-label="เปิดเมนู" onclick="openRailMobile()">☰</button>
-        <img src="/static/logo.png" alt="" class="topbar-logo" width="26" height="26">
+        <div class="topbar-logo"></div>
         <div style="min-width:0">
           <div class="logo-text">KING DIADEM</div>
           <div class="logo-sub">DRIFTZERO · MILKY SCOPE</div>
@@ -1171,7 +1172,7 @@ function addMsg(type, text, meta, persona){
   hideWelcome();
   var area = document.getElementById('chat-scroll'); if(!area) return;
   var div = document.createElement('div'); div.className = 'msg '+type;
-  var av = type==='user' ? '' : '<div class="msg-avatar"><img class="msg-logo" src="/static/logo.png" alt=""></div>';
+  var av = type==='user' ? '' : '<div class="msg-avatar"><div class="msg-logo"></div></div>';
   var sigHtml = '';
   if(type!=='user' && persona){
     var cls = persona==='VEGA'?'vega':persona==='crisis'?'crisis':'lyla';
@@ -1188,7 +1189,7 @@ function addThinking(){
   hideWelcome();
   var area = document.getElementById('chat-scroll'); if(!area) return;
   var div = document.createElement('div'); div.className='msg system'; div.id='thinking-msg';
-  div.innerHTML = '<div class="msg-avatar"><img class="msg-logo" src="/static/logo.png" alt=""></div><div class="msg-body"><div class="msg-text"><div class="thinking"><span></span><span></span><span></span></div></div></div>';
+  div.innerHTML = '<div class="msg-avatar"><div class="msg-logo"></div></div><div class="msg-body"><div class="msg-text"><div class="thinking"><span></span><span></span><span></span></div></div></div>';
   area.appendChild(div); area.scrollTop = area.scrollHeight;
   if(window.LYLA_thinking) window.LYLA_thinking();
 }
