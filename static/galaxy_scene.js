@@ -123,37 +123,29 @@
     var sx = SX(), sy = SY();
     ctx.globalCompositeOperation = 'screen';
 
-    /* indigo nebula — sun side */
-    var n1 = ctx.createRadialGradient(sx*0.6, sy*0.5, 0, sx*0.6, sy*0.5, W*0.24);
-    n1.addColorStop(0,   'rgba(80,40,140,0.28)');
-    n1.addColorStop(0.5, 'rgba(50,20,100,0.10)');
+    /* warm red nebula — sun side (v21 style) */
+    var n1 = ctx.createRadialGradient(sx*0.5, sy*0.5, 0, sx*0.5, sy*0.5, W*0.22);
+    n1.addColorStop(0,   'rgba(140,42,12,0.34)');
+    n1.addColorStop(0.5, 'rgba(95,25,8,0.12)');
     n1.addColorStop(1,   'rgba(0,0,0,0)');
-    ctx.beginPath(); ctx.ellipse(sx*0.6, sy*0.5, W*0.24, H*1.10, -0.10, 0, Math.PI*2);
+    ctx.beginPath(); ctx.ellipse(sx*0.5, sy*0.5, W*0.22, H*1.15, -0.12, 0, Math.PI*2);
     ctx.fillStyle = n1; ctx.fill();
 
-    /* soft blue halo behind sun */
-    var n2 = ctx.createRadialGradient(sx, sy, SR()*0.3, sx, sy, W*0.26);
-    n2.addColorStop(0,   'rgba(80,100,200,0.20)');
-    n2.addColorStop(0.4, 'rgba(40,60,140,0.06)');
+    /* amber halo behind sun */
+    var n2 = ctx.createRadialGradient(sx, sy, SR()*0.3, sx, sy, W*0.28);
+    n2.addColorStop(0,   'rgba(162,82,12,0.24)');
+    n2.addColorStop(0.4, 'rgba(115,52,6,0.08)');
     n2.addColorStop(1,   'rgba(0,0,0,0)');
-    ctx.beginPath(); ctx.ellipse(sx, sy, W*0.26, H*0.88, 0, 0, Math.PI*2);
+    ctx.beginPath(); ctx.ellipse(sx, sy, W*0.28, H*0.90, 0, 0, Math.PI*2);
     ctx.fillStyle = n2; ctx.fill();
 
-    /* distant violet cloud — mid right */
-    var n3 = ctx.createRadialGradient(W*0.72, H*0.38, 0, W*0.72, H*0.38, W*0.18);
-    n3.addColorStop(0,   'rgba(100,40,160,0.14)');
-    n3.addColorStop(0.5, 'rgba(60,20,100,0.05)');
+    /* cold blue far right — contrast */
+    var n3 = ctx.createRadialGradient(W*0.90, H*0.40, 0, W*0.90, H*0.40, W*0.20);
+    n3.addColorStop(0,   'rgba(28,45,105,0.22)');
+    n3.addColorStop(0.5, 'rgba(12,25,65,0.08)');
     n3.addColorStop(1,   'rgba(0,0,0,0)');
-    ctx.beginPath(); ctx.ellipse(W*0.72, H*0.38, W*0.18, H*0.80, 0, 0, Math.PI*2);
+    ctx.beginPath(); ctx.ellipse(W*0.90, H*0.40, W*0.20, H*0.85, 0, 0, Math.PI*2);
     ctx.fillStyle = n3; ctx.fill();
-
-    /* cold teal far right */
-    var n4 = ctx.createRadialGradient(W*0.93, H*0.45, 0, W*0.93, H*0.45, W*0.16);
-    n4.addColorStop(0,   'rgba(20,80,120,0.18)');
-    n4.addColorStop(0.5, 'rgba(10,40,80,0.06)');
-    n4.addColorStop(1,   'rgba(0,0,0,0)');
-    ctx.beginPath(); ctx.ellipse(W*0.93, H*0.45, W*0.16, H*0.80, 0, 0, Math.PI*2);
-    ctx.fillStyle = n4; ctx.fill();
 
     ctx.globalCompositeOperation = 'source-over';
   }
@@ -297,8 +289,8 @@
       var gr = ctx.createLinearGradient(
         Math.cos(a)*R*0.18, Math.sin(a)*R*0.18,
         Math.cos(a)*rl, Math.sin(a)*rl);
-      gr.addColorStop(0,    'rgba(200,210,255,'+(0.18*gm)+')');
-      gr.addColorStop(0.45, 'rgba(140,160,220,0.03)');
+      gr.addColorStop(0,    'rgba(252,202,70,'+(0.22*gm)+')');
+      gr.addColorStop(0.45, 'rgba(215,120,25,0.04)');
       gr.addColorStop(1,    'rgba(0,0,0,0)');
       ctx.strokeStyle = gr; ctx.lineWidth = 0.80;
       ctx.beginPath();
@@ -309,60 +301,46 @@
     ctx.restore();
 
     /* inner halo */
-    var ih = ctx.createRadialGradient(sx, sy, R*0.25, sx, sy, R*2.2);
-    ih.addColorStop(0,    'rgba(220,230,255,0.88)');
-    ih.addColorStop(0.25, 'rgba(160,180,255,0.55)');
-    ih.addColorStop(0.60, 'rgba(100,120,220,0.16)');
+    var ih = ctx.createRadialGradient(sx, sy, R*0.25, sx, sy, R*2.4);
+    ih.addColorStop(0,    'rgba(255,235,148,0.92)');
+    ih.addColorStop(0.22, 'rgba(252,182,50,0.62)');
+    ih.addColorStop(0.56, 'rgba(195,90,16,0.20)');
     ih.addColorStop(1,    'rgba(0,0,0,0)');
-    ctx.beginPath(); ctx.arc(sx, sy, R*2.2, 0, Math.PI*2);
+    ctx.beginPath(); ctx.arc(sx, sy, R*2.4, 0, Math.PI*2);
     ctx.fillStyle = ih; ctx.fill();
 
     ctx.globalCompositeOperation = 'source-over';
 
-    /* LYLA stellar surface — blue-white type A star */
-    var body = ctx.createRadialGradient(sx - R*0.30, sy - R*0.28, 0, sx + R*0.10, sy + R*0.10, R*1.05);
-    body.addColorStop(0,    '#ffffff');
-    body.addColorStop(0.18, '#e8f0ff');
-    body.addColorStop(0.45, '#aac0ff');
-    body.addColorStop(0.75, '#5878d0');
-    body.addColorStop(1,    '#1a2870');
+    /* LYLA — warm gold star เหมือน reference v21 */
+    var body = ctx.createRadialGradient(sx - R*0.22, sy - R*0.22, 0, sx, sy, R);
+    body.addColorStop(0,    '#fff8c8');
+    body.addColorStop(0.25, '#ffd035');
+    body.addColorStop(0.65, '#dc6a0c');
+    body.addColorStop(1,    '#7c2a06');
     ctx.beginPath(); ctx.arc(sx, sy, R, 0, Math.PI*2);
     ctx.fillStyle = body; ctx.fill();
 
-    /* granulation — slowly drifting bright patches */
-    ctx.save();
-    ctx.globalAlpha = 0.10;
-    ctx.beginPath(); ctx.arc(sx, sy, R, 0, Math.PI*2); ctx.clip();
-    for (var g = 0; g < 7; g++) {
-      var gx = sx + Math.sin(g*1.3 + t*0.000030) * R * 0.52;
-      var gy = sy + Math.cos(g*1.8 + t*0.000022) * R * 0.38;
-      var gran = ctx.createRadialGradient(gx, gy, 0, gx, gy, R*0.42);
-      gran.addColorStop(0, 'rgba(255,255,255,0.7)');
-      gran.addColorStop(1, 'rgba(255,255,255,0)');
-      ctx.fillStyle = gran;
-      ctx.fillRect(sx-R, sy-R, R*2, R*2);
-    }
-    ctx.restore();
 
-    /* specular — top-left brightest point */
-    var spec = ctx.createRadialGradient(sx - R*0.38, sy - R*0.35, 0, sx - R*0.12, sy - R*0.12, R*0.52);
-    spec.addColorStop(0, 'rgba(255,255,255,0.80)');
-    spec.addColorStop(1, 'rgba(255,255,255,0)');
+    /* specular warm */
+    var spec = ctx.createRadialGradient(sx - R*0.34, sy - R*0.34, 0, sx - R*0.16, sy - R*0.16, R*0.56);
+    spec.addColorStop(0, 'rgba(255,250,235,0.52)');
+    spec.addColorStop(1, 'rgba(255,250,235,0)');
     ctx.beginPath(); ctx.arc(sx, sy, R, 0, Math.PI*2);
     ctx.fillStyle = spec; ctx.fill();
 
     /* limb darkening */
-    var limb = ctx.createRadialGradient(sx, sy, R*0.55, sx, sy, R*1.02);
-    limb.addColorStop(0, 'rgba(0,0,20,0)');
-    limb.addColorStop(1, 'rgba(0,0,30,0.52)');
+    var limb = ctx.createRadialGradient(sx, sy, R*0.15, sx, sy, R*1.05);
+    limb.addColorStop(0,   'rgba(0,0,0,0)');
+    limb.addColorStop(0.5, 'rgba(0,0,0,0.14)');
+    limb.addColorStop(1,   'rgba(0,0,0,0.72)');
     ctx.beginPath(); ctx.arc(sx, sy, R, 0, Math.PI*2);
     ctx.fillStyle = limb; ctx.fill();
 
     /* LYLA name — อยู่เหนือดาว */
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
-    ctx.shadowColor = 'rgba(160,185,255,0.85)'; ctx.shadowBlur = 9;
-    ctx.fillStyle = 'rgba(210,220,255,0.92)';
+    ctx.shadowColor = 'rgba(252,192,72,0.82)'; ctx.shadowBlur = 10;
+    ctx.fillStyle = 'rgba(252,230,135,0.92)';
     var fs = Math.max(6, Math.round(R*0.48));
     ctx.font = '600 '+fs+'px "DM Mono",monospace';
     ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
