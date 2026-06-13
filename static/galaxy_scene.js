@@ -66,22 +66,22 @@
   function buildStars() {
     STARS = [];
     /* dim dust — fills full canvas */
-    for (var i = 0; i < 1800; i++)
+    for (var i = 0; i < 2200; i++)
       STARS.push({ x:Math.random()*W, y:Math.random()*H,
-        r:0.04+Math.random()*0.15, a:0.04+Math.random()*0.18,
-        col: Math.random()>0.5 ? '200,210,240' : '215,210,255', tw:false });
+        r:0.06+Math.random()*0.22, a:0.10+Math.random()*0.30,
+        col: Math.random()>0.5 ? '200,215,255' : '220,215,255', tw:false });
     /* medium twinklers */
-    for (var j = 0; j < 260; j++)
+    for (var j = 0; j < 340; j++)
       STARS.push({ x:Math.random()*W, y:Math.random()*H,
-        r:0.12+Math.random()*0.30, a:0.14+Math.random()*0.26,
-        col: Math.random()>0.5 ? '208,215,255' : '178,198,240',
-        tw:true, tS:0.00010+Math.random()*0.00018, tO:Math.random()*Math.PI*2, tA:0.08 });
+        r:0.18+Math.random()*0.38, a:0.22+Math.random()*0.35,
+        col: Math.random()>0.5 ? '212,220,255' : '185,205,245',
+        tw:true, tS:0.00010+Math.random()*0.00018, tO:Math.random()*Math.PI*2, tA:0.12 });
     /* bright bloom stars */
-    for (var k = 0; k < 70; k++)
+    for (var k = 0; k < 100; k++)
       STARS.push({ x:Math.random()*W, y:Math.random()*H,
-        r:0.32+Math.random()*0.58, a:0.30+Math.random()*0.34,
-        col: Math.random()>0.4 ? '222,218,255' : '188,212,255',
-        tw:true, tS:0.00005+Math.random()*0.00010, tO:Math.random()*Math.PI*2, tA:0.12, bloom:true });
+        r:0.45+Math.random()*0.70, a:0.45+Math.random()*0.40,
+        col: Math.random()>0.4 ? '230,225,255' : '195,218,255',
+        tw:true, tS:0.00005+Math.random()*0.00010, tO:Math.random()*Math.PI*2, tA:0.16, bloom:true });
   }
 
   /* ── COMET ── */
@@ -122,46 +122,53 @@
     ctx.clearRect(0, 0, W, H);
     /* deep cosmic indigo base — gradient left to right */
     var bg = ctx.createLinearGradient(0, 0, W, 0);
-    bg.addColorStop(0,    '#060410');
-    bg.addColorStop(0.20, '#080618');
-    bg.addColorStop(0.55, '#050510');
-    bg.addColorStop(1,    '#040408');
+    bg.addColorStop(0,    '#0a0620');
+    bg.addColorStop(0.20, '#0e0828');
+    bg.addColorStop(0.55, '#080820');
+    bg.addColorStop(1,    '#060618');
     ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
     var sx = SX(), sy = SY();
     ctx.globalCompositeOperation = 'screen';
 
-    /* warm red nebula — sun side */
-    var n1 = ctx.createRadialGradient(sx*0.5, sy*0.5, 0, sx*0.5, sy*0.5, W*0.22);
-    n1.addColorStop(0,   'rgba(140,42,12,0.34)');
-    n1.addColorStop(0.5, 'rgba(95,25,8,0.12)');
+    /* warm red nebula — sun side — brighter */
+    var n1 = ctx.createRadialGradient(sx*0.5, sy*0.5, 0, sx*0.5, sy*0.5, W*0.32);
+    n1.addColorStop(0,   'rgba(180,55,15,0.55)');
+    n1.addColorStop(0.4, 'rgba(130,35,10,0.28)');
     n1.addColorStop(1,   'rgba(0,0,0,0)');
-    ctx.beginPath(); ctx.ellipse(sx*0.5, sy*0.5, W*0.22, H*1.15, -0.12, 0, Math.PI*2);
+    ctx.beginPath(); ctx.ellipse(sx*0.5, sy*0.5, W*0.32, H*1.20, -0.12, 0, Math.PI*2);
     ctx.fillStyle = n1; ctx.fill();
 
-    /* amber halo behind sun */
-    var n2 = ctx.createRadialGradient(sx, sy, SR()*0.3, sx, sy, W*0.28);
-    n2.addColorStop(0,   'rgba(162,82,12,0.24)');
-    n2.addColorStop(0.4, 'rgba(115,52,6,0.08)');
+    /* amber halo behind sun — brighter */
+    var n2 = ctx.createRadialGradient(sx, sy, SR()*0.3, sx, sy, W*0.38);
+    n2.addColorStop(0,   'rgba(200,100,18,0.42)');
+    n2.addColorStop(0.4, 'rgba(145,65,8,0.18)');
     n2.addColorStop(1,   'rgba(0,0,0,0)');
-    ctx.beginPath(); ctx.ellipse(sx, sy, W*0.28, H*0.90, 0, 0, Math.PI*2);
+    ctx.beginPath(); ctx.ellipse(sx, sy, W*0.38, H*0.95, 0, 0, Math.PI*2);
     ctx.fillStyle = n2; ctx.fill();
 
-    /* cold blue far right */
-    var n3 = ctx.createRadialGradient(W*0.90, H*0.40, 0, W*0.90, H*0.40, W*0.25);
-    n3.addColorStop(0,   'rgba(28,45,105,0.22)');
-    n3.addColorStop(0.5, 'rgba(12,25,65,0.08)');
+    /* cold blue far right — more visible */
+    var n3 = ctx.createRadialGradient(W*0.85, H*0.38, 0, W*0.85, H*0.38, W*0.35);
+    n3.addColorStop(0,   'rgba(40,65,160,0.38)');
+    n3.addColorStop(0.5, 'rgba(20,40,100,0.18)');
     n3.addColorStop(1,   'rgba(0,0,0,0)');
-    ctx.beginPath(); ctx.ellipse(W*0.90, H*0.40, W*0.25, H*0.85, 0, 0, Math.PI*2);
+    ctx.beginPath(); ctx.ellipse(W*0.85, H*0.38, W*0.35, H*0.90, 0, 0, Math.PI*2);
     ctx.fillStyle = n3; ctx.fill();
 
-    /* purple mid nebula — adds depth on large screens */
-    var n4 = ctx.createRadialGradient(W*0.50, H*0.35, 0, W*0.50, H*0.35, W*0.30);
-    n4.addColorStop(0,   'rgba(60,30,120,0.14)');
-    n4.addColorStop(0.6, 'rgba(30,15,70,0.05)');
+    /* purple mid nebula — richer */
+    var n4 = ctx.createRadialGradient(W*0.52, H*0.40, 0, W*0.52, H*0.40, W*0.40);
+    n4.addColorStop(0,   'rgba(90,45,180,0.28)');
+    n4.addColorStop(0.5, 'rgba(55,25,110,0.14)');
     n4.addColorStop(1,   'rgba(0,0,0,0)');
-    ctx.beginPath(); ctx.ellipse(W*0.50, H*0.35, W*0.30, H*1.0, 0.18, 0, Math.PI*2);
+    ctx.beginPath(); ctx.ellipse(W*0.52, H*0.40, W*0.40, H*1.1, 0.18, 0, Math.PI*2);
     ctx.fillStyle = n4; ctx.fill();
+
+    /* teal accent top-right */
+    var n5 = ctx.createRadialGradient(W*0.75, H*0.15, 0, W*0.75, H*0.15, W*0.28);
+    n5.addColorStop(0,   'rgba(20,120,140,0.22)');
+    n5.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.ellipse(W*0.75, H*0.15, W*0.28, H*0.55, 0, 0, Math.PI*2);
+    ctx.fillStyle = n5; ctx.fill();
 
     ctx.globalCompositeOperation = 'source-over';
   }
