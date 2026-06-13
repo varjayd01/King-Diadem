@@ -5,12 +5,20 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app -k uvicorn.workers.UvicornWorker --timeout 120 --workers 1 --keep-alive 75 --graceful-timeout 30
     healthCheckPath: /health
+    disk:
+      name: king-diadem-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
+      - key: DB_PATH
+        value: /var/data/king_diadem.db
       - key: PYTHON_VERSION
         value: "3.11.0"
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_API_KEY2
+        sync: false
+      - key: GEMINI_API_KEY3
         sync: false
       - key: GOOGLE_CLIENT_ID
         sync: false
