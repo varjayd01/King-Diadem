@@ -374,16 +374,7 @@ async def me(request: Request):
     if not email:
         return {"logged_in": False}
     credits = get_credits(email) if get_credits else 0
-    # check premium via DB (subscription active)
-    from DATABASE.db import get_conn
-    try:
-        conn = get_conn()
-        row = conn.execute("SELECT 1 FROM payments WHERE user_email=? AND status='subscription_active' LIMIT 1",(email,)).fetchone()
-        conn.close()
-        is_premium = bool(row)
-    except Exception:
-        is_premium = False
-    return {"logged_in": True, "email": email, "name": name, "credits": credits, "premium": is_premium}
+    return {"logged_in": True, "email": email, "name": name, "credits": credits}
 
 
 @app.post("/logout")
@@ -672,15 +663,24 @@ async def run_simulate(data: dict):
 # ── STRIPE ────────────────────────────────────────────────────────
 @app.post("/create-checkout-session")
 async def create_checkout(request: Request, data: dict):
-    email = unquote(request.cookies.get("kd_email") or "")
-    if not email:
-        return JSONResponse({"error": "กรุณาล็อกอินก่อน"}, status_code=401)
+    email = unquote(request.cookies.get("kd_email") or "") or data.get("email", "")
+    plan  = data.get("plan", "basic")
+
+    # เลือก price_id ตาม plan
+    if plan == "civilization":
+        price_id = os.getenv("STRIPE_PREMIUM_PRICE_ID") or os.getenv("STRIPE_PRICE_ID")
+    else:
+        price_id = os.getenv("STRIPE_PRICE_ID") or os.getenv("STRIPE_PREMIUM_PRICE_ID")
+
+    if not price_id:
+        return JSONResponse({"error": "ยังไม่ได้ตั้งค่า STRIPE_PRICE_ID"}, status_code=500)
+
     try:
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
-            line_items=[{"price": os.getenv("STRIPE_PRICE_ID"), "quantity": data.get("quantity", 1)}],
-            mode="payment",
-            customer_email=email,
+            line_items=[{"price": price_id, "quantity": 1}],
+            mode="subscription",
+            customer_email=email or None,
             success_url="https://king-diadem.onrender.com/?payment=success",
             cancel_url="https://king-diadem.onrender.com/?payment=cancel",
         )
@@ -689,28 +689,25 @@ async def create_checkout(request: Request, data: dict):
         return JSONResponse({"error": str(e)}, status_code=500)
 
 
-
-
-# ── STRIPE SUBSCRIPTION ────────────────────────────────────────────
-STRIPE_PREMIUM_PRICE = os.getenv("STRIPE_PREMIUM_PRICE_ID", "price_1TBSPl2Zl7cuvVXCrEQUHDh2")
-
 @app.post("/create-subscription")
 async def create_subscription(request: Request):
     email = unquote(request.cookies.get("kd_email") or "")
-    if not email:
-        return JSONResponse({"error": "กรุณาล็อกอินก่อน"}, status_code=401)
+    price_id = os.getenv("STRIPE_PREMIUM_PRICE_ID") or os.getenv("STRIPE_PRICE_ID")
+    if not price_id:
+        return JSONResponse({"error": "ยังไม่ได้ตั้งค่า STRIPE_PRICE_ID"}, status_code=500)
     try:
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
-            line_items=[{"price": STRIPE_PREMIUM_PRICE, "quantity": 1}],
+            line_items=[{"price": price_id, "quantity": 1}],
             mode="subscription",
-            customer_email=email,
-            success_url="https://king-diadem.onrender.com/?upgrade=success",
-            cancel_url="https://king-diadem.onrender.com/?upgrade=cancel",
+            customer_email=email or None,
+            success_url="https://king-diadem.onrender.com/?payment=success",
+            cancel_url="https://king-diadem.onrender.com/?payment=cancel",
         )
         return {"url": session.url}
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+
 
 @app.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
@@ -723,21 +720,12 @@ async def stripe_webhook(request: Request):
     if event["type"] == "checkout.session.completed":
         sess  = event["data"]["object"]
         email = sess.get("customer_email")
-        mode  = sess.get("mode", "payment")
-        if mode == "subscription" and email:
-            from DATABASE.db import get_conn
-            try:
-                conn = get_conn()
-                conn.execute("INSERT OR REPLACE INTO payments (user_email,amount_usd,stripe_session_id,status) VALUES (?,279,?,'subscription_active')",(email, sess.get("id","")))
-                conn.commit(); conn.close()
-            except Exception: pass
-        elif mode == "payment" and email:
-            qty = 1
-            try:
-                items = stripe.checkout.Session.list_line_items(sess["id"])
-                qty = sum(i.get("quantity",1) for i in items.get("data",[]))
-            except Exception: pass
-            if add_credits: add_credits(email, qty * 10)
+        qty   = 1
+        try:
+            items = stripe.checkout.Session.list_line_items(sess["id"])
+            qty   = sum(i.get("quantity", 1) for i in items.get("data", []))
+        except Exception: pass
+        if email and add_credits: add_credits(email, qty * 10)
     return {"status": "ok"}
 
 
